@@ -881,8 +881,6 @@ do
 	-- keyReminder too: the reminder to set a key is a line in the player's own
 	-- chat, like the others.
 	local SHARE_SKIP = { keyReminder = true, enabled = true, debugClicks = true, never = true, minimap = true, verbose = true }
-	-- Milestones and their toast: a noise preference, like the chat lines.
-	SHARE_SKIP.milestones = true
 
 	-- The same further down. The lock is a state, and a string copied while the
 	-- prompt was unlocked would unlock everybody's, and an unlocked prompt never
@@ -2374,7 +2372,6 @@ function addon:HandleSlash(rawInput)
 		for _, line in ipairs(ns.CureLines()) do self:Print("  " .. line) end
 		-- And who that scan left to another Manners user of your class (Share.lua).
 		for _, line in ipairs(ns.ShareLines()) do self:Print("  " .. line) end
-		for _, line in ipairs(ns.Milestones and ns.Milestones.Lines() or {}) do self:Print("  " .. line) end
 		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
 		-- A word that is nearly a command gets that command named. Anything

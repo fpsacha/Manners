@@ -51,10 +51,6 @@
 -- back. A profile the player picks holds until the next arrival, because only
 -- an arrival is acted on. Nothing here runs on the scan.
 --
--- An automatic switch is not the player turning anything on or off:
--- Milestones' "the switch was turned" (Milestones.lua, M.Switched) is told
--- nothing while both profiles have milestones the same way.
---
 -- New characters (db.global.newCharacters, account-wide): the profile a
 -- character takes at its first login with Manners, written into AceDB's own
 -- record of who uses what (`profileKeys`) before the library reads it, so the
@@ -685,7 +681,7 @@ end
 -- automatic switching
 ---------------------------------------------------------------------------
 
-local auto = { serial = 0, look = false, pending = nil, switching = nil, notBefore = nil, milestones = nil }
+local auto = { serial = 0, look = false, pending = nil, switching = nil, notBefore = nil }
 
 -- Where you are, by the game's word, or nil when it will not say (nothing is
 -- done then). Asked on a zone event, never on the scan, so protected like
@@ -775,7 +771,6 @@ function Step()
 	if held then return Later(RETRY) end
 	auto.pending = nil
 	auto.switching = at
-	auto.milestones = ns.Milestones and ns.Milestones.On and ns.Milestones.On() or false
 	ns.Guard("automatic profile switch", ns.db.SetProfile, ns.db, name)
 	auto.switching = nil
 	if P.Current() ~= name then return end
@@ -1169,17 +1164,3 @@ do
 	end
 end
 
--- Milestones' switch is the profile's, and a profile change is that switch
--- turned (Milestones.lua, M.Switched: whatever was passed is marked without a
--- toast). An automatic switch between two profiles that have it the same way
--- turned nothing, so nothing is marked behind the player's back.
-do
-	local M = ns.Milestones
-	if M and M.Switched and M.On then
-		local Switched = M.Switched
-		function M.Switched(...)
-			if auto.switching and auto.milestones == M.On() then return end
-			return Switched(...)
-		end
-	end
-end

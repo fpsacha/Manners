@@ -84,23 +84,11 @@ mutate(".github/curseforge-description.md",
        expect="curseforge-description.md's opening does not mention profiles that switch by themselves",
        script=V)
 
-mutate(".github/curseforge-description.md",
-       " and a hall of fame for whoever earns them all",
-       "",
-       "storefront: the CurseForge opening leaves out the hall of fame",
-       expect="curseforge-description.md's opening does not mention the hall of fame", script=V)
-
 mutate(".github/wago-description.md",
        "**profiles that switch by themselves** as you enter",
        "**profiles** as you enter",
        "storefront: the Wago page leaves out automatic profiles",
        expect="wago-description.md does not mention profiles that switch by themselves", script=V)
-
-mutate(".github/wago-description.md",
-       ", and for whoever earns them all the **hall of fame**, the *Gentlefolk of Good Manners*.",
-       ".",
-       "storefront: the Wago page leaves out the hall of fame",
-       expect="wago-description.md does not mention the hall of fame", script=V)
 
 mutate(".github/wago-description.md",
        "Kings first, and **a blessing for each class** (Wisdom for mages, say).",

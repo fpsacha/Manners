@@ -61,9 +61,7 @@ do
 				f:close()
 				for key in body:gmatch('L%["(.-)"%]') do
 					checked = checked + 1
-					-- The favour ledger's own Milestones tab is a tab; a page is not.
-					local ledgerTab = key:find("Milestones tab", 1, true) or key:find("no tab, no line", 1, true)
-					if not ledgerTab and (key:find(" tab.", 1, true) or key:find(" tab,", 1, true)
+					if (key:find(" tab.", 1, true) or key:find(" tab,", 1, true)
 						or key:find(" tab (", 1, true) or key:find("on the %s tab", 1, true)
 						or key:find("%s tab", 1, true)) then
 						fail(scenario, path .. " calls a page a tab: " .. key)

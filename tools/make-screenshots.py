@@ -37,7 +37,6 @@ moment the addon is for, who it offers, the looks, the ledger, the window.
     manners-look-STYLE.gif    a buff landing in a look, animated (FILMS: Stormcaller, Lightbringer)
     manners-moment.png        film strips: they buffed you, it lands, it is refused
     manners-ledger.png        the favour ledger with a day of ordinary play in it
-    manners-milestones.png    the ledger's Milestones tab, and a milestone's toast
     manners-options.png       the options window on Start here, in the Simple view
     manners-options-wide.png  the window dragged wide on Who to buff, in two columns
     manners-languages.png     the prompt in German, French and Chinese
@@ -56,9 +55,7 @@ resurrection, cure, courtesy or ask that is a plain buff under that caption,
 an options window that fails render_options' own checks (text cut, rows
 overlapping, a control off the window, contrast under 4.5:1), that is not on
 the page or in the view its picture names or not in two columns where the
-picture says so, a ledger row the queue would never have produced, a
-Milestones tab without the milestones shown or a toast the addon did not put
-up, an animated picture whose frames do not move, a line the client
+picture says so, a ledger row the queue would never have produced, an animated picture whose frames do not move, a line the client
 would cut with an ellipsis, a translated picture still in English, a character
 the font cannot draw (a Chinese line in a Latin face comes out as boxes), or no
 TrueType face at all. Without it the same
@@ -893,59 +890,9 @@ local function day(ns)
 	Mock.advance(30)
 end
 
--- The months behind the day, for the Milestones tab: three earned on their
--- days, one of them from before milestones were kept, the others under way
--- with their numbers. The dates are written as the client writes them (the
--- mock's date() keeps no calendar).
-local function calendar()
-	local real = date
-	date = function(fmt, t)
-		if fmt == "%Y-%m-%d" or fmt == "%Y%m%d" then return os.date(fmt, t) end
-		return real(fmt, t)
-	end
-end
-
-table.insert(R.states, { key = "shot-milestones", title = "shot-milestones", setup = function(ns)
-	calendar()
-	day(ns)
-	local t = ns.db.char.ledger.totals
-	t.received, t.returned, t.letGo, t.group, t.strangers = 164, 137, 21, 58, 212
-	Mock.runTimers(4)
-	local st, now = ns.db.char.milestones, time()
-	st.earned.first = -(now - 61 * 86400)
-	st.earned.asked = now - 20 * 86400
-	st.earned.hundred = now - 3 * 86400
-	st.n.strangers = 64
-	st.people["Rowan Ashvale"] = { n = 7, day = "x" }
-	st.classes.PRIEST, st.classes.MAGE, st.classes.DRUID, st.classes.PALADIN = true, true, true, true
-	ns.addon:HandleSlash("ledger")
-	local window = ns.Ledger.Window()
-	for _, tab in ipairs(window and window.tabs or {}) do
-		if tab.key == "milestones" and tab.scripts.OnClick then tab.scripts.OnClick(tab) end
-	end
-	-- Each milestone's line, which the row hangs short of its edge or its
-	-- link button and leaves to the client to cut.
-	ShotLines = {}
-	for i, def in ipairs(ns.Milestones.LIST) do ShotLines[i] = def.desc end
-end })
-
--- The toast, by the addon's own doing: the first favour ever returned earns
--- Much Obliged, and the toast is drawn past its fade-in.
-table.insert(R.states, { key = "shot-toast", title = "shot-toast",
-	frame = function(ns) return ns.Milestones and ns.Milestones.ToastFrame() end,
-	setup = function(ns)
-		received(ns, "Rowan Ashvale", "PRIEST", 21562)
-		Mock.advance(25)
-		returned(ns, "Rowan Ashvale", 25)
-		Mock.runTimers(4)
-		local f = ns.Milestones.ToastFrame()
-		ShotToast = f and f:IsShown() or false
-		if f and f:IsShown() and f.scripts and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.6) end
-	end })
-
 table.insert(R.states, { key = "shot-ledger", title = "shot-ledger", setup = function(ns)
 	day(ns)
-	-- Months of play behind the day, so the title at the top is one worth
+	-- Months of play behind the day, so the counts at the top are worth
 	-- showing: the lifetime counts are kept apart from the list, which holds
 	-- only its last 200 rows, so these stand beside it as they would in game.
 	local t = ns.db.char.ledger.totals
@@ -1201,8 +1148,8 @@ class Layer:
         white = _last[0]
         _matte[0] = None
         # `may_cut`: lines the addon hangs between two edges for the client to
-        # cut where they do not fit (a milestone's line in the ledger, whose
-        # tooltip has it whole). In the published face a cut one is still a
+        # cut where they do not fit (a ledger row's line, whose tooltip has
+        # it whole). In the published face a cut one is still a
         # picture nobody wants and is refused; in a wider face it says nothing
         # about the published picture, and is noted.
         for line in dict.fromkeys(_cut):
@@ -1772,10 +1719,10 @@ EMBLEMS = {
     135944: "cross",     # Blessing of Light
     135843: "snowflake",  # Frost Armor
     132273: "flask",     # a rogue's poison
-    135955: "ankh",      # Resurrection, and the milestone Back on Your Feet
+    135955: "ankh",      # Resurrection
     136067: "leaf",      # Cure Poison
-    132794: "drop",      # Conjure Water, and the milestone At Your Service
-    134141: "gift",      # the milestones: Much Obliged
+    132794: "drop",      # Conjure Water
+    134141: "gift",      # a gift
     134327: "note",      # You Only Had to Ask
     135946: "flame",     # All Walks of Life
     133471: "letter",    # Thank You, Everyone
@@ -2755,31 +2702,9 @@ def build_ledger(addon_dir, snaps):
     snap, _ = snap_of(R, lua, "shot-ledger", "enUS")
     if snap:
         texts = shown_texts(snap, LedgerTree)
-        expect_names("shot-ledger", texts, ["Mort Defrette", "Rowan Ashvale", "Oskar Fenwick", "Milestones"])
+        expect_names("shot-ledger", texts, ["Mort Defrette", "Rowan Ashvale", "Oskar Fenwick"])
         check_glyphs("shot-ledger", texts)
         snaps["shot-ledger"] = snap
-    # The Milestones tab over the same day, and the toast a milestone earns.
-    snap, _ = snap_of(R, lua, "shot-milestones", "enUS")
-    if snap:
-        texts = shown_texts(snap, LedgerTree)
-        expect_names("shot-milestones", texts, ["Milestones", "Much Obliged", "You Only Had to Ask",
-                                                "A Hundred Thank-Yous", "Earned",
-                                                "The Kindness of Strangers", "64 of 100"])
-        check_glyphs("shot-milestones", texts)
-        snaps["shot-milestones"] = snap
-        snaps["shot-milestones-lines"] = set(rp.to_py(lua.globals().ShotLines) or [])
-    lua.globals().ShotToast = None
-    snap, _ = snap_of(R, lua, "shot-toast", "enUS")
-    if snap:
-        if lua.globals().ShotToast is not True:
-            problem("shot-toast: returning a first favour put no toast up")
-        tree = LedgerTree(snap)
-        under = [r for r in tree.regions.values() if r["kind"] == "FontString" and r.get("text")
-                 and any(c["id"] == snap.get("window") for c in tree.chain(r))]
-        texts = [rp.plain_text(r["text"]).strip() for r in under]
-        expect_names("shot-toast", texts, ["Milestone earned", "Much Obliged"])
-        check_glyphs("shot-toast", texts)
-        snaps["shot-toast"] = snap
     for doubt in (rp.to_py(lua.globals().ShotDoubts) or []):
         problem("shot-ledger: " + doubt)
 
@@ -2996,39 +2921,6 @@ def picture_ledger(snaps):
                               "and who you buffed without being asked.",
                               "", "/manners ledger"]):
         board.text((72, 170 + i * 30), line, 20, fill=(214, 206, 214))
-    return board
-
-
-def picture_milestones(snaps):
-    """The ledger on its Milestones tab, and beside it the toast one of them
-    puts up when it is earned."""
-    layer = ledger_layer("shot-milestones", snaps["shot-milestones"], 2.0,
-                         may_cut=snaps["shot-milestones-lines"])
-    toast = ledger_layer("shot-toast", snaps["shot-toast"], 1.5)
-    w, h = layer.size
-    board = Board(h + 80, seed=37, sun=(0.20, 0.60))
-    x = WIDTH - w - 16
-    board.place(layer, x, 40)
-    # What is left of the window is the toast's and the words'.
-    room = x
-    if toast.size[0] > room - 8:
-        problem("manners-milestones.png: the toast is %d wide, wider than the %d beside the ledger"
-                % (toast.size[0], room))
-    board.shade(30, 60, x - 20, 330, 0.35)
-    board.text((60, 110), "Milestones", 36, bold=True)
-    lines = ["Small things worth doing, kept on a tab",
-             "of the favour ledger, a few of them",
-             "a surprise."]
-    for i, line in enumerate(lines):
-        board.text((62, 170 + i * 30), line, fit_caption(lines, 20, room - 80), fill=(214, 206, 214))
-    ty = 420
-    board.place(toast, (room - toast.size[0]) / 2, ty)
-    below = ty + toast.size[1] + 14
-    board.shade(30, below - 6, x - 20, below + 74, 0.4)
-    said = ["A toast when you earn one,", "and a link to show it in chat."]
-    for i, line in enumerate(said):
-        board.text((room / 2, below + 18 + i * 28), line, fit_caption(said, 20, room - 80),
-                   fill=(228, 222, 226), anchor="mm")
     return board
 
 
@@ -3429,7 +3321,7 @@ def picture_tooltips(snaps):
 
 # The gallery, in the order it tells the story: the moment the addon is for
 # (and the press, on a key, a bar or a controller), who it offers, the looks,
-# the ledger and its milestones, the options window, then languages and the
+# the ledger, the options window, then languages and the
 # colour-blind palette. Each picture's file, its title and description (pasted
 # beside it in the CurseForge and Wago galleries) and the alt text every page
 # that shows it gives it (README.md, the two descriptions). This is the one
@@ -3497,14 +3389,8 @@ GALLERY = [
     ("manners-ledger.png", "The favour ledger",
      "Who buffed you, whether you returned it, and who you buffed without being asked. Open it with "
      "/manners ledger.",
-     "The favour ledger: the title your manners have earned, today's count and all-time totals, then rows "
+     "The favour ledger: today's count and all-time totals, then rows "
      "of favours still owed, returned and let go, and buffs given to the group and to strangers"),
-    ("manners-milestones.png", "Milestones",
-     "Small things worth doing, kept on a tab of the favour ledger: earned ones with their date and a link "
-     "to show in chat, the rest with how far along you are. A toast comes up when you earn one, and earning "
-     "them all puts you among the Gentlefolk of Good Manners, the hall of fame.",
-     "The favour ledger on its Milestones tab: three earned with their dates and a Link in chat button, "
-     "the others with how far along they are, and beside it the toast for Much Obliged"),
     ("manners-options.png", "Set it up in one window",
      "Open it with /manners or the minimap button. Shown on Start here in the Simple view, the short list "
      "of every page: two questions, one key, the favour ledger. Untick Simple view for everything; Move "
@@ -3539,7 +3425,6 @@ DRAWN = {
     "manners-options-wide.png": (picture_options_wide, ("options",)),
     "manners-looks.png": (picture_looks, ("looks",)),
     "manners-ledger.png": (picture_ledger, ("ledger",)),
-    "manners-milestones.png": (picture_milestones, ("ledger",)),
     "manners-languages.png": (picture_languages, ("languages",)),
     "manners-palette.png": (picture_palette, ("palette",)),
 }

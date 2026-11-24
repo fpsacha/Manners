@@ -582,45 +582,6 @@ release has no date line or does not start with `### Highlights`); setting the
 version changes nothing in it: a release the changelog still calls Unreleased
 is named by `ns.BUILD` when the fold is drawn. Standard library only.
 
-## hall.py
-
-The hall of fame's clerk ("Gentlefolk of Good Manners"). `tools/hall.json` is
-the source of truth: a list of `{name, realm, client, class, date, note,
-proof}` (`proof` is the issue the screenshot was posted in; it stays in
-`hall.json` and is in neither output).
-From it the tool writes `HallOfFame.lua` (shipped, drawn by `Hall.lua` in the
-options window) and the block between `<!-- hall:start -->` and
-`<!-- hall:end -->` in `README.md`; neither is edited by hand.
-
-```
-python tools/hall.py check <code>           # decode a code: its fields, whether its checksum holds, and what the screenshot must show
-python tools/hall.py add <code> [--note T] [--proof N]  # append its player to hall.json (refuses a bad checksum or a duplicate), write both outputs
-python tools/hall.py                        # write both outputs from hall.json
-python tools/hall.py --check                # exit 1 when either output is stale, or the code vectors fail
-```
-
-A code is `MANNERS1-<CLIENT>-<CLASS>-<YYYYMMDD>-<NAME>-<REALM>-<CHECK>`:
-capitals, digits and dashes; name and realm as the hex of their UTF-8 bytes
-(`0` for no realm), eight hex digits of checksum over everything before the
-last dash. The checksum catches a typo or a casual edit and is no proof: the
-arithmetic is public, here and in `Hall.lua`, so the author decides who is
-listed. The proof is the screenshot the form asks for: the certificate the
-favour ledger shows beside its Milestones tab (`HallProof.lua`), whose every
-line is read back out of the code. `check` ends with a checklist of what the
-picture must show for that code: the same name, class, client, date, a full
-count and the code itself. The `VECTORS` in the file are codes both sides
-must agree on: `--check` holds the Python to them, `tests/scenarios/hall.lua`
-reads them out of this file and holds `Hall.lua` to them. To list somebody
-from an issue: `check` the code and go down the checklist with the screenshot
-open, `add` it with `--proof <issue number or URL>` (and the issue's optional
-note), commit the three files. 
-`add` builds both outputs before it writes anything, so a README whose
-hall markers do not read leaves `hall.json` as it was; a name, realm or note
-goes into the README's table escaped, so it shows letter for letter and is
-never a link or a picture. The addon takes a row for the player's own by name,
-realm, client and class. Standard library only. `hall.py` is not part of
-`check.py`.
-
 ## maketocs.py
 
 Writes one `Manners_<Flavour>.toc` from `Manners.toc` for each entry in its
@@ -700,7 +661,6 @@ them at a release). The stills are 1280 wide, the animated ones 800:
 | `manners-looks.png` | the same favour in each of the nineteen looks, named: Glass, the default, larger at the top, the other eighteen in six rows of three |
 | `manners-look-stormcaller.gif`, `manners-look-lightbringer.gif` | a buff landing in a look (`FILMS`): the favour waiting, held, then the landing every 0.04 s to 0.80 s, the last frame held; loops |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
-| `manners-milestones.png` | the same ledger on its Milestones tab (three earned, the rest under way) and the toast the first favour returned puts up |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
 
@@ -747,8 +707,6 @@ it claims:
   lacks), that is not on the page its picture names, lacks the Simple view
   switch, is not in two columns where the picture says so, whose header reads
   Stop preview or lacks Move the prompt;
-- a Milestones tab without the milestones the picture shows, or a toast the
-  addon did not put up by itself;
 - an animated picture whose frames are mostly alike, drawn in another look
   than it names, or still saying "buffed you" after the press;
 - a ledger row the queue disagrees with -- a buff given to a class it would
@@ -759,8 +717,8 @@ it claims:
   the four the caption names, a key chip that does not read the bound key or
   hold the controller button's glyph, or a bar slot whose icon is not one
   `tools/icons` keeps;
-- a line the client would cut with an ellipsis (one exception: a milestone's
-  line in the ledger, which the row is built to let the client cut and whose
+- a line the client would cut with an ellipsis (one exception: a ledger
+  row's line, which the row is built to let the client cut and whose
   tooltip has it whole, is refused cut only in the face the published pictures
   are drawn in, Candara; in CI's wider DejaVu it is printed as a note);
 - a translated line still in English;

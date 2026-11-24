@@ -256,9 +256,6 @@ local function PruneSettled(now)
 			-- itself: SENT is the client sending, and the refusal that repeats
 			-- comes after it.
 			if record.landed then ns.NoteLanded(record.name) end
-			-- A cure the game did not refuse either: a milestone's worth
-			-- (Milestones.lua). A refused one left this list in UnsettleLateRefusal.
-			if record.cure and ns.Milestones then ns.Milestones.Note("cure") end
 		end
 	end
 end
@@ -378,9 +375,7 @@ end
 -- anchor would decide whether a group cast counts. Returns what a late
 -- refusal needs to undo it: the members, and whom the given row is under.
 local function SettleGroup(pending, spellId, anchorOwed)
-	-- `member`: filed for somebody the cast covered, not for the one it was
-	-- aimed at (Milestones.lua counts a raid by it).
-	local covered = { buffKey = pending.buffKey, group = pending.group, inGroup = true, member = true }
+	local covered = { buffKey = pending.buffKey, group = pending.group, inGroup = true }
 	local records, repaid = SettleMembers(pending.group.members, pending, covered, spellId)
 	local givenAs
 	if anchorOwed then
@@ -444,7 +439,7 @@ end
 
 -- A press on yourself ([@player]): nobody else can have been reached, so our
 -- spell going out is the whole answer. A buff on yourself is no favour and no
--- gift, so the ledger (and with it the milestones and In character's memory),
+-- gift, so the ledger (and with it In character's memory),
 -- the debts and the requests are not told; the retry cooldown and the rotation
 -- pointer are. Kept for a late refusal like any settle, which backs you off as
 -- it would anybody.
@@ -475,10 +470,7 @@ local function SettleSelf(pending, spellId, castGUID)
 	end
 	local record = { name = pending.name, buffKey = pending.buffKey,
 		gave = pending.gave, at = GetTime(), castGUID = castGUID,
-		landed = true, onSelf = true,
-		-- A cure on yourself earns its milestone once nothing refused it
-		-- (PruneSettled), as one on anybody does.
-		cure = pending.cure }
+		landed = true, onSelf = true }
 	RememberSettled(record)
 	-- A scroll: its cast has only begun (castingScroll), and which one it is
 	-- tells two scrolls making the same imbue apart (Core.lua, ImbueScroll).
@@ -774,7 +766,6 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		listedAtSettle = ListedAs(pending.name) ~= nil, spoke = pending.spoke,
 		-- A shout nothing measured them inside of is not a cast on them.
 		landed = not unheard,
-		cure = pending.cure,
 		group = pending.group, members = members, givenAs = givenAs })
 	ns.pendingClick = nil
 end

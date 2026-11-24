@@ -41,7 +41,7 @@ hidden control found by search, with the switch to turn on first: only while
 that switch is off, and only where `parentsIf`, path -> function, does not
 say the switch would show nothing, as for a courtesy another class has). A
 fold marked `plain = true` holds no setting and gets no fine-print caption
-over it (the hall of fame). A page of more than three titled sections
+over it (What's new). A page of more than three titled sections
 names its sub-divisions in `subpages` (lists of its section keys, seven at
 most, an optional `title`; `tests/scenarios/subpages.lua` holds the shape):
 a section named in none (the line a page opens with) is drawn with each. They live

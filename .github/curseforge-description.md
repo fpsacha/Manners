@@ -8,7 +8,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 
 - **One press, never a hunt.** Whoever buffed you, your group, somebody who asks in chat, a passer-by missing your buff: the right person is on the prompt, in a sensible order, and your target comes back after every cast.
 - **More than buffs.** Your resurrection for the group's dead, a cure for a poison, curse or disease, and a mage's or warlock's courtesies (water, portals, healthstones, summons) for whoever asks, and a polite ask for a buff you lack, if you tick it. Your own armor or aura comes up as "You" when it lapses, and a poison or an oil too once you tick it.
-- **Good manners, kept.** A favour ledger with titles, thirteen milestones and a hall of fame for whoever earns them all. If your character should speak, over three thousand In character lines, about a hundred of them the Forsaken's own.
+- **Good manners, kept.** A favour ledger of who buffed you, what you gave back and who you buffed first. If your character should speak, over three thousand In character lines, about a hundred of them the Forsaken's own.
 
 Yours to arrange: twenty-nine looks, a blessing for each class for paladins, profiles that switch by themselves as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
 
@@ -20,7 +20,7 @@ Yours to arrange: twenty-nine looks, a blessing for each class for paladins, pro
 
 ![The Paladin look as a buff lands: the sun of the Light flares round the spell](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-lightbringer.gif)
 
-![The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
+![The favour ledger: today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
 
 ### New lately
 
@@ -83,11 +83,7 @@ Every class can be reminded of food, flasks, elixirs, scrolls and a stone, oil o
 
 ### The good-manners side
 
-**The favour ledger** (`/manners ledger`): who buffed you and with what, whether you returned it, who you buffed unasked. Favours returned earn a title, from *Well Brought Up* at 10 to *The Very Soul of Courtesy* at 1,000.
-
-**Milestones**: thirteen of them, from *Much Obliged* for your first favour returned to *The Kindness of Strangers* for a hundred strangers buffed unasked, three hidden until earned. A small toast greets each one, never in a fight.
-
-**The hall of fame**: earn every milestone your character can, and *Start here* gives you a code and a certificate. Post a screenshot with the code on [GitHub](https://github.com/fpsacha/Manners#gentlefolk-of-good-manners) and your name joins the *Gentlefolk of Good Manners*, on the addon's page and inside the addon.
+**The favour ledger** (`/manners ledger`): who buffed you and with what, whether you returned it, who you buffed unasked.
 
 **What it says**, off until you turn it on: a line with each buff, from sets you can edit, or **In character (fits your race and class)**, picked at the click for your people, your class and the moment. A dwarf has his brogue, an orc his *Lok'tar ogar*, and it speaks all nine languages.
 

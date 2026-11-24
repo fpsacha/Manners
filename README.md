@@ -44,9 +44,8 @@ of Pandaria Classic** and **retail**, in nine languages.
   after a death, your team freely before the gates open.
 - **A blessing for each class.** A paladin picks the blessing each class is
   offered first: Wisdom for mages, say, where the order would give them Kings.
-- **The favour ledger, milestones and a hall of fame.** Who buffed you, what
-  you gave back, the title your manners have earned and thirteen milestones;
-  earn them all and you join the *Gentlefolk of Good Manners*.
+- **The favour ledger.** Who buffed you, what you gave back, and who you
+  buffed first.
 - **Profiles that switch by themselves.** One for the open world, one for
   dungeons, raids or battlegrounds, chosen as you arrive, and a profile
   manager that can use, duplicate, rename or delete any of them, with *Undo*.
@@ -780,12 +779,12 @@ prompt away while you ride.
 
 ## The favour ledger
 
-<img src=".github/media/manners-ledger.png" alt="The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers" width="640">
+<img src=".github/media/manners-ledger.png" alt="The favour ledger: today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers" width="640">
 
 Who buffed you, with what and when, whether you returned it, and who you
 buffed without being asked, newest first. Today's count ("Returned 12 of 14
 favours today") and the all-time totals sit at the top, then tabs for
-everything, favours, buffs you gave, and *Milestones*. A favour you did not
+everything, favours, and buffs you gave. A favour you did not
 return says why: the time ran out, nothing you cast helps them, they already
 had your buff, or you put them on the never-offer list. A group buff counts
 as one buff given and says how many who needed it got it.
@@ -793,33 +792,7 @@ as one buff given and says how many who needed it got it.
 Open it with `/manners ledger`, a shift-click on the minimap button, or *Open
 the ledger* on Start here. It keeps the last 200 entries per character;
 *Clear* empties the list and today's count but keeps favours still owed, the
-all-time totals and your title.
-
-**Titles.** Favours you return earn you a title: *Well Brought Up* at 10, then
-*Well Mannered*, *Courteous*, *Gracious* at 100, *Magnanimous*, *Paragon of
-Etiquette* and, at 1,000, *The Very Soul of Courtesy*. The one you hold sits
-at the top of the ledger with how far you are from the next ("37 of 50 to
-Courteous"), and in the minimap tooltip. A new title gets one line in chat.
-
-**Milestones.** Thirteen marks of good manners, read from what the ledger
-records: *Much Obliged* for the first favour you return, *You Only Had to Ask*
-for answering a request in chat, *All Walks of Life* for favours returned to
-five different classes, *Thank You, Everyone* for ten different people in one
-day, *Old Acquaintance* for thanking the same person on ten different days,
-*The Kindness of Strangers* for a hundred strangers buffed unasked, *A Hundred
-Thank-Yous*, *Back on Your Feet* for a resurrection through the prompt, *A
-Clean Bill of Health* for a cure, *At Your Service* for a courtesy on request,
-and three hidden ones that say what they were once earned. The *Milestones*
-tab lists them with how far along each is; an earned one has a small speech-bubble button, *Link in chat*,
-which puts a line about it in your chat box and sends nothing until you press
-Enter. A new milestone gets a small toast for a few seconds and one line in
-your chat window: never in a fight, never over the prompt, at most one a
-minute, and a click sends it away. Nothing counts presses: the same stranger
-counts again only once the buff you gave would have run out, and the same
-person once a day. *Milestones* on Start here, under *Favour ledger*,
-switches all of it off (what was earned is kept); *Show it on screen too* and *Play the
-sound* sit under it. They are kept per character, and neither *Clear* nor a
-profile reset touches them.
+all-time totals.
 
 ## The prompt's look
 
@@ -1027,8 +1000,7 @@ no room for. Defaults are in brackets.
   your chat window says where to set it, about twenty seconds after you log
   in, never in a fight, on three logins at most for a character, and not at
   all once a key is set or the Manners macro is made.
-- ***Favour ledger***: today's count, *Open the ledger*, and *Milestones* (on)
-  with *Show it on screen too* and *Play the sound* under it.
+- ***Favour ledger***: today's count and *Open the ledger*.
 - ***Minimap and chat window***: *Show minimap button*; *Show what Manners is
   doing in my chat window* (on), a line in your own chat when somebody buffs
   you, when a favour is repaid, and when a click fails, never said to anybody
@@ -1430,7 +1402,7 @@ with two sections: ***The prompt in a fight*** and ***Buttons for when you need 
 
 A profile holds every setting on the other pages: who is offered, when, what
 is said, how the prompt looks and where it sits. Every character starts on
-*Default*; the favour ledger, the milestones and what you are owed stay
+*Default*; the favour ledger and what you are owed stay
 with the character whatever profile it is on.
 
 The page opens with every profile, one line each, the one in use first and
@@ -1861,34 +1833,6 @@ git commit -am "Manners X.Y.Z"
 git push origin master
 git tag vX.Y.Z && git push origin vX.Y.Z
 ```
-
-## Gentlefolk of Good Manners
-
-The hall of fame, for players who have earned every milestone of the favour
-ledger their character can earn. *Start here* has a fold of that name under the
-favour ledger: it says how far along you are, and when the last milestone is
-yours it shows a code and a button, *Show my certificate*. To be listed:
-
-1. Press *Show my certificate*. The favour ledger opens on its *Milestones*
-   tab with your certificate beside it: your character's name, class and
-   client, the day of the last milestone, the count, every milestone with its
-   date, the code and the addon's version.
-2. Take a screenshot of it with the game's Print Screen key. It is saved in
-   the game's Screenshots folder.
-3. Post the screenshot and the code with the
-   [Hall of fame form](https://github.com/fpsacha/Manners/issues/new?template=hall-of-fame.yml).
-
-The screenshot is the proof, and your name is added here and to the list
-inside the addon with the next release. It is an invitation and nothing more:
-nothing of value is asked for it. The fold and the certificate go away while
-*Milestones* is switched off.
-
-<!-- hall:start -->
-<!-- Generated by tools/hall.py from tools/hall.json. Do not edit by hand. -->
-
-*Nobody is listed yet. The first place is open.*
-
-<!-- hall:end -->
 
 ## Licence
 

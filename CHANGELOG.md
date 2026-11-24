@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+*24 November 2026*
+
+### Highlights
+- **No more achievements.** The milestones, their toasts, the hall of fame and
+  the ledger's titles are gone. The favour ledger itself stays.
+
 ## 1.12.0
 
 *24 November 2026*

@@ -349,8 +349,6 @@ local defaults = {
 		-- (Options/Start.lua, ns.KeyNudge): three logins at most.
 		keyReminder = true,
 		debugClicks = false, -- raw attribute dump on every click; on via /manners clicks
-		-- Milestones (Milestones.lua): the whole of it, its toast, the toast's sound.
-		milestones = { enabled = true, toast = true, sound = true },
 
 		buff = {
 			choice = "auto",
@@ -5983,6 +5981,11 @@ function ns.ClampSettings()
 		if filters.skipIfBuffed == false then filters.whenBuffed = "always" end
 		filters.skipIfBuffed = nil
 	end
+	-- The milestones and the hall of fame went in 1.12.1: their switch and
+	-- their record are dropped, nothing else is touched.
+	profile.milestones = nil
+	local char = addon.db.char
+	if type(char) == "table" then char.milestones = nil end
 
 	-- The icon is bound to the panel by both dimensions, or it overhangs it
 	-- and pushes the name off; clamped here as well as in the slider, since a
@@ -6695,10 +6698,6 @@ function addon:RefreshConfig(event)
 	-- Guarded: nil if Options/Launcher.lua failed to load, and a throw here
 	-- would take StartScanner with it.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
-	-- The Milestones switch is the profile's and the milestones the
-	-- character's: what was passed while another profile had it off is marked
-	-- without a toast, as the switch itself marks it (Milestones.lua).
-	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Switched) end
 	-- An import's undo belongs to the profile it was made on:
 	-- ProfileChangedForUndo decides what a switch, copy or reset does to it,
 	-- and an import or its undo calling this ends it (an import sets it again).

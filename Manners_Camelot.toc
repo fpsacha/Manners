@@ -58,10 +58,6 @@ ThankPress.lua
 HunterPet.lua
 HunterPetHints.lua
 Ledger.lua
-Milestones.lua
-HallOfFame.lua
-Hall.lua
-HallProof.lua
 AutoProfile.lua
 WhatsNew.lua
 Looks\Looks.lua

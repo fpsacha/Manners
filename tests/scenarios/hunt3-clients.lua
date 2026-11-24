@@ -1,14 +1,7 @@
 -- The third hunt of the day, client by client:
 --
---   * "Nobody Left Out" counts everybody one cast reached where a buff has no
---     group version: Mists' and retail's cast on one member that lands on the
---     whole raid, and a shout's hearers (Milestones.lua, M.Settled);
 --   * a druid's Revive on Classic Era is a season's rune: a druid who has not
---     learned it has no resurrection, no milestone for one and no switches
---     (Resurrect.lua, Res.Has);
---   * a class with no buff for anybody is shown no milestone it cannot earn
---     and no hall of fame that cannot open (Milestones.lua, Available;
---     Hall.lua, Hall.Shown);
+--     learned it has no resurrection and no switches (Resurrect.lua, Res.Has);
 --   * on Mists the refreshment in the bags asks a level of whoever eats it:
 --     somebody below it is handed only what suits them (Courtesy.lua, Plan);
 --   * a ritual, a Soulwell, a portal or a conjure still cooling down is not
@@ -27,89 +20,12 @@ local function noErrors(scenario, ns)
 	end
 end
 
--- A clean ledger and no milestone yet.
+-- A clean ledger.
 local function begin(ns, scenario)
 	freshPrompt(ns, scenario)
 	ns.db.char.ledger = nil
-	ns.db.char.milestones = nil
 	ns.Ledger.Load()
-	return ns.Milestones
 end
-
-local function earned(ns, id)
-	local st = ns.db.char.milestones
-	return st and st.earned and st.earned[id]
-end
-
-local function settle(ns)
-	Mock.runTimers(ns.Ledger.PROMOTE_SECONDS + 1)
-end
-
-local function again(ns)
-	ns.db.char.milestones.earned.raid = nil
-	ns.db.char.milestones.n.raid = 0
-	Mock.advance(1200)
-end
-
-local function listed(ns, id)
-	for _, row in ipairs(ns.Milestones.Rows()) do
-		if row.id == id then return true end
-	end
-	return false
-end
-
----------------------------------------------------------------------------
--- everybody in the raid, by one cast with no group version
----------------------------------------------------------------------------
-
-Mock.reset()
-do
-	local scenario = "hunt3-clients: one cast that lands on the whole raid has left nobody out"
-	local ns = load(scenario)
-	if ns then
-		begin(ns, scenario)
-		Mock.raid = { size = 10 }
-		local others = {}
-		for i = 1, 8 do others[i] = "Raider " .. string.char(64 + i) .. "a" end
-
-		-- A buff given to one member that reached the other eight.
-		ns.Ledger.Settled("Raider Ia", nil, { inGroup = true, class = "WARRIOR", buffKey = "fortitude",
-			wideMembers = others }, 21562)
-		settle(ns)
-		if not earned(ns, "raid") then
-			fail(scenario, "one cast on a member that landed on the whole raid earned nothing")
-		end
-
-		-- The same when the one it was aimed at was owed a favour: the row is
-		-- the favour returned, and the cast reached the rest all the same.
-		again(ns)
-		ns.Ledger.Received({ name = "Raider Ia", class = "PRIEST", key = 21562 })
-		Mock.advance(5)
-		ns.Ledger.Settled("Raider Ia", { at = GetTime() - 5 }, { inGroup = true, buffKey = "fortitude",
-			wideMembers = others }, 21562)
-		settle(ns)
-		if not earned(ns, "raid") then
-			fail(scenario, "a favour returned by a cast that landed on the whole raid earned nothing")
-		end
-
-		-- A shout that everybody heard.
-		again(ns)
-		ns.Ledger.Settled("Raider Ia", nil, { inGroup = true, class = "WARRIOR", buffKey = "battleshout",
-			selfCast = true, shoutMembers = others }, 6673)
-		settle(ns)
-		if not earned(ns, "raid") then fail(scenario, "a shout the whole raid heard earned nothing") end
-
-		-- Eight of nine are not everybody.
-		again(ns)
-		others[8] = nil
-		ns.Ledger.Settled("Raider Ia", nil, { inGroup = true, class = "WARRIOR", buffKey = "fortitude",
-			wideMembers = others }, 21562)
-		settle(ns)
-		if earned(ns, "raid") then fail(scenario, "a cast that reached eight of nine was the whole raid") end
-		noErrors(scenario, ns)
-	end
-end
-Mock.reset()
 
 ---------------------------------------------------------------------------
 -- a season's rune
@@ -129,17 +45,10 @@ do
 		begin(ns, scenario)
 		ns.ProbeCapabilities()
 		if ns.Resurrect.Has() then fail(scenario, "a druid who cannot learn Revive is taken to have a resurrection") end
-		if listed(ns, "res") then fail(scenario, "the milestone for a resurrection is shown to that druid") end
-		local _, of = ns.Milestones.Tally()
 		-- Learned (Season of Discovery): his from then on.
 		learned = true
 		ns.ProbeCapabilities()
 		if not ns.Resurrect.Has() then fail(scenario, "a druid who has learned Revive is taken to have none") end
-		if not listed(ns, "res") then fail(scenario, "the milestone is not shown once Revive is learned") end
-		local _, after = ns.Milestones.Tally()
-		if after ~= of + 1 then
-			fail(scenario, ("the milestones to earn went from %s to %s on learning it"):format(tostring(of), tostring(after)))
-		end
 		noErrors(scenario, ns)
 	end
 	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
@@ -149,7 +58,7 @@ Mock.reset()
 -- A priest too low to have trained his still has one to look forward to.
 Mock.reset()
 do
-	local scenario = "hunt3-clients: a priest who has not trained his resurrection is still shown the milestone"
+	local scenario = "hunt3-clients: a priest who has not trained his resurrection still has one"
 	Mock.setFlavour("vanilla")
 	Mock.class = "PRIEST"
 	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
@@ -162,80 +71,12 @@ do
 		ns.ProbeCapabilities()
 		if ns.caps.res then
 			fail(scenario, "SKIPPED -- the priest has a resurrection learned")
-		elseif not ns.Resurrect.Has() or not listed(ns, "res") then
+		elseif not ns.Resurrect.Has() then
 			fail(scenario, "a priest with no rank trained yet is taken to have no resurrection at all")
 		end
 		noErrors(scenario, ns)
 	end
 	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
-end
-Mock.reset()
-
----------------------------------------------------------------------------
--- a class with nothing for anybody
----------------------------------------------------------------------------
-
-Mock.reset()
-do
-	local scenario = "hunt3-clients: a class with no buff for others is promised no milestone it cannot earn"
-	Mock.class = "ROGUE"
-	local ns = load(scenario)
-	if ns then
-		local M = begin(ns, scenario)
-		if not (ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS.ROGUE) then
-			fail(scenario, "SKIPPED -- a rogue has a buff for others here")
-		else
-			local earnedNow, of = M.Tally()
-			if of ~= 0 or earnedNow ~= 0 then
-				fail(scenario, ("a rogue is told %s of %s milestones"):format(tostring(earnedNow), tostring(of)))
-			end
-			if #M.Rows() ~= 0 then fail(scenario, #M.Rows() .. " milestone(s) listed for a rogue") end
-			if ns.Hall.Shown() then fail(scenario, "the hall of fame is shown to a character with nothing to earn") end
-			local shown
-			local tab = { key = "milestones", SetShown = function(_, on) shown = on end }
-			if M.Page({ tabs = { tab } }, "milestones") ~= nil or shown ~= false then
-				fail(scenario, "the ledger keeps a Milestones tab with nothing in it")
-			end
-			-- One earned on another client's rules, or before, is still his.
-			ns.db.char.milestones.earned.first = 1000
-			earnedNow, of = M.Tally()
-			if not (earnedNow == 1 and of == 1 and listed(ns, "first")) then
-				fail(scenario, "a milestone already earned dropped off the list")
-			end
-			if not ns.Hall.Shown() then fail(scenario, "the hall of fame is hidden from one with a milestone") end
-			if M.Page({ tabs = { tab } }, "milestones") ~= M or shown ~= true then
-				fail(scenario, "the tab is gone with a milestone to show")
-			end
-		end
-		noErrors(scenario, ns)
-	end
-end
-Mock.reset()
-
--- A class with a buff keeps all ten, and one with none but a resurrection
--- keeps that.
-Mock.reset()
-do
-	local scenario = "hunt3-clients: the milestones read from the ledger stay for a class with a buff to give"
-	local ns = load(scenario)
-	if ns then
-		local M = begin(ns, scenario)
-		for _, id in ipairs({ "first", "asked", "classes", "day10", "regular", "strangers", "hundred",
-			"swift", "raid", "week" }) do
-			if not listed(ns, id) then fail(scenario, id .. " is not listed for a " .. tostring(ns.caps.class)) end
-		end
-		if not ns.Hall.Shown() then fail(scenario, "the hall of fame is hidden from a class with milestones") end
-		local real = ns.caps.class
-		ns.caps.class = "SHAMAN"
-		if ns.CLASSES_WITHOUT_BUFFS.SHAMAN then
-			if listed(ns, "first") then fail(scenario, "Forever's shaman is shown a favour to return") end
-			if not listed(ns, "res") then fail(scenario, "Forever's shaman lost the milestone for a resurrection") end
-		else
-			fail(scenario, "SKIPPED -- Forever's shaman has a buff for others")
-		end
-		ns.caps.class = real
-		noErrors(scenario, ns)
-	end
 end
 Mock.reset()
 

@@ -347,7 +347,7 @@ for _, locale in ipairs(LOCALES) do
 		-- Top to bottom: the summary, the tiles, the tabs, the list, the footer.
 		local list = rect(window.rows[1])
 		local last = rowRects[#rowRects]
-		local above = { { "title", window.rank }, { "headline", window.headline },
+		local above = { { "headline", window.headline },
 			{ "summary line", window.subline } }
 		for _, stat in ipairs(window.stats) do above[#above + 1] = { "tile", stat.plate } end
 		for _, tab in ipairs(window.tabs) do above[#above + 1] = { "tab", tab } end
@@ -369,24 +369,9 @@ for _, locale in ipairs(LOCALES) do
 		if head and sub and overlaps(head, sub) then
 			fail(scenario, "the headline and the summary line overlap")
 		end
-		-- The title over its bar, the band above it and the headline below, and
-		-- its name and the way to the next apart on their line.
-		local rank = window.rank and rect(window.rank)
-		if rank and head and overlaps(rank, head) then
-			fail(scenario, "the title and the headline overlap")
-		end
-		if rank and rank[4] > win[4] - 30 + 0.01 then
-			fail(scenario, "the title reaches up into the title band")
-		end
-		local name, progress = window.rank and rect(window.rank.name), window.rank and rect(window.rank.progress)
-		if name and progress and overlaps(name, progress) then
-			fail(scenario, ("the title %s and the way to the next %s overlap"):format(
-				say(window.rank.name), say(window.rank.progress)))
-		end
-		for _, part in ipairs({ name, progress }) do
-			if rank and not inside(part, rank) then
-				fail(scenario, "the title's line reaches outside its own frame")
-			end
+		-- The headline under the title band.
+		if head and head[4] > win[4] - 30 + 0.01 then
+			fail(scenario, "the headline reaches up into the title band")
 		end
 		for i = 1, #window.tabs - 1 do
 			local a, b = rect(window.tabs[i]), rect(window.tabs[i + 1])
@@ -540,9 +525,7 @@ end
 -- ------------------------------------------------------------------ ledgerui 5
 -- Each tab: the one chosen is the one marked, and it lists what it says, newest
 -- first, each row's badge the word and the colour for its entry and its stripe
--- the same colour. The fourth tab lists milestones, not entries: its rows are
--- Milestones.lua's, in its order, and what each one reads is milestones.lua's
--- to say.
+-- the same colour.
 do
 	local scenario = "ledgerui: each tab lists its own rows, badged"
 	withWindow(scenario, "enUS", function(ns)
@@ -563,17 +546,12 @@ do
 						marked and "marked too" or "not marked"))
 				end
 			end
-			local marks = tab.key == "milestones"
-			local list = marks and ns.Milestones.Rows() or ns.Ledger.Entries(tab.key)
+			local list = ns.Ledger.Entries(tab.key)
 			if #list == 0 then fail(scenario, "SKIPPED -- the " .. tab.key .. " tab has nothing to list") end
 			for i, row in ipairs(window.rows) do
 				local e = list[i]
 				if e and not shown(row) then
 					fail(scenario, ("the %s tab shows no row %d with %d to list"):format(tab.key, i, #list))
-				elseif e and marks then
-					if row.entry ~= e then
-						fail(scenario, ("the milestones tab's row %d is not its %dth milestone"):format(i, i))
-					end
 				elseif e then
 					if row.entry ~= e then
 						fail(scenario, ("the %s tab's row %d is not its %dth entry, newest first"):format(tab.key, i, i))

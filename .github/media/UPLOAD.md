@@ -11,7 +11,7 @@ shipped (`.pkgmeta` ignores `.github`).
 The order tells the story a browsing player needs, first picture first: the
 moment the addon is for (somebody buffed you, one press, your buff lands) and
 the press itself on a key, a bar or a controller; who is offered; the looks;
-the favour ledger and its milestones; the options window; then languages and
+the favour ledger; the options window; then languages and
 the colour-blind palette.
 
 Redraw them first if anything in the addon's look changed since the last
@@ -54,11 +54,10 @@ CurseForge description, which embeds them from GitHub once `master` holds them.
 | 10 | `manners-look-lightbringer.gif` | The Paladin look, as a buff lands | Animated: somebody buffed you, you press, and the sun of the Light flares round your spell. |
 | 11 | `manners-moment.png` | Three moments | Film strips of one favour, four frames each: somebody buffs you, your buff lands, the game refuses it. Frames at 0.05, 0.15, 0.30 and 0.60 seconds. |
 | 12 | `manners-ledger.png` | The favour ledger | Who buffed you, whether you returned it, and who you buffed without being asked. Open it with /manners ledger. |
-| 13 | `manners-milestones.png` | Milestones | Small things worth doing, kept on a tab of the favour ledger: earned ones with their date and a link to show in chat, the rest with how far along you are. A toast comes up when you earn one, and earning them all puts you among the Gentlefolk of Good Manners, the hall of fame. |
-| 14 | `manners-options.png` | Set it up in one window | Open it with /manners or the minimap button. Shown on Start here in the Simple view, the short list of every page: two questions, one key, the favour ledger. Untick Simple view for everything; Move the prompt is one click away in the header. |
-| 15 | `manners-options-wide.png` | Drag it wide | Drag the corner and a page flows into two columns, three on an ultrawide screen. Shown on Who to buff for a paladin: who is offered, what to cast, the group, Resurrection and cures on one screen. |
-| 16 | `manners-languages.png` | In your language | English and eight translations, chosen by your game client. Shown here in German, French and Simplified Chinese. |
-| 17 | `manners-palette.png` | A palette for colour blindness | The five reason colours redrawn for red-green colour blindness, one setting away under Look > Style. |
+| 13 | `manners-options.png` | Set it up in one window | Open it with /manners or the minimap button. Shown on Start here in the Simple view, the short list of every page: two questions, one key, the favour ledger. Untick Simple view for everything; Move the prompt is one click away in the header. |
+| 14 | `manners-options-wide.png` | Drag it wide | Drag the corner and a page flows into two columns, three on an ultrawide screen. Shown on Who to buff for a paladin: who is offered, what to cast, the group, Resurrection and cures on one screen. |
+| 15 | `manners-languages.png` | In your language | English and eight translations, chosen by your game client. Shown here in German, French and Simplified Chinese. |
+| 16 | `manners-palette.png` | A palette for colour blindness | The five reason colours redrawn for red-green colour blindness, one setting away under Look > Style. |
 
 ## After
 

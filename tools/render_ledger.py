@@ -54,7 +54,7 @@ rp.SPELL_ICONS.update({
     135906: ("Blessing Might", (0.35, 0.12, 0.05), (1.0, 0.70, 0.35)),
     134400: ("Question Mark", (0.15, 0.15, 0.15), (0.6, 0.6, 0.6)),
 })
-# The milestones' icons (Milestones.lua, LIST), tiles in the same way.
+# More icons, tiles in the same way.
 rp.SPELL_ICONS.update({
     134141: ("Gift", (0.30, 0.08, 0.10), (1.0, 0.55, 0.55)),
     134327: ("Note", (0.28, 0.24, 0.14), (1.0, 0.92, 0.70)),
@@ -163,8 +163,7 @@ def draw_window(snap, px=rp.ZOOM * rp.SUPER):
     wrect = tree.rect(win["id"]) if win else None
     if not wrect:
         wrect = (40, 300, 400, 740)
-    # A state may name a second frame the picture holds too (the certificate
-    # beside the window).
+    # A state may name a second frame the picture holds too.
     also = regions.get(snap.get("also"))
     arect = tree.rect(also["id"]) if also else None
     if arect:

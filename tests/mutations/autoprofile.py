@@ -180,13 +180,6 @@ mutate(A,
 
 # --- quiet ---
 
-# An automatic switch is the Milestones switch turned.
-mutate(A,
-       "\t\t\tif auto.switching and auto.milestones == M.On() then return end\n",
-       "",
-       "autoprofile: an automatic switch marks milestones as passed",
-       expect=QUIET, script=S)
-
 mutate(A,
        "\tif st.say then\n\t\taddon:Print(L[\"profile %s (%s)\"]",
        "\tif true then\n\t\taddon:Print(L[\"profile %s (%s)\"]",

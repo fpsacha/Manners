@@ -125,7 +125,7 @@ Res.SPELLS = SPELLS
 
 -- Every resurrection of every class on every client, by id: a row of the
 -- favour ledger that holds one was somebody brought back, whichever character
--- or client wrote it (Milestones.lua counts no buff for it).
+-- or client wrote it.
 local EVERY = {}
 for _, set in pairs(SPELLS) do
 	for _, mine in pairs(set) do
@@ -152,7 +152,7 @@ end
 local Info -- below
 
 -- Whether this class has a resurrection on this client at all, learned or
--- not: what shows the two switches on Who to buff, and the milestone. One a
+-- not: what shows the two switches on Who to buff. One a
 -- season's rune teaches (`rune`) only once it is learned: on every other
 -- realm of that client the class has none.
 function Res.Has()
@@ -737,9 +737,6 @@ function Res.OnEvent(event, unit, second, third, fourth)
 		Res.pending = nil
 		Rest(pending, ACCEPT_SECONDS)
 		ns.Trail("outcome", "resurrection cast", pending.name)
-		-- The cast went its whole length and the game took it: a milestone's
-		-- worth (Milestones.lua). A refusal or an interruption comes below.
-		if ns.Milestones then ns.Milestones.Note("res") end
 		-- The favour ledger, as something given: one row, with how many a
 		-- cast for the whole group reached (Ledger.lua, Settled).
 		local others

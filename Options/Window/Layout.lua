@@ -15,7 +15,7 @@
 --
 -- A section is { header = "tab.key" (the model header's name is its title) or
 -- title = L[...], fold = true below the hairline (plain = true for a fold that
--- is no fine print and wants no caption over it: the hall of fame), key =
+-- is no fine print and wants no caption over it: What's new), key =
 -- "<page>.<name>" (stable: an open fold is remembered by it), items = { ... } }. An item is "tab.key"
 -- or { "tab.key", indent (true one step in, 2 two: a choice under a switch
 -- that is itself in), pair (may share a row with the item after it; pairs
@@ -300,19 +300,6 @@ ns.WindowLayout = {
 				{ key = "general.ledger", header = "general.ledgerHeader", items = {
 					"general.ledgerSummary",
 					"general.ledgerOpen",
-					"general.milestones", { "general.milestoneToast", indent = true }, { "general.milestoneSound", indent = true },
-				} },
-				-- The hall of fame (Hall.lua), folded under the ledger it is
-				-- earned by: how far along, the code once every milestone is
-				-- earned (a box that only copies: WidgetsEntry.lua, READ_ONLY),
-				-- and who is listed. The two notes keep the fold on the page
-				-- while there is no code yet. `plain`: it holds no setting, so
-				-- the line that introduces the fine print is not drawn over it.
-				{ key = "general.hall", header = "general.hallHeader", fold = true, plain = true, items = {
-					{ "general.hallNote", standIn = true },
-					"general.hallCertificate",
-					"general.hallCode",
-					{ "general.hallList", standIn = true },
 				} },
 				-- Unfolded, and on the one page that never hides: the chat lines
 				-- are what people look for when they annoy them.
@@ -350,7 +337,7 @@ ns.WindowLayout = {
 			subpages = {
 				{ "general.lead", "general.firstRun", "general.who" },
 				{ "general.key" },
-				{ "general.ledger", "general.hall" },
+				{ "general.ledger" },
 				{ "general.minimap" },
 				{ "general.news" },
 			},

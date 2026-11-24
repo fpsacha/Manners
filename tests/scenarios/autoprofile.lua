@@ -402,20 +402,9 @@ end
 do
 	local scenario = "autoprofile: an automatic switch says one line and turns nothing on or off"
 	with(scenario, function(ns)
-		local M = ns.Milestones
 		make(ns, "Raid")
 		switchOn(ns)
 		rule(ns, "raid", "Raid")
-		-- Milestones on in both profiles, the ledger's past read, and one
-		-- passed that nothing has looked at yet.
-		ns.db.char.milestones = nil
-		M.Switched()
-		local st = ns.db.char.milestones
-		if not (type(st) == "table" and type(st.n) == "table" and st.seeded) then
-			fail(scenario, "SKIPPED -- no milestones to count in")
-			return
-		end
-		st.n.strangers = 100
 		local hints, reminders, welcomed = ns.db.char.hints, ns.db.char.keyReminders, ns.db.char.welcomed
 		local firstRun = ns.db.profile.firstRun
 		local repaints = 0
@@ -436,12 +425,6 @@ do
 		if not (line:find("Raid", 1, true) and line:find("in a raid", 1, true)) then
 			fail(scenario, "the line does not name the profile and the place: " .. line)
 		end
-		if st.earned.strangers ~= nil then
-			fail(scenario, "the switch marked a milestone as passed, as turning Milestones on does: "
-				.. tostring(st.earned.strangers))
-		end
-		local toast = M.ToastFrame()
-		if toast and toast:IsShown() then fail(scenario, "a toast for an automatic switch") end
 		if ns.db.char.hints ~= hints or ns.db.char.keyReminders ~= reminders or ns.db.char.welcomed ~= welcomed then
 			fail(scenario, "the switch said a hint, the key reminder or the greeting again")
 		end
@@ -449,21 +432,6 @@ do
 			fail(scenario, "the profile arrived at asks Start here's first questions: " .. tostring(ns.db.profile.firstRun))
 		end
 		if repaints == 0 then fail(scenario, "the prompt was not painted again for the new profile") end
-		-- Still to be had, out loud, the next time milestones are counted.
-		Mock.printed = {}
-		M.Note("res")
-		if not (type(st.earned.strangers) == "number" and st.earned.strangers > 0) then
-			fail(scenario, "the milestone was not earned aloud afterwards: " .. tostring(st.earned.strangers))
-		end
-		-- A profile with Milestones off is the switch turned, as it ever was.
-		ns.db:SetProfile("Default")
-		ns.db.profile.milestones.enabled = false
-		ns.db:SetProfile("Raid")
-		st.n.courtesy = 1
-		rule(ns, "world", "Default")
-		arrive(false, "none")
-		uses(scenario, ns, "Default", "back in the world")
-		if M.On() then fail(scenario, "SKIPPED -- milestones are on in the profile that has them off") end
 	end)
 end
 

@@ -71,7 +71,6 @@ local TEXT = {
 	TAB_ALL = L["Everything"],
 	TAB_FAVOURS = L["Favours"],
 	TAB_GIVEN = L["Buffs you gave"],
-	TAB_MILESTONES = L["Milestones"],
 
 	EMPTY_ALL = L["Nothing recorded. When somebody buffs you it is listed here, and so is what you give back and who you buff unprompted."],
 	EMPTY_FAVOURS = L["No favours recorded. When somebody buffs you, they are listed here."],
@@ -197,41 +196,8 @@ local TEXT = {
 
 	OPTIONS_EMPTY = L["Nothing has been recorded on this character yet."],
 
-	-- The title the favours you have returned earn (TITLES below): at the top of
-	-- the window, the title on the left and the way to the next on the right,
-	-- "37 of 50 to Courteous".
-	UNTITLED = L["Untitled, for now"],
-	RANK_PROGRESS = L["%d of %d to %s"],
-	RANK_TOP = L["every title earned"],
-	-- Hovering it: what the title is for, and where the next one is.
-	RANK_TIP_NEXT = L["Titles come from the favours you return. The next, %s, comes at %d."],
-	RANK_TIP_TOP = L["Every title there is, and all of them earned. Nobody has better manners."],
-	-- The same in the minimap tooltip, one line each.
-	BROKER_TITLED = L["Title: %s -- %d of %d to %s"],
-	BROKER_TOP = L["Title: %s -- every title earned"],
-	BROKER_FIRST = L["%d of %d favours returned to your first title, %s"],
-	-- The one chat line a new title gets: its name, then its line of flavour.
-	EARNED = L["A new title for your manners: |cffffd100%s|r. %s"],
 }
 Ledger.TEXT = TEXT
-
--- The titles, earned by favours returned: the lifetime count, which Clear keeps,
--- so a title once earned stays. Returned rather than received, because a title
--- for being buffed a lot would be a title for standing in Stormwind. Each has a
--- line of flavour, said once in chat when it is earned and again on hovering it.
-local TITLES = {
-	{ at = 10, name = L["Well Brought Up"], flavour = L["Somebody raised you right."] },
-	{ at = 25, name = L["Well Mannered"], flavour = L["You would hold the door, if dungeons had doors."] },
-	{ at = 50, name = L["Courteous"], flavour = L["Innkeepers have started to nod when you come in."] },
-	{ at = 100, name = L["Gracious"], flavour = L["You bow a little when you cast now. People have noticed."] },
-	{ at = 250, name = L["Magnanimous"], flavour = L["Strangers argue over who gets to buff you first."] },
-	{ at = 500, name = L["Paragon of Etiquette"], flavour = L["Somewhere, a butler weeps with pride."] },
-	{ at = 1000, name = L["The Very Soul of Courtesy"], flavour = L["Azeroth has never been buffed so politely."] },
-}
-Ledger.TITLES = TITLES
--- A title's colour wherever one is named: a paler gold than the headline's, so
--- the two do not read as one line in the window.
-local RANK_INK = { 0.96, 0.84, 0.52 }
 
 ---------------------------------------------------------------------------
 -- bounds
@@ -254,12 +220,6 @@ local FOLD_SECONDS = 10
 -- for its SETTLE_SECONDS and only ever calls back inside that; this is a
 -- generous bound on a list that would otherwise grow for the session.
 local UNDO_SECONDS = 30
--- How long a new title waits before it is said: Core's SETTLE_SECONDS, in
--- which a refusal can still take back the favour that earned it, and a second
--- over for the refusal's event to arrive.
-local PROMOTE_SECONDS = 3
-Ledger.PROMOTE_SECONDS = PROMOTE_SECONDS
-
 -- `back`: a buff back from somebody you buffed first, never owed (Received).
 local STATES = { owed = true, returned = true, letgo = true, back = true }
 -- Why a favour was let go: its time ran out, nothing you cast is any use to
@@ -269,8 +229,6 @@ local WHY = { expired = true, useless = true, notkept = true, never = true }
 -- to return (Queue.lua, LetGoCovered; Favours.lua, CoveredAlready).
 WHY.covered = true
 local FILTERS = { all = true, favours = true, given = true }
--- The fourth tab, whose rows Milestones.lua lists and paints.
-FILTERS.milestones = true
 local TOTALS = { "received", "returned", "letGo", "group", "strangers" }
 -- Today's counts of favours, kept beside today's count of gifts.
 local TODAY = { "received", "returned", "useless" }
@@ -325,16 +283,6 @@ end
 
 local function Whole(v)
 	return type(v) == "number" and v >= 0 and v == math.floor(v) and v ~= math.huge
-end
-
--- Which of TITLES this many favours returned earns, 0 for none yet. Seven
--- comparisons, asked only when a favour is returned or something is drawn.
-local function TitleLevel(returned)
-	local level = 0
-	for i, t in ipairs(TITLES) do
-		if Count(returned) >= t.at then level = i end
-	end
-	return level
 end
 
 -- The wall clock. Everything stored is on it, for the reason Core's debts are:
@@ -441,7 +389,6 @@ end
 --       state = owed | returned | letgo | back, why, doneAt, gave, partyOnly }
 --     { kind = "given", name, class, spell, at, to = group | stranger, asked }
 --   ledger.totals   lifetime counts, never trimmed and kept by Clear
---   ledger.title    the highest of TITLES announced in chat, so none is twice
 --   ledger.today    { day = local midnight, given, received, returned, useless }:
 --                   today's counts, which the trim cannot touch and Clear resets
 --   ledger.filter   the window's tab
@@ -503,13 +450,6 @@ end
 -- many people can owe you at once.
 local function Trim(s)
 	local entries = s.entries
-	-- A favour's row that goes is told to the milestones first, whose week
-	-- without a debt is read from the rows (Milestones.lua, Dropped).
-	local M = ns.Milestones
-	local function Drop(i)
-		if M and M.Dropped then ns.Guard("milestones", M.Dropped, entries[i]) end
-		table.remove(entries, i)
-	end
 	local given = 0
 	for i = 1, #entries do
 		if entries[i].kind == "given" then given = given + 1 end
@@ -528,7 +468,7 @@ local function Trim(s)
 		if entries[i].state == "owed" then
 			i = i + 1
 		else
-			Drop(i)
+			table.remove(entries, i)
 		end
 	end
 end
@@ -585,17 +525,8 @@ local function Repair(char)
 	end
 	s.totals = totals
 
-	-- A ledger from before titles, or one whose mark is damaged, takes the
-	-- title its count already earns without a word: a player with three hundred
-	-- favours behind them is not greeted by five announcements at once. A mark
-	-- above what the count earns is kept -- a late refusal can take back the
-	-- favour that earned a title -- so no title is ever announced twice.
-	local title = s.title
-	if Whole(title) then
-		s.title = math.min(title, #TITLES)
-	else
-		s.title = TitleLevel(totals.returned)
-	end
+	-- The titles went in 1.12: their mark is dropped from the file.
+	s.title = nil
 
 	s.filter = FILTERS[s.filter] and s.filter or "all"
 
@@ -635,49 +566,6 @@ end
 
 local function Bump(s, key, by)
 	s.totals[key] = math.max(0, (s.totals[key] or 0) + (by or 1))
-end
-
--- A title the count has reached, and none before it has, gets its one line in
--- chat. Said whether or not chat lines are on, because it happens a handful of
--- times in a character's life.
-local function Announce(s)
-	local level = TitleLevel(s.totals.returned)
-	if level <= (s.title or 0) then return end
-	s.title = level
-	local t = TITLES[level]
-	if ns.addon and ns.addon.Print then ns.addon:Print(TEXT.EARNED:format(t.name, t.flavour)) end
-	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Ranked, t) end
-end
-
--- When the latest favour that could earn a title was settled, while its
--- announcement waits; nil when none waits.
-local promoteAt
-
--- The wait is over unless a later favour has moved it on, in which case that
--- favour gets its own full wait.
-local function PromoteDue()
-	local left = promoteAt and promoteAt + PROMOTE_SECONDS - GetTime()
-	if left and left > 0 then
-		C_Timer.After(left, function() ns.Guard("ledger title", PromoteDue) end)
-		return
-	end
-	promoteAt = nil
-	local s = Store()
-	if s then Announce(s) end
-end
-
--- After a favour returned. Core settles when the cast is sent and the server
--- can refuse it a moment later: a title said at once would stand in chat while
--- the window took it away. So the title waits out the refusal and is said
--- only if the count still holds it; with no timer to wait on, at once.
-local function Promote(s)
-	if TitleLevel(s.totals.returned) <= (s.title or 0) then return end
-	if not (C_Timer and C_Timer.After) then return Announce(s) end
-	local waiting = promoteAt ~= nil
-	promoteAt = GetTime()
-	if not waiting then
-		C_Timer.After(PROMOTE_SECONDS, function() ns.Guard("ledger title", PromoteDue) end)
-	end
 end
 
 -- Today's counts, counted apart from the list, which keeps only MAX_ENTRIES
@@ -785,7 +673,6 @@ function Ledger.Load()
 			Bump(s, "letGo")
 		end
 	end
-	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Load) end
 	Changed()
 end
 
@@ -917,7 +804,6 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 		end
 		e.state, e.doneAt, e.gave = "returned", now, gave
 		Bump(s, "returned")
-		Promote(s)
 		-- Today's headline scores the favours received today, so a return
 		-- counts for today only when the favour does.
 		if StartOfToday(e.at) == today.day then today.returned = today.returned + 1 end
@@ -944,7 +830,6 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 		undo.entry, undo.to = e, to
 	end
 	recent[#recent + 1] = undo
-	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Settled, undo.entry, pending) end
 	Changed()
 end
 
@@ -962,7 +847,6 @@ function Ledger.Refused(name, clock)
 		end
 	end
 	if not undo then return end
-	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Refused, undo.entry) end
 	-- The row the settle wrote may be gone: Clear can be pressed between a
 	-- settle and its refusal. The counts, which Clear keeps, are taken back all
 	-- the same, and a favour Core has just put back gets its owed row back, or
@@ -1035,14 +919,9 @@ function Ledger.Clear()
 	local s = Store()
 	if not s then return end
 	local kept = {}
-	local M = ns.Milestones
 	for _, e in ipairs(s.entries) do
 		if e.kind == "received" and e.state == "owed" then
 			kept[#kept + 1] = e
-		elseif M and M.Dropped then
-			-- The week without a debt is read from these rows: a favour of the
-			-- last week, returned or left, is remembered there past its row.
-			ns.Guard("milestones", M.Dropped, e)
 		end
 	end
 	s.entries = kept
@@ -1154,27 +1033,6 @@ function Ledger.Lifetime(sum)
 	return TEXT.LIFETIME:format(t.received, t.returned, t.group, t.strangers)
 end
 
--- Where the favours returned stand among TITLES, worked out from the count and
--- nothing else: the title held (nil for none yet), the next (nil past the
--- last), the count, and the count the title held began at.
-function Ledger.Rank(sum)
-	local returned = Count((sum or Ledger.Summary()).totals.returned)
-	local level = TitleLevel(returned)
-	return { level = level, title = TITLES[level], next = TITLES[level + 1], returned = returned,
-		from = level > 0 and TITLES[level].at or 0 }
-end
-
--- The minimap tooltip's line: the title and the way to the next, one sentence.
-function Ledger.RankText(sum)
-	local rank = Ledger.Rank(sum)
-	if not rank.title then
-		return TEXT.BROKER_FIRST:format(rank.returned, rank.next.at, rank.next.name)
-	elseif not rank.next then
-		return TEXT.BROKER_TOP:format(rank.title.name)
-	end
-	return TEXT.BROKER_TITLED:format(rank.title.name, rank.returned, rank.next.at, rank.next.name)
-end
-
 -- The line under the headline: what is still owed and what was given today,
 -- each its own sentence, or nothing.
 local function Subline(sum)
@@ -1211,7 +1069,6 @@ function Ledger.AddTooltip(tooltip)
 	end
 	tooltip:AddLine(Ledger.Headline(sum), 1, 0.82, 0)
 	tooltip:AddLine(Ledger.Lifetime(sum), 0.62, 0.62, 0.62, true)
-	tooltip:AddLine(Ledger.RankText(sum), RANK_INK[1], RANK_INK[2], RANK_INK[3], true)
 end
 
 ---------------------------------------------------------------------------
@@ -1227,8 +1084,7 @@ end
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local LOGO = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 
--- Top to bottom: the title band, the title your manners have earned over a bar
--- of the way to the next, today's headline and up to two lines under it, the
+-- Top to bottom: the title band, today's headline and up to two lines under it, the
 -- all-time numbers as four tiles, the tabs, seven rows, and a footer with the
 -- position in the list and Clear. Seven rows so the window fits a small UI
 -- scale, where the screen is under eight hundred units tall.
@@ -1238,22 +1094,17 @@ local LOGO = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 -- from its text or from the points is unverified, and two points on one edge
 -- place it the same either way. tests/scenarios/ledgerui.lua keeps it so, and
 -- tools/render_ledger.py draws the other reading so a lapse shows.
-local WIDTH, HEIGHT = 360, 480
+local WIDTH, HEIGHT = 360, 452
 local PAD = 12
 local ROWS = 7
 local ROW_HEIGHT = 34
-local RANK_TOP = -37
-local RANK_HEIGHT = 20
-local HEADLINE_TOP = -66
-local SUBLINE_TOP = -86
-local STATS_TOP = -132
+local HEADLINE_TOP = -38
+local SUBLINE_TOP = -58
+local STATS_TOP = -104
 local STAT_HEIGHT = 32
-local TABS_TOP = -174
+local TABS_TOP = -146
 local TAB_HEIGHT = 22
-local LIST_TOP = -204
--- The widest the way to the next title grows, so a long translation of it
--- leaves the title itself room.
-local RANK_PROGRESS_MAX = 200
+local LIST_TOP = -176
 local FOOTER = 34
 -- Where the text of a row starts, clear of its stripe and icon.
 local ROW_TEXT_X = 40
@@ -1400,9 +1251,6 @@ local function FitWidth(fs, texts, floor, ceiling)
 	return math.min(ceiling, math.max(floor, math.ceil(widest) + 20))
 end
 
--- What Milestones.lua draws its rows and its toast with, so they are the
--- window's own strings, plates and colours.
-Ledger.Kit = { Text = Text, Solid = Solid, FlatButton = FlatButton, FitWidth = FitWidth, TextWidth = TextWidth, Wrap = Wrap, Wall = Wall, COLOUR = COLOUR, INK = INK, INK_SOFT = INK_SOFT, INK_FAINT = INK_FAINT, RANK_INK = RANK_INK, LOGO = LOGO }
 
 local function SavePosition()
 	local s = Store()
@@ -1504,7 +1352,6 @@ end
 local function RowTooltip(row)
 	local e = row.entry
 	if not e then return end
-	if e.milestone then return ns.Milestones.Tooltip(row, e) end
 	local now = Wall() or e.at
 	GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
 	GameTooltip:AddLine(Coloured(e.name, e.class))
@@ -1628,7 +1475,6 @@ local function BuildRow(i)
 end
 
 local function Paint(row, e, now)
-	if row.link then ns.Milestones.Unpaint(row) end
 	row.entry = e
 	-- Not `a and b or c`: a gift's `spell` can be nil, and the `or` would then
 	-- read a favour's spell list on a row that has none.
@@ -1704,40 +1550,13 @@ local function EmptyText(key)
 	return key == "favours" and TEXT.EMPTY_FAVOURS or TEXT.EMPTY_ALL
 end
 
-local function PaintRank(sum)
-	local rank = Ledger.Rank(sum)
-	local r = window.rank
-	r.name:SetText(rank.title and rank.title.name or TEXT.UNTITLED)
-	local c = rank.title and RANK_INK or INK_FAINT
-	r.name:SetTextColor(c[1], c[2], c[3])
-	r.progress:SetText(rank.next and TEXT.RANK_PROGRESS:format(rank.returned, rank.next.at, rank.next.name)
-		or TEXT.RANK_TOP)
-	r.progress:SetWidth(math.min(RANK_PROGRESS_MAX, math.ceil(TextWidth(r.progress)) + 2))
-	local share = 1
-	if rank.next then
-		share = (rank.returned - rank.from) / (rank.next.at - rank.from)
-	end
-	share = math.min(1, math.max(0, share))
-	-- A texture cannot be drawn no wide, so an empty bar is a hidden one.
-	r.fill:SetShown(share > 0)
-	r.fill:SetWidth(math.max(1, (WIDTH - 2 * PAD) * share))
-	r.standing = rank
-end
-
 function Render()
 	if not (window and window:IsShown()) then return end
 	local now = Wall()
 	if not now then return end
-	-- The Milestones tab: there while milestones are on, its rows listed and
-	-- painted by Milestones.lua in the rows of this list.
-	local page = ns.Milestones and ns.Milestones.Page(window, filter)
-	if filter == "milestones" and not page then SetFilter("all") end
-	-- The hall of fame's certificate, beside the window on that tab (HallProof.lua).
-	if ns.Hall and ns.Hall.PaintCertificate then ns.Hall.PaintCertificate(window, page ~= nil) end
-	local list = page and page.Rows() or Ledger.Entries(filter)
+	local list = Ledger.Entries(filter)
 	local sum = Ledger.Summary()
 
-	PaintRank(sum)
 	window.headline:SetText(Ledger.Headline(sum))
 	window.subline:SetText(Subline(sum))
 	for _, stat in ipairs(window.stats) do
@@ -1750,7 +1569,7 @@ function Render()
 	window.showing:SetText(TEXT.SHOWING:format(offset + 1, math.min(#list, offset + ROWS), #list))
 	for i = 1, ROWS do
 		local e = list[offset + i]
-		if e then (page and page.Paint or Paint)(rows[i], e, now) else
+		if e then Paint(rows[i], e, now) else
 			rows[i].entry = nil
 			rows[i]:Hide()
 		end
@@ -1844,55 +1663,6 @@ local function BuildHeader()
 	Wrap(window.subline, 2)
 end
 
--- Hovering the title: its line of flavour, and what titles are and where the
--- next one is, which the window has no room to say.
-local function RankTooltip(self)
-	local rank = self.standing
-	if not rank then return end
-	GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-	if rank.title then
-		GameTooltip:AddLine(rank.title.name, RANK_INK[1], RANK_INK[2], RANK_INK[3])
-		GameTooltip:AddLine(rank.title.flavour, 1, 1, 1, true)
-	else
-		GameTooltip:AddLine(TEXT.UNTITLED, INK_SOFT[1], INK_SOFT[2], INK_SOFT[3])
-	end
-	GameTooltip:AddLine(rank.next and TEXT.RANK_TIP_NEXT:format(rank.next.name, rank.next.at)
-		or TEXT.RANK_TIP_TOP, 0.7, 0.7, 0.7, true)
-	GameTooltip:Show()
-end
-
--- The title, under the title band: a frame of its own so it can be hovered,
--- the name on the left cut where it meets the way to the next on the right,
--- and a hairline bar along the bottom in the colour of favours returned, which
--- is what fills it.
-local function BuildRank()
-	local r = CreateFrame("Button", nil, window)
-	r:SetHeight(RANK_HEIGHT)
-	r:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, RANK_TOP)
-	r:SetPoint("TOPRIGHT", window, "TOPRIGHT", -PAD, RANK_TOP)
-
-	r.progress = Text(r, 10, INK_SOFT)
-	r.progress:SetJustifyH("RIGHT")
-	r.progress:SetPoint("TOPRIGHT", r, "TOPRIGHT", 0, -2)
-	r.name = Text(r, 12, RANK_INK)
-	r.name:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
-	r.name:SetPoint("TOPRIGHT", r.progress, "TOPLEFT", -8, 2)
-
-	r.track = Solid(r, "BORDER")
-	r.track:SetHeight(2)
-	r.track:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
-	r.track:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", 0, 0)
-	r.track:SetVertexColor(1, 1, 1, 0.07)
-	r.fill = Solid(r, "ARTWORK")
-	r.fill:SetHeight(2)
-	r.fill:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
-	r.fill:SetVertexColor(COLOUR.returned[1], COLOUR.returned[2], COLOUR.returned[3], 0.85)
-
-	r:SetScript("OnEnter", RankTooltip)
-	r:SetScript("OnLeave", function() GameTooltip:Hide() end)
-	window.rank = r
-end
-
 -- The all-time numbers, as four tiles rather than a sentence that stops
 -- fitting once the numbers grow. Each number takes its rows' colour, and each
 -- label is hung across its tile so a long translation is cut inside it.
@@ -1945,7 +1715,6 @@ local function BuildTabs()
 		{ key = "all", label = TEXT.TAB_ALL },
 		{ key = "favours", label = TEXT.TAB_FAVOURS },
 		{ key = "given", label = TEXT.TAB_GIVEN },
-		{ key = "milestones", label = TEXT.TAB_MILESTONES },
 	}) do
 		local tab = FlatButton(window, def.label, 80, TAB_HEIGHT)
 		tab.key = def.key
@@ -2058,7 +1827,6 @@ local function Build()
 	window.accent:SetHeight(1)
 
 	BuildHeader()
-	BuildRank()
 	BuildStats()
 	BuildTabs()
 
@@ -2113,7 +1881,7 @@ local function Build()
 	SetFilter(filter)
 end
 
--- `tab`, when given, is the tab it opens on (HallProof.lua: "milestones").
+-- `tab`, when given, is the tab it opens on.
 function Ledger.Show(tab)
 	if not window then Build() end
 	if type(tab) == "string" and FILTERS[tab] then SetFilter(tab) end

@@ -121,8 +121,7 @@ end
 
 -- ------------------------------------------------------------------ 1a
 -- The page as the window draws it: the lead,
--- the two steps, the ledger with the milestones' switches, the hall of fame in
--- a fold of its own (the one fold on the page), then minimap and chat; the switch,
+-- the two steps, the ledger, then minimap and chat, What's new folded; the switch,
 -- the preview and the snooze in the header, Lock it at the strip's end. Above
 -- them all but the lead, a new profile's two questions
 -- (tests/scenarios/quick-setup.lua).
@@ -137,17 +136,12 @@ local START_PAGE = {
 	-- switch of the reminder that says how (tests/scenarios/menu.lua).
 	"general.bindStatus", "general.bindKey", "general.makeMacro", "general.openBindings", "general.keyReminder",
 	"general.ledgerSummary", "general.ledgerOpen",
-	-- The milestones' three switches, under the ledger they are read from
-	-- (tests/scenarios/milestones.lua).
-	"general.milestones", "general.milestoneToast", "general.milestoneSound",
-	-- The hall of fame, folded (tests/scenarios/hall.lua).
-	"general.hallNote", "general.hallCertificate", "general.hallCode", "general.hallList",
 	"general.minimap", "general.verbose", "general.silentChat",
 	"general.welcomeAgain",
 	-- What's new, folded (tests/scenarios/whatsnew.lua).
 	"general.newsHead1", "general.newsNote1", "general.newsHead2", "general.newsNote2", "general.newsHead3", "general.newsNote3", "general.newsHead4", "general.newsNote4", "general.newsHead5", "general.newsNote5", "general.newsHead6", "general.newsNote6", "general.newsHead7", "general.newsNote7", "general.newsHead8", "general.newsNote8", "general.newsHead9", "general.newsNote9", "general.newsHead10", "general.newsNote10", "general.newsHead11", "general.newsNote11", "general.newsHead12", "general.newsNote12", "general.newsHead13", "general.newsNote13", "general.newsHead14", "general.newsNote14", "general.newsHead15", "general.newsNote15", "general.newsHead16", "general.newsNote16",
 }
-local START_FOLDED = { ["general.newsHead1"] = true, ["general.newsNote1"] = true, ["general.newsHead2"] = true, ["general.newsNote2"] = true, ["general.newsHead3"] = true, ["general.newsNote3"] = true, ["general.newsHead4"] = true, ["general.newsNote4"] = true, ["general.newsHead5"] = true, ["general.newsNote5"] = true, ["general.newsHead6"] = true, ["general.newsNote6"] = true, ["general.newsHead7"] = true, ["general.newsNote7"] = true, ["general.newsHead8"] = true, ["general.newsNote8"] = true, ["general.newsHead9"] = true, ["general.newsNote9"] = true, ["general.newsHead10"] = true, ["general.newsNote10"] = true, ["general.newsHead11"] = true, ["general.newsNote11"] = true, ["general.newsHead12"] = true, ["general.newsNote12"] = true, ["general.newsHead13"] = true, ["general.newsNote13"] = true, ["general.newsHead14"] = true, ["general.newsNote14"] = true, ["general.newsHead15"] = true, ["general.newsNote15"] = true, ["general.newsHead16"] = true, ["general.newsNote16"] = true, ["general.hallNote"] = true, ["general.hallCertificate"] = true, ["general.hallCode"] = true, ["general.hallList"] = true }
+local START_FOLDED = { ["general.newsHead1"] = true, ["general.newsNote1"] = true, ["general.newsHead2"] = true, ["general.newsNote2"] = true, ["general.newsHead3"] = true, ["general.newsNote3"] = true, ["general.newsHead4"] = true, ["general.newsNote4"] = true, ["general.newsHead5"] = true, ["general.newsNote5"] = true, ["general.newsHead6"] = true, ["general.newsNote6"] = true, ["general.newsHead7"] = true, ["general.newsNote7"] = true, ["general.newsHead8"] = true, ["general.newsNote8"] = true, ["general.newsHead9"] = true, ["general.newsNote9"] = true, ["general.newsHead10"] = true, ["general.newsNote10"] = true, ["general.newsHead11"] = true, ["general.newsNote11"] = true, ["general.newsHead12"] = true, ["general.newsNote12"] = true, ["general.newsHead13"] = true, ["general.newsNote13"] = true, ["general.newsHead14"] = true, ["general.newsNote14"] = true, ["general.newsHead15"] = true, ["general.newsNote15"] = true, ["general.newsHead16"] = true, ["general.newsNote16"] = true }
 do
 	local scenario = "start here: the page as the window draws it"
 	local ns = session(scenario)
@@ -163,7 +157,7 @@ do
 			elseif sections[want].fold and not START_FOLDED[want] then
 				fail(scenario, want .. " is folded away on Start here")
 			elseif START_FOLDED[want] and not sections[want].fold then
-				fail(scenario, want .. " is not in the hall of fame's fold on Start here")
+				fail(scenario, want .. " is not in What's new's fold on Start here")
 			end
 		end
 		if #list ~= #START_PAGE then

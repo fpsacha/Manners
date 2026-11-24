@@ -327,14 +327,8 @@ do
 		end
 		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, nil, CURE_POISON)
 		if ns.pendingClick then fail(scenario, "SKIPPED -- the cast did not settle the press") return end
-		local counts = ns.db.char.milestones
-		local before = counts and counts.n and counts.n.cure or 0
 		Mock.advance(5)
 		ns.PruneSettled()
-		local after = counts and counts.n and counts.n.cure or 0
-		if after ~= before + 1 then
-			fail(scenario, ("a cure on yourself that nothing refused counted %d towards its milestone, not 1"):format(after - before))
-		end
 		local again = queue(ns)[me(ns)]
 		if again and again.cure then fail(scenario, "the cure was offered again at once") end
 		if ns.lastGave and ns.lastGave[me(ns)] == entry.buff.key then

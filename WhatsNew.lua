@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "24 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100No more achievements.|r The milestones, their toasts, the hall of fame and the ledger's titles are gone.",
+		} },
+	} },
 	{ version = "1.12.0", date = "24 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Back to the essentials.|r Manners now starts with only what it is for: returning favours, buffing your group and passers-by, and saying thanks.",
@@ -36,18 +41,6 @@ ns.WhatsNew = {
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Your own buffs in a battleground.|r After a death there, a buff you cast on yourself again is noticed, so Mark of the Wild or Thorns is no longer asked for while it is on, and your team gets its turn (GitHub issue 38).",
-		} },
-	} },
-	{ version = "1.11.39", date = "22 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Make a healthstone.|r A warlock with no healthstone in the bags is offered Create Healthstone on the prompt, outside a fight and standing still (GitHub issue 32).",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Food still offered outside dungeons and raids.|r With |cffffffffConsumables only in dungeons and raids|r ticked, food for Well Fed can still come up out in the world: tick |cffffffffFood still offered outside dungeons and raids|r under it.",
-			"|cffff9a52The cure button shows where the game hides debuffs.|r On WoW Forever and retail it now reads the game's own list of what you can remove (GitHub issue 36).",
-			"|cffff9a52A button for each cure.|r A druid, a priest or a shaman on the older clients gets a button and a key for each, shown only for its own debuffs (|cffffffffA button for each cure|r, on).",
-			"|cffff9a52/moo to thank with.|r |cffffffffEmote to use|r (What I say) now offers /moo, last on the list, for any race (GitHub issue 35).",
-			"|cffff9a52Will of the Forsaken shows when you lose control in a fight|r even where the game will not say what took it, and for fears by mechanic (|cffffffffIn a fight > Show a Will of the Forsaken button...|r, GitHub issue 33).",
 		} },
 	} },
 }

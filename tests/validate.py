@@ -866,8 +866,6 @@ _HEADLINES = [
     ("a blessing for each class", r"blessing for each class"),
     ("profiles that switch by themselves", r"profiles? that switch(es)? by themselves"),
     ("the profile manager's Undo", r"\*Undo\*"),
-    ("milestones", r"milestones"),
-    ("the hall of fame", r"hall of fame"),
     ("pages in parts with painted icons", r"painted (page )?icons?"),
     ("the Forsaken's In character lines", r"Forsaken"),
 ]

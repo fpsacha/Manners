@@ -65,12 +65,6 @@ mutate("Clicks.lua",
        "cures-self: the cure's key goes into the rotation pointer",
        expect="cures-self: a press settles as a cure on yourself", script=S)
 
-mutate("Clicks.lua",
-       "\t\tcure = pending.cure }\n\tRememberSettled(record)",
-       "\t\t}\n\tRememberSettled(record)",
-       "cures-self: a cure on yourself earns no milestone",
-       expect="cures-self: a press settles as a cure on yourself", script=S)
-
 mutate("Options/Window/Layout.lua",
        "\t\t\t\t\t\"who.curesSelf\",\n",
        "",

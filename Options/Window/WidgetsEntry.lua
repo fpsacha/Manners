@@ -636,9 +636,7 @@ KIND.input = {
 ---------------------------------------------------------------------------
 
 local READ_ONLY = { ["profiles.shareText"] = true, ["diagnostics.report"] = true,
-	["diagnostics.selftest"] = true,
-	-- The hall of fame's code (Hall.lua): there to be copied.
-	["general.hallCode"] = true }
+	["diagnostics.selftest"] = true }
 
 local function ReadOnly(row)
 	return READ_ONLY[row.item.path] == true or (row.item.layout or {}).readOnly == true
