@@ -91,7 +91,6 @@ local function upIn(ns, scenario, style, size)
 	p.style = style
 	p.flashStyle = "pulse"
 	p.effects = "full"
-	p.hideInCombat = false
 	p.showIcon = true
 	p.roundIcon = false
 	p.showSub = true

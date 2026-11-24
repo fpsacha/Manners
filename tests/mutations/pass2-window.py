@@ -5,7 +5,6 @@
 
 S = "runscenarios.py"
 P = "pass2-window: "
-FIGHTKEY = "Prompt/FightKey.lua"
 ADV = "Options/Advanced.lua"
 LOOK = "Options/Look.lua"
 WIDGETS = "Options/Window/Widgets.lua"
@@ -38,36 +37,6 @@ mutate("Locales/koKR.lua", "마나 보호막, 화염계 수호, 냉기계 수호
        expect=P + "Fire Ward and Frost Ward carry the client's names in koKR", script=S)
 
 # --- In a fight, my key casts, per class -----------------------------------------
-
-mutate(FIGHTKEY, 'return type(by) == "table" and class and by[class] or nil',
-       'return type(by) == "table" and class and (by[class] or select(2, next(by))) or nil',
-       "pass2-window: another class's fight key lent to this one",
-       expect=P + "a fight key chosen on a priest does not arm a paladin", script=S)
-
-mutate("Core.lua", "if #classes == 1 then\n\t\t\t\ttarget = classes[1]",
-       "if #classes >= 1 then\n\t\t\t\ttarget = classes[1]",
-       "pass2-window: a key two classes share given to one of them",
-       expect=P + "an old shared fight key", script=S)
-
-mutate("Core.lua", "if c == mine then target = mine end",
-       "if false then target = mine end",
-       "pass2-window: a key two classes share dropped for the class logging in",
-       expect=P + "an old shared fight key", script=S)
-
-mutate("Commands.lua", 'name == "prompt.classStyles" or name == "prompt.fightKeySpells" then',
-       'name == "prompt.classStyles" then',
-       "pass2-window: the fight key left out of a settings string",
-       expect=P + "the fight key travels in a settings string", script=S)
-
-mutate("Core.lua", '\t\tp.fightKeySpell = nil\n\t\tif type(old) == "string"',
-       '\t\tif type(old) == "string"',
-       "pass2-window: the old fight key field kept",
-       expect=P + "an old shared fight key", script=S)
-
-mutate(ADV, '"prompt.fightKeySpells", "prompt.fightKeyOn",',
-       '"prompt.fightKeyOn",',
-       "pass2-window: In a fight's reset leaves the fight keys",
-       expect="advanced: put these back to default on In a fight", script=S)
 
 # --- the short-buff hold beside Never in cities and inns -----------------------------
 
@@ -128,3 +97,8 @@ mutate(WIDGETS, "if (range ~= grab.range or travel ~= grab.travel) and travel > 
        "if false and travel > 0 and",
        "pass2-window: a drag keeps the travel of the press",
        expect=P + "the page bar's thumb stays under the cursor", script=S)
+
+# The fight options gone in 1.12 kept in a saved profile.
+mutate("Core.lua", "\t\tp[gone] = nil\n", "\t\tlocal _ = p[gone]\n",
+       "pass2-window: the gone fight options kept in a saved profile",
+       expect=P + "the fight options gone in 1.12 are let go", script=S)

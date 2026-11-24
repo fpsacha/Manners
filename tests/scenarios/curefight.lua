@@ -183,6 +183,9 @@ local function with(scenario, env, body)
 		-- A profile that switched it off from the start: the default the load
 		-- reads is false, so nothing is made at login.
 		if env.off then ns.defaults.profile.prompt.cureFight = false end
+		-- A profile with it switched on from the start (off by default since
+		-- 1.12): the load reads true, as a player who ticked it has.
+		if env.on then ns.defaults.profile.prompt.cureFight = true end
 		freshPrompt(ns, scenario)
 		Mock.timers = {}
 		Mock.secureActions = true
@@ -285,9 +288,13 @@ local DRUID_MACRO = "/cast [mod:shift,@mouseover,help,nodead][mod:shift,help,nod
 	.. "[@mouseover,help,nodead][help,nodead][@player] Remove Curse"
 
 -- ------------------------------------------------------------------ 1
-with("curefight: on out of the box, nothing shown until needed", { keep = true }, function(ns)
-	local scenario = "curefight: on out of the box, nothing shown until needed"
-	if ns.db.profile.prompt.cureFight ~= true then fail(scenario, "the switch is " .. tostring(ns.db.profile.prompt.cureFight) .. " in a new profile") end
+with("curefight: off out of the box; switched on, nothing shown until needed", { keep = true }, function(ns)
+	local scenario = "curefight: off out of the box; switched on, nothing shown until needed"
+	-- Off in a new profile since 1.12; switched on here, it still shows nothing
+	-- until somebody needs a cure.
+	if ns.db.profile.prompt.cureFight ~= false then fail(scenario, "the switch is " .. tostring(ns.db.profile.prompt.cureFight) .. " in a new profile") end
+	ns.db.profile.prompt.cureFight = true
+	ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight)
 	local button = ns.CureFight:Button()
 	if not button then fail(scenario, "no button for a druid in a new profile") return end
 	if button:IsShown() then fail(scenario, "shown out of a fight with nobody in need") end
@@ -795,12 +802,12 @@ end)
 -- mage below Remove Lesser Curse) must still pay a scan nothing, and make no
 -- frame.
 for _, row in ipairs({
-	{ "a warrior", { keep = true, watchLoad = true, class = "WARRIOR", known = {} } },
-	{ "a mage with no cure known", { keep = true, watchLoad = true, class = "MAGE", known = {} } },
+	{ "a warrior", { keep = true, on = true, watchLoad = true, class = "WARRIOR", known = {} } },
+	{ "a mage with no cure known", { keep = true, on = true, watchLoad = true, class = "MAGE", known = {} } },
 }) do
-	local scenario = "curefight: on by default, a scan costs " .. row[1] .. " nothing"
+	local scenario = "curefight: switched on, a scan costs " .. row[1] .. " nothing"
 	with(scenario, row[2], function(ns, world)
-		if ns.db.profile.prompt.cureFight ~= true then fail(scenario, "the switch is not on out of the box") end
+		if ns.db.profile.prompt.cureFight ~= true then fail(scenario, "the switch is not on") end
 		if #world.loadAsked > 0 then fail(scenario, "the login scans asked the client " .. table.concat(world.loadAsked, ", ")) end
 		-- What the class can cure is worked out once per probe and kept.
 		ns.CureFightSpells()
@@ -826,7 +833,7 @@ end
 -- With no key bound (the default profile) the button takes a click out of a
 -- fight, the only way to cast it; with a key bound it takes none, so a click
 -- beside the prompt reaches the world behind. Nothing is printed either way.
-with("curefight: with no key the button takes a click, with a key it takes none", { keep = true, key = false }, function(ns, world)
+with("curefight: with no key the button takes a click, with a key it takes none", { keep = true, on = true, key = false }, function(ns, world)
 	local scenario = "curefight: with no key the button takes a click, with a key it takes none"
 	local button = ns.CureFight:Button()
 	if not button then fail(scenario, "no button for a druid") return end
@@ -843,7 +850,7 @@ with("curefight: with no key the button takes a click, with a key it takes none"
 	if button._mouse ~= true then fail(scenario, "with no key and All fight it takes no click (mouse " .. tostring(button._mouse) .. ")") end
 end)
 
-with("curefight: with a key bound the button takes no click", { keep = true }, function(ns)
+with("curefight: with a key bound the button takes no click", { keep = true, on = true }, function(ns)
 	local scenario = "curefight: with a key bound the button takes no click"
 	local button = ns.CureFight:Button()
 	if not button then fail(scenario, "no button for a druid") return end

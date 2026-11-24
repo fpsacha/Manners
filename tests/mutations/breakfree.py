@@ -212,12 +212,6 @@ mutate(BF,
 
 mutate(BF,
        "\treturn caps.breakFree ~= nil and db ~= nil and db.enabled == true and db.prompt.breakFree ~= false\n",
-       "\treturn caps.breakFree ~= nil and db ~= nil and db.enabled == true and db.prompt.breakFree ~= false\n\t\tand db.prompt.hideInFight ~= true\n",
-       "breakfree: Hide the prompt in combat takes it too",
-       expect="breakfree: Hide the prompt in combat on, it shows and casts", script=S)
-
-mutate(BF,
-       "\treturn caps.breakFree ~= nil and db ~= nil and db.enabled == true and db.prompt.breakFree ~= false\n",
        "\treturn caps.breakFree ~= nil and db ~= nil and db.enabled == true and db.prompt.breakFree ~= false\n\t\tand not ns.SnoozeLeft()\n",
        "breakfree: a snooze takes it",
        expect="breakfree: a snooze of the prompt leaves it", script=S)
@@ -225,10 +219,10 @@ mutate(BF,
 # --- 15. the switch and its key
 
 mutate("Core.lua",
-       "\t\t\tbreakFree = true,\n",
        "\t\t\tbreakFree = false,\n",
-       "breakfree: off out of the box",
-       expect="breakfree: the switch is on In a fight and on by default", script=S)
+       "\t\t\tbreakFree = true,\n",
+       "breakfree: on out of the box",
+       expect="breakfree: the switch is on In a fight and off by default", script=S)
 
 mutate("Options/Window/Layout.lua",
        "\t\t[\"appearance.breakFreeKey\"] = \"appearance.breakFree\",\n",

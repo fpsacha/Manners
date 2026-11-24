@@ -49,7 +49,6 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon, p.showSub = "letter", "full", "pulse", true, true
-	p.hideInCombat = false
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")

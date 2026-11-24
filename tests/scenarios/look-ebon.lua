@@ -114,7 +114,7 @@ end
 local function atRest(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "ebon", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "ebon", "full", "pulse", true
 	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
@@ -921,7 +921,7 @@ end)
 
 -- ------------------------------------------------------------------ 13
 withTree("look-ebon: a fight stills the blade and keeps the reason", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario, function(pp) pp.hideInCombat, pp.accentMode = false, "both" end)
+	local r, _, look = upIn(ns, scenario, function(pp) pp.accentMode = "both" end)
 	if skipped(scenario, look) then return end
 	local fire = { look.flame._color[1], look.flame._color[2], look.flame._color[3] }
 	local rune = { look.runes[1]._color[1], look.runes[1]._color[2], look.runes[1]._color[3] }

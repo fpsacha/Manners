@@ -61,7 +61,7 @@ local function near(a, b, eps) return a ~= nil and b ~= nil and math.abs(a - b) 
 local function upIn(ns, scenario, style, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.flashStyle, p.effects, p.hideInCombat = style, "pulse", "full", false
+	p.style, p.flashStyle, p.effects = style, "pulse", "full"
 	p.showIcon, p.roundIcon, p.showSub = true, false, true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()

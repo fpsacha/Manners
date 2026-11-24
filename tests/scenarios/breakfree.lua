@@ -29,7 +29,8 @@ local FLAVOURS = { "camelot", "vanilla", "tbc", "mists", "mainline" }
 -- prompt up on one of them. opts.race, opts.known (false: the spell not
 -- learned), opts.shape (the loss-of-control API's), opts.key (false: none),
 -- opts.nobody (nobody owed, so the prompt is off the screen at the pull),
--- opts.edit(p, ns) before the first scan.
+-- opts.edit(p, ns) before the first scan; opts.pristine leaves the switch at
+-- its default (off), which every other scenario here turns on.
 local function with(scenario, body, opts)
 	opts = opts or {}
 	Mock.reset()
@@ -43,6 +44,8 @@ local function with(scenario, body, opts)
 	local ns = load(scenario)
 	if ns then
 		ok, err = pcall(function()
+			-- Switched on, as a player who ticked it has (off by default since 1.12).
+			if not opts.pristine then ns.defaults.profile.prompt.breakFree = true end
 			freshPrompt(ns, scenario)
 			Mock.timers = {}
 			Mock.secureActions = true
@@ -580,21 +583,6 @@ with("breakfree: after the fight it is hidden and its key casts the spell alone"
 end)
 
 -- ------------------------------------------------------------------ 14
--- Nothing Manners chooses keeps it from a fight: not Hide the prompt in
--- combat, not a snooze.
-with("breakfree: Hide the prompt in combat on, it shows and casts", function(ns, scenario)
-	pull(ns)
-	if ns.Prompt:GetButton():IsShown() then fail(scenario, "SKIPPED -- the prompt stayed up") return end
-	local button = ns.BreakFree:Button()
-	if not button:IsShown() then fail(scenario, "hidden with the prompt") end
-	lose("FEAR")
-	if not (shows(ns)) then fail(scenario, "not lit with the prompt hidden for the fight") end
-	local before = #Mock.castLog
-	Mock.pressBinding(COMMAND)
-	if #castsSince(before) ~= 1 then fail(scenario, "its key cast nothing with the prompt hidden for the fight") end
-	release(ns)
-end, { edit = function(p) p.hideInFight = true end })
-
 with("breakfree: a snooze of the prompt leaves it", function(ns, scenario)
 	ns.StartSnooze(10)
 	ns.addon:Tick()
@@ -608,8 +596,11 @@ with("breakfree: a snooze of the prompt leaves it", function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 15
-with("breakfree: the switch is on In a fight and on by default", function(ns, scenario)
-	if ns.defaults.profile.prompt.breakFree ~= true then fail(scenario, "not on out of the box") end
+with("breakfree: the switch is on In a fight and off by default", function(ns, scenario)
+	-- Off out of the box since 1.12; the rest of this file switches it on.
+	if ns.defaults.profile.prompt.breakFree ~= false then fail(scenario, "not off out of the box") end
+	ns.db.profile.prompt.breakFree = true
+	ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree)
 	local switch, key = option(ns, "breakFree"), option(ns, "breakFreeKey")
 	if not (switch and key) then fail(scenario, "no switch or no key on Look") return end
 	if hidden(switch) or hidden(key) then fail(scenario, "hidden from a Forsaken who has it") end
@@ -634,7 +625,7 @@ with("breakfree: the switch is on In a fight and on by default", function(ns, sc
 	-- Off, the key goes.
 	switch.set({ "appearance", "breakFree" }, false)
 	if not hidden(key) then fail(scenario, "its key is shown with the switch off") end
-end)
+end, { pristine = true })
 
 -- The key control binds the break-free command, and a key taken from
 -- another binding is said as casting the spell, not as buffing anybody.

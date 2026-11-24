@@ -53,14 +53,6 @@ mutate("Prompt/Refresh.lua",
        expect="painted onto a panel left at alpha",
        script="runscenarios.py")
 
-# Stay quiet in combat ignored by the new motion.
-mutate("Prompt/Effects.lua",
-       "\tif InCombatLockdown() and p.hideInCombat then return end\n",
-       "",
-       "flourish ignores Stay quiet in combat",
-       expect="stay quiet in combat is on",
-       script="runscenarios.py")
-
 # A flourish that puts the panel up, which is a protected call in a fight.
 mutate("Prompt/Effects.lua",
        "\tif not R.button:IsShown() then return end\n\tself:StopFlourishes()\n",
@@ -101,8 +93,8 @@ mutate("Clicks.lua",
 
 # The switch that hides the sweep ignored.
 mutate("Prompt/Effects.lua",
-       "\tif not (p and p.showCooldown and p.showIcon) or quiet then\n",
-       "\tif not p or quiet then\n",
+       "\tif not (p and p.showCooldown and p.showIcon) then\n",
+       "\tif not p then\n",
        "cooldown sweep ignores its switches",
        expect="off the icon still sweeps",
        script="runscenarios.py")
@@ -169,14 +161,6 @@ mutate("Prompt/Effects.lua",
        "\tif arrived and FullEffects() and not S.glintPlaying and R.glintTop.run then\n",
        "arrival light replaces the success",
        expect="entrance-light: a favour's glint runs the rules",
-       script="runscenarios.py")
-
-# The sweep ignoring Stay quiet in combat.
-mutate("Prompt/Effects.lua",
-       "\tif not (p and p.showCooldown and p.showIcon) or quiet then\n",
-       "\tif not (p and p.showCooldown and p.showIcon) then\n",
-       "cooldown sweep ignores Stay quiet in combat",
-       expect="the icon still sweeps with every cast of the fight",
        script="runscenarios.py")
 
 # The sweep not brought back when the fight ends.

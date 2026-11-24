@@ -394,7 +394,7 @@ end)
 withTree("look-lightbringer: the sun turns at rest, on Full and out of a fight", CROWD, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "lightbringer", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "lightbringer", "full", "pulse", true
 	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)
@@ -452,7 +452,7 @@ end)
 
 -- ------------------------------------------------------------------ 12
 withTree("look-lightbringer: a fight dulls the plate and keeps the reason", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario, function(pp) pp.hideInCombat = false end)
+	local r, _, look = upIn(ns, scenario, function(pp) end)
 	if skipped(scenario, look) then return end
 	local colour = { look.nimbus._color[1], look.nimbus._color[2], look.nimbus._color[3] }
 	fight(ns, true)

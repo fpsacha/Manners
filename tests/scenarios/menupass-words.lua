@@ -91,7 +91,7 @@ with(scenario, "MAGE", function(ns)
 		{ "manaFloor", "Save mana below" },
 		{ "manaFloorKeeps", "While saving mana, still offer" },
 		{ "skipGuilds", "Skip these guilds" },
-		{ "hideInFight", "Hide the prompt in a fight" },
+		{ "fightRota", "In a fight, each press buffs the next person in line" },
 		{ "fightButtons", "Show the fight buttons" },
 		{ "phrases", "Your lines" },
 	}

@@ -30,8 +30,9 @@ of Pandaria Classic** and **retail**, in nine languages.
   the whole party when you carry the reagent, your group first at a ready
   check, and a top-up at the moment that suits each buff's length.
 - **Your own buffs and consumables.** Your armor, aura, aspect, shield or
-  form, the poison, stone or oil for each weapon, food, flasks, elixirs and
-  scrolls come up as "You" when they are missing.
+  form come up as "You" when they are missing; the extras (the poison, stone,
+  oil or lure for each weapon, food, flasks, elixirs, scrolls, tracking, a
+  companion pet) are each off until you tick them.
 - **Resurrection, cures and courtesies.** Your resurrection for the group's
   dead, a cure for a poison or a curse, a mage's water and portals and a
   warlock's healthstones and summons for whoever asks in chat.
@@ -248,7 +249,7 @@ on. *Put Manners on an action bar* (Start here) says so.
 
 A Forsaken gets a small button of its own just right of the prompt, with a
 key of its own, armed for every fight: even when the prompt is off the
-screen, hidden by *Hide the prompt in a fight* or snoozed. It casts Will of the
+screen or snoozed. It casts Will of the
 Forsaken and nothing else, from its key. A left click casts it only while it is
 dim for the whole fight (*All fight, dim until needed*) or while no key is set;
 otherwise it takes no click, so a click beside the prompt reaches the game
@@ -259,9 +260,9 @@ reason in some fights, and some clients have no way to ask), losing control of
 your character in a fight shows it all the same, until control is back. While the spell is ready it lights up, glowing, with the spell's
 name over it and "press <key> to break free" under it; the prompt, when it is
 up, says the same. While the spell cools down it shows dim. The key casts
-even while the button is out of sight. The prompt's own key keeps to buffs,
-unless *In a fight, my key casts* names a spell. *Offer Will of the Forsaken when I am feared,
-charmed or asleep* (*In a fight*, on) switches it, and *Key for
+even while the button is out of sight. The prompt's own key keeps to buffs.
+*Show a Will of the Forsaken button when I am feared, charmed or asleep*
+(*In a fight*, off) switches it on, and *Key for
 Will of the Forsaken* under it sets the key. *Show the fight buttons*
 (*In a fight*, *Only when needed* by default) can instead keep it
 dim beside the prompt for the whole fight (*All fight, dim until needed*); it
@@ -272,7 +273,7 @@ too.
 #### Curing in a fight
 
 A class with a cure can tick *Show my cure on a button in a fight, only while
-somebody needs it* (*In a fight*, on; also under *Who to buff*, *Resurrection
+somebody needs it* (*In a fight*, off; also under *Who to buff*, *Resurrection
 and cures*). It gives a small button right of the prompt (or of the Will of the
 Forsaken button), with *Key for my cure in a fight* under the switch. It is
 never on screen for nothing: it appears only while Manners sees you, your
@@ -289,26 +290,7 @@ would lift it away from that person. Where the game hides debuffs in a fight
 (WoW Forever, retail) the button still appears when the game says you can
 remove one, in your group, on your target or on you, without naming the kind:
 it reads "a debuff you can remove", and with two buttons both show and you pick
-the cure. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
-names a spell.
-
-#### A spell on your key in a fight
-
-*In a fight, my key casts* (*In a fight*; *Nothing* by default)
-lists the shields and quick heals your class knows: Power Word: Shield, Renew
-and Flash Heal for a priest, Ice Barrier for a mage, Flash of Light and Divine
-Protection for a paladin, and so on, only those you have learned. Pick one and
-the prompt's own key casts it for the length of every fight, then buffs again
-when the fight ends. Manners lends the key to a button that is never shown, at
-the pull, and takes it back at the end, so nothing new appears on the screen.
-A spell you can cast on others lands on the player under your mouse, else
-your target, else you; *Cast it on* can make it you alone (on WoW Forever
-it lands on your target when that is a friend, else on you). A spell only for
-yourself always lands on you. Clicking the prompt still buffs and moves on to
-the next person, and the Manners macro on an action bar keeps to buffs. It
-needs a key for the prompt, and a change made in a fight counts from the next
-one. After a reload in the middle of a fight the key keeps to buffs until it
-ends.
+the cure. The prompt's own key keeps to buffs.
 
 Other players' buffs are hidden by the game in a fight, and sometimes for a
 moment after: somebody whose buffs cannot be read is offered marked
@@ -372,8 +354,8 @@ own. The full list for each class is under *Which buffs each class offers*.
   one (cat, bear, travel). On Classic Era and Burning Crusade Moonkin Form
   waits while your group still needs your Mark of the Wild.
 - **Tracking.** Find Herbs, Find Minerals, a hunter's Track Beasts and the
-  other tracking skills are one kind, *Tracking*, reminded of when none is on
-  (after you die, say). On WoW Forever a dwarf can keep Find Treasure on
+  other tracking skills are one kind, *Tracking*, off until you switch it on,
+  then reminded of when none is on (after you die, say). On WoW Forever a dwarf can keep Find Treasure on
   beside a gathering tracking, so there it has a switch of its own, *Find
   Treasure*, reminded of once you have had it on. In a battleground or an
   arena a gathering tracking is not reminded of at all; one to fight with
@@ -384,12 +366,12 @@ own. The full list for each class is under *Which buffs each class offers*.
   Ticked, *Offer Detect Invisibility to passers-by too* appears under it,
   off by default: with it on, passers-by missing it are offered it as well,
   and so is one who asks for it in chat.
-- **Make a healthstone** (warlocks, every client): on by default. When no
+- **Make a healthstone** (warlocks, every client): off until you switch it on. When no
   healthstone is in your bags (and, on Classic Era, WoW Forever and Burning
   Crusade, a Soul Shard is), the prompt offers Create Healthstone, outside a
   fight and while you stand still. A stone of any rank, an Improved copy or
-  retail's Demonic Healthstone counts as one in the bags. Untick *Make a
-  healthstone* to turn it off.
+  retail's Demonic Healthstone counts as one in the bags. Tick *Make a
+  healthstone* to turn it on.
 - **Unending Breath while swimming** (warlocks, every client): on by
   default. Only while you swim with no water breathing on you; a fight in the
   water holds it until the fight ends.
@@ -406,7 +388,7 @@ own. The full list for each class is under *Which buffs each class offers*.
   that fits it is in your bags, "You" comes up with that item's icon, and one
   press puts it on: your target is not touched. The main hand and the off
   hand are reminded of separately, a lure only for a fishing pole, and each
-  kind has its own switch. Poisons are a rogue's alone, and a rogue's poisons
+  kind has its own switch, off until you switch it on. Poisons are a rogue's alone, and a rogue's poisons
   are reminded on Mists and retail too (spells there, not items). On WoW
   Forever a weapon wears an imbue and an oil, stone or lure at the same time,
   so each is reminded of on its own, and a warlock is reminded of a
@@ -488,7 +470,8 @@ once you carry one.
 - **A mage's scrolls on WoW Forever.** *Familiar* reminds you when no
   familiar is with you and a Rat, Frog or Cat Familiar scroll is in your
   bags; *Weapon imbue* when no imbue is on the weapon in your main hand and
-  you carry an imbue scroll that fits it. One press uses it from your bags.
+  you carry an imbue scroll that fits it. Both are off until you switch them
+  on. One press uses it from your bags.
   *Automatic* takes the best you can use now: a scroll of the school your
   talents favour, then your level and weapon; pick one by name to keep to it.
 
@@ -555,9 +538,9 @@ once you carry one.
 button below: off, Manners leaves your pet to you, and every switch keeps its
 own setting for when it is on again.
 
-*Mend Pet in a fight* (its switch is on *My pet*, right beside the Mend Pet
-reminder, and on *In a fight*, with a key of its own; the reminder's
-switch does not turn it off): a
+*Mend Pet in a fight* (off until you switch it on; its switch is on *My pet*,
+right beside the Mend Pet reminder, and on *In a fight*, with a key of its
+own; the reminder's switch does not turn it off): a
 button of its own to the right of the prompt, or of the Will of the Forsaken
 button where a Forsaken hunter has both, armed for every fight and out of
 sight until it is wanted. It fades in and lights up while your pet is below
@@ -568,7 +551,7 @@ its key still casts; *Show the fight buttons* (*In a fight*)
 set to *All fight, dim until needed* keeps it there for the whole fight, half
 lit with its two lines shown. Out of sight the button takes no click, only its
 key casts, unless it is dim for the whole fight or no key is set. The prompt's
-own key keeps to buffs, unless *In a fight, my key casts* names a spell.
+own key keeps to buffs.
 
 Care waits while you eat: a food or drink stands you up, so nothing for the
 pet is offered until the meal is over.
@@ -1391,28 +1374,17 @@ Its own page in the options window (between *Quiet times* and *What I say*),
 with two sections: ***The prompt in a fight*** and ***Buttons for when you need them***.
 
 ***The prompt in a fight***:
-- *Hide the prompt in a fight* (off): the prompt and its list are off the
-  screen for the whole fight, and its key, a name in the list and the
-  Manners macro on your bar cast nothing until it ends. If the Manners
-  macro still held a cast as the fight began, the prompt stays up for that
-  fight and a line in chat says so.
 - *In a fight, each press buffs the next person in line* (on).
-- *In a fight, my key casts* (*Nothing*), with *Cast it on* under it:
-  see *A spell on your key in a fight* above.
-- *No flashes in a fight*: the prompt stays on screen, its key still
-  casting, with no flashes and no cooldown sweep.
-- *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at
-  about half strength in a fight.
 
 ***Buttons for when you need them***:
-- *Show a Will of the Forsaken button when I am feared, charmed or asleep* (on, a
+- *Show a Will of the Forsaken button when I am feared, charmed or asleep* (off, a
   Forsaken only), with *Key for Will of the Forsaken* under it: see *Will
   of the Forsaken* above.
-- *Offer Mend Pet in a fight* (a hunter, needs the pet switch on *Who to
+- *Offer Mend Pet in a fight* (off, a hunter, needs the pet switch on *Who to
   buff*), with its key under it: see *Mend Pet in a fight* above.
 - *Show the fight buttons*: only when needed, or dim for the whole
   fight.
-- *Show my cure on a button in a fight, only while somebody needs it* (on, a
+- *Show my cure on a button in a fight, only while somebody needs it* (off, a
   class with a cure), with *Key for my cure in a fight* under it; *A button for
   each cure* (on, a class with two cures) and *Key for my second cure in a
   fight*: see *Curing in a fight* above.
@@ -1648,17 +1620,18 @@ group is offered nobody. That is deliberate rather than a fault.
 
 | Class | Your own buffs |
 |---|---|
-| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; *Dampen Magic* or Amplify Magic, off until you pick one; and on WoW Forever, from the scrolls in your bags, *Familiar* and *Weapon imbue*; *Mana Shield* and *Fire Ward or Frost Ward*, off until you switch them on (Classic Era, WoW Forever, Burning Crusade) |
+| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; *Dampen Magic* or Amplify Magic, off until you pick one; and on WoW Forever, from the scrolls in your bags, *Familiar* and *Weapon imbue*, off until you switch them on; *Mana Shield* and *Fire Ward or Frost Ward*, off until you switch them on (Classic Era, WoW Forever, Burning Crusade) |
 | Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them; Shadowform |
-| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out (on WoW Forever, with the Demonic Pact talent, both, each with its own switch); Unending Breath while you swim; *Make a healthstone* when none is in your bags |
+| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out (on WoW Forever, with the Demonic Pact talent, both, each with its own switch); Unending Breath while you swim; *Make a healthstone* when none is in your bags, off until you switch it on |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
 | Hunter | *Aspect*: Hawk, Monkey, Wild or Beast, and in Season of Discovery Falcon and Viper; Trueshot Aura; Heart of the Lion in Season of Discovery; and for the pet, Call Pet, Revive Pet, Mend Pet and Feed Pet (see *Your pet*) |
 | Shaman | *Shield*: Lightning Shield or Water Shield; *Weapon imbue*; Spirit of the Alpha in Season of Discovery while your group role is tank |
 | Druid | Moonkin Form; Tree of Life in Season of Discovery; Omen of Clarity on Classic Era only (a passive on WoW Forever) |
 
 A warrior has no buff of his own to be reminded of beyond his shout, and a
-rogue's own buffs are his poisons; every class is reminded of a stone, an oil
-or a lure in the bags for a weapon with nothing on it.
+rogue's own buffs are his poisons; every class can be reminded of a stone, an
+oil or a lure in the bags for a weapon with nothing on it, each switched on
+first.
 
 On the other clients each class offers what that client gives it:
 

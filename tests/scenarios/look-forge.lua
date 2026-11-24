@@ -1049,7 +1049,6 @@ withTree("look-forge: a fight dulls the iron and keeps the slot's colour", ANNA,
 	local r, p, look = upIn(ns, scenario)
 	if skipped(scenario, look) then return end
 	local slot = look.slot._color and { look.slot._color[1], look.slot._color[2], look.slot._color[3] }
-	p.dimInCombat = true
 	fight(ns, true)
 	tick(ns)
 	local strap = look.strapTop[2]
@@ -1657,7 +1656,7 @@ end
 withTree("look-forge: the forge is alive at rest, on Full and out of a fight", CROWD, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "forge", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "forge", "full", "pulse", true
 	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)

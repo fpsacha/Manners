@@ -64,6 +64,8 @@ local function session(scenario, ids, body)
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		-- Ticked, as a player who wants it has (off by default since 1.12).
+		for _, k in ipairs({ "tracking" }) do ns.db.profile.ownBuffs.pick[k] = "auto" end
 		ns.Prompt:ExitTest()
 		ns.ForgetTrackingList()
 		local ok, err = pcall(function()
@@ -329,6 +331,8 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		-- Ticked, as a player who wants it has (off by default since 1.12).
+		for _, k in ipairs({ "tracking" }) do ns.db.profile.ownBuffs.pick[k] = "auto" end
 		ns.ForgetTrackingList()
 		local control = findOption(ns.optionsTable, "own_leave")
 		if control and not control.hidden() then
@@ -394,6 +398,8 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		-- Ticked, as a player who wants it has (off by default since 1.12).
+		for _, k in ipairs({ "tracking" }) do ns.db.profile.ownBuffs.pick[k] = "auto" end
 		ns.ForgetTrackingList()
 		local okay, err = pcall(function()
 			if not tracking(ns) then

@@ -473,8 +473,8 @@ function Prompt:Create()
 	end
 
 	R.button:Hide()
-	-- What takes the prompt and its rows off the screen for a fight (Fight.lua).
-	self:CreateFightHide()
+	-- The secure header the fight's rota runs on (Fight.lua).
+	self:CreateFightHeader()
 end
 
 function Prompt:AccentColor(reason)
@@ -486,8 +486,8 @@ end
 
 function Prompt:ApplyStyle()
 	if not R.button then return end
-	-- The fight's dim is art's alpha, which a fight allows: a change to "Dim
-	-- the prompt in combat" shows at once rather than at the next fight.
+	-- The fight's dim is art's alpha, which a fight allows: a look's own
+	-- (combatArtAlpha) is put back at once rather than at the next fight.
 	self:ReapplyCombatDim()
 	if InCombatLockdown() then
 		self.pendingStyle = true

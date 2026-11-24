@@ -11,8 +11,7 @@
 -- A fight locks the prompt: its macro is whatever the pull left on it
 -- (CLAUDE.md, Combat), and nothing secure can learn that you are feared (a
 -- snippet reads no aura and no loss of control: Prompt/Fight.lua says what the
--- restricted environment has). So the prompt's key keeps to buffs (unless
--- In a fight, my key casts names a spell: Prompt/FightKey.lua), and Will of
+-- restricted environment has). So the prompt's key keeps to buffs, and Will of
 -- the Forsaken gets a button that casts that one spell and nothing else,
 -- armed out of combat whenever this applies. A hidden armed button firing it
 -- from its own key casts exactly what the player bound, at nobody else.
@@ -21,12 +20,11 @@
 --
 -- Lua writes the macro, the place and the size out of combat only, on the
 -- scan (Core.lua, TickBody) and as a fight ends (Release). Its visibility is a
--- state driver's, "[combat] fight; peace", as the consumables button and Hide
--- the prompt in combat use (Prompt/Supplies.lua, Prompt/Fight.lua): the
--- snippet shows it at the pull and hides it after, in the restricted
--- environment. Lua never shows, hides, moves or arms it under the lockdown,
--- so nothing Manners itself chooses (Hide the prompt in combat, a snooze, the
--- prompt off the screen at the pull) keeps it from being seen and pressed.
+-- state driver's, "[combat] fight; peace", as the consumables button's is
+-- (Prompt/Supplies.lua): the snippet shows it at the pull and hides it after,
+-- in the restricted environment. Lua never shows, hides, moves or arms it
+-- under the lockdown, so nothing Manners itself chooses (a snooze, the prompt
+-- off the screen at the pull) keeps it from being seen and pressed.
 -- In a fight Lua paints only its own regions and its alpha, which the client
 -- allows. The driver shows the button at the pull, but it is out of sight
 -- there: alpha 0, no tooltip, the highlight a region that takes the alpha. It
@@ -626,7 +624,7 @@ end
 function BreakFree.PaintPrompt(prompt, p)
 	local info = Known()
 	local want = afflicted and info ~= nil and button ~= nil and BreakFree.Applies()
-		and R.button:IsShown() and not prompt:HiddenForFight() and Ready(GetTime())
+		and R.button:IsShown() and Ready(GetTime())
 	if not want then
 		if promptPainted then
 			promptPainted = false

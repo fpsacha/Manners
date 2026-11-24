@@ -9,6 +9,13 @@ ns.WhatsNew = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Back to what Manners is for.|r 1.11.41's extras are gone: the buttons for the moment (Counterspell, Blink, the drink and the rest), the falling and low-mana prompts, Report a bug, Mark this moment, water and food for your target, Fire Shield and the...",
 		} },
+		{ title = "Off until you tick them", accent = "7cc4ff", entries = {
+			"|cff7cc4ffIn a fight:|r the Will of the Forsaken, Mend Pet and cure buttons.",
+			"|cff7cc4ffOn yourself|r (|cffffffffWho to buff|r, |cffffffffMyself|r): weapon poisons, stones, oils and fishing lures, Well-Rested, the companion pet, a mage's Familiar and Weapon imbue scrolls, tracking and |cffffffffMake a healthstone|r, like food, flasks and elixirs...",
+		} },
+		{ title = "Gone from In a fight", accent = "7cc4ff", entries = {
+			"|cffffffffIn a fight, my key casts|r, |cffffffffHide the prompt in a fight|r, |cffffffffNo flashes in a fight|r and |cffffffffDim the prompt in combat|r.",
+		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Thank-you after a pause.|r With |cffffffffWait a moment before thanking|r on, the thank-you no longer gets lost when the giver's nameplate changes hands.",
 			"|cffff9a52In character for every class.|r A hunter or a rogue can pick |cffffffffIn character|r again for the thank-you (|cffffffffWhen someone buffs me|r, on |cffffffffWhat I say|r).",
@@ -18,16 +25,6 @@ ns.WhatsNew = {
 			"|cffff9a52Will of the Forsaken|r stays lit through a second fear; the cure button no longer blinks or says nil.",
 			"|cffff9a52Battlegrounds:|r buffs after a death are read right for you and your team.",
 			"|cffff9a52Healthstones and stones|r whose name ends in a bracket cast again.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Cure button.|r It no longer blinks or says nil, shows \"Somebody\" when the game withholds a name, and a Shift key on either binding is read right.",
-			"|cffff9a52Break free.|r A second fear keeps the button lit.",
-			"|cffff9a52Healthstone.|r One whose name ends in a bracket is cast with ().",
-			"|cffff9a52Battleground food and elixirs.|r They read as gone after a death.",
-			"|cffff9a52Greater Blessing on another class.|r It no longer counts as yours.",
-			"|cffff9a52Slider boxes.|r Each reads its own unit words, in every language.",
-			"|cffff9a52Who to buff.|r Your own-buff controls show for a class with nothing for others.",
-			"|cffff9a52/manners debug.|r The dungeon line leaves food out while |cffffffffFood still offered outside dungeons and raids|r is on.",
 		} },
 	} },
 	{ version = "1.11.40", date = "22 November 2026", sections = {

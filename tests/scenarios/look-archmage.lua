@@ -430,7 +430,7 @@ end)
 -- A fight: the crystal and the wire dull, the icon greys, the wave stops; the
 -- charges keep the reason's colour.
 withTree("look-archmage: a fight dulls the crystal and keeps the reason", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario, function(pp) pp.hideInCombat = false end)
+	local r, _, look = upIn(ns, scenario, function(pp) end)
 	if skipped(scenario, look) then return end
 	local colour = { look.charges[1]._color[1], look.charges[1]._color[2], look.charges[1]._color[3] }
 	fight(ns, true)
@@ -491,7 +491,7 @@ end)
 withTree("look-archmage: the crystal is alive at rest, on Full and out of a fight", CROWD, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "archmage", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "archmage", "full", "pulse", true
 	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)

@@ -29,6 +29,16 @@ stands now. Keep it short: what ships goes to the history file or away.
   No workflow runs.
   Old worktrees kept on purpose (uncommitted files or unmerged): `look-fel`,
   `look-wild`, `relcheck`, `logo`, `ci-diag-generators`.
+- **1.12, just the essentials** (branch `release-1.12`, worktree
+  `Manners-wt-112`), after players found 1.11.41 bloated. Step 1 done: the
+  Will of the Forsaken, Mend Pet and cure buttons off by default; the own-buff
+  extras (weapon poisons, stones, oils and lures, Well-Rested, companion pet,
+  Forever's mage scrolls, tracking, *Make a healthstone*) off by default; the
+  fight key, *Hide the prompt in a fight*, *No flashes in a fight* and *Dim the
+  prompt in combat* removed (ClampSettings lets their saved fields go); the
+  fight's rota kept. Next: water and food for the target back (off, usable
+  from an action bar), a Simple view that really is simple, a bug pass, the
+  release.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option

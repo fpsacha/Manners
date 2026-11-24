@@ -458,7 +458,7 @@ local EXPECTED = {
 	},
 	-- In a fight: what the prompt does when a fight starts, and the buttons made for one.
 	fight = {
-		"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
+		"prompt.fightRota",
 		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the

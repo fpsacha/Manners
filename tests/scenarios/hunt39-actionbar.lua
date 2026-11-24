@@ -62,7 +62,7 @@ with("hunt39-actionbar: the key chip follows the controller's glyphs and the pad
 			Mock.bindings = {}
 			SetBinding(key, COMMAND)
 			local p = ns.db.profile.prompt
-			p.style, p.width, p.locked, p.hideInCombat = style, 250, true, false
+			p.style, p.width, p.locked = style, 250, true
 			-- The look's own key chip, which Earlier art draws: a painted look's
 			-- keycap is its own painted-<look>.lua's.
 			p.classicArt = true

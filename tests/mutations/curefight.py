@@ -28,10 +28,10 @@ mutate(CF,
        expect=ARMED, script=S)
 
 mutate("Core.lua",
-       "\t\t\tcureFight = true,\n",
        "\t\t\tcureFight = false,\n",
-       "curefight: off out of the box",
-       expect="curefight: on out of the box, nothing shown until needed", script=S)
+       "\t\t\tcureFight = true,\n",
+       "curefight: on out of the box",
+       expect="curefight: off out of the box; switched on, nothing shown until needed", script=S)
 
 mutate(CF,
        "db.prompt.cureFight == true) then return false end",
@@ -227,7 +227,7 @@ mutate(CF,
        "or not ns.ClassHasCures() or ns.CureFightSpells() == nil) then\n\t\treturn false",
        ") then\n\t\treturn false",
        "curefight: a class with no cure pays a scan the cure's questions",
-       expect="curefight: on by default, a scan costs a warrior nothing", script=S)
+       expect="curefight: switched on, a scan costs a warrior nothing", script=S)
 
 mutate(CF,
        "\treturn changed and not InCombatLockdown()\n",

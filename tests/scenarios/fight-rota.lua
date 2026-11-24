@@ -224,26 +224,11 @@ with("fight-rota: switched off, a fight holds the prompt on the one person as be
 	press()
 	if aimed(ns) ~= first then fail(scenario, "switched off, a press moved the button on") end
 	release(ns)
-	-- The switch is on the Look page, live while the prompt stays up in a fight.
+	-- The switch is on the Look page, and live.
 	local control = H.findOption(ns.optionsTable, "fightRota")
 	if not control then fail(scenario, "Look has no switch for the rota") return end
-	if control.disabled() then fail(scenario, "the switch is greyed with the prompt left up") end
-	ns.db.profile.prompt.hideInFight = true
-	if not control.disabled() then fail(scenario, "the switch is live with the prompt hidden for the fight") end
+	if control.disabled and control.disabled() then fail(scenario, "the switch is greyed") end
 end, { edit = function(p) p.fightRota = false end })
-
--- ------------------------------------------------------------------ 5
-with("fight-rota: the prompt hidden for the fight has no rota, and its key casts nothing", function(ns, scenario)
-	local header = ns.Prompt:FightHeader()
-	pull(ns)
-	if (header:GetAttribute("manners-rota-n") or 0) ~= 0 then fail(scenario, "a rota was armed on a prompt hidden for the fight") end
-	local before = #Mock.castLog
-	press()
-	press()
-	if #castsSince(before) > 0 then fail(scenario, "the hidden prompt's key cast in the fight") end
-	if ns.Prompt:GetButton():GetAttribute("macrotext1") then fail(scenario, "a press put a macro back on the hidden prompt") end
-	release(ns)
-end, { edit = function(p) p.hideInFight = true end })
 
 -- ------------------------------------------------------------------ 6
 with("fight-rota: the fight over, the snippet steps nothing and the prompt is armed afresh", function(ns, scenario)

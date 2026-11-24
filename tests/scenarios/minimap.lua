@@ -270,7 +270,7 @@ do
 				end
 				shape = table.concat(shape, " / ")
 				local want = "Manners / Enable / Snooze / | / Who's next / Open the ledger / | / "
-					.. "Preview the prompt / Prompt / Show what Manners is doing in my chat window / Hide all Manners messages in my chat window / Profiles / | / Options"
+					.. "Preview the prompt / Prompt / Show what Manners is doing in my chat window / Hide all Manners messages in my chat window / Profiles / | / Report a bug / Mark this moment / Options"
 				if shape ~= want then
 					fail(scenario, "the menu is not grouped as it should be: " .. shape)
 				end
@@ -354,12 +354,11 @@ do
 				-- The prompt's own settings.
 				local locked = child(prompt, "^Locked$")
 				local reset = child(prompt, "^Reset position$")
-				local quiet = child(prompt, "^No flashes in a fight$")
 				local sound = child(prompt, "^Play a sound$")
 				local effects = child(prompt, "^Animations$")
 				local full = effects and child(effects, "^Full$")
 				local calm = effects and child(effects, "^Calm")
-				if not (locked and reset and quiet and sound and full and calm) then
+				if not (locked and reset and sound and full and calm) then
 					fail(scenario, "the Prompt submenu is missing entries")
 				else
 					if locked.get() ~= true then fail(scenario, "Locked does not read the lock") end
@@ -376,11 +375,6 @@ do
 						fail(scenario, "Reset position did not put the prompt back")
 					end
 
-					local wasQuiet = p.hideInCombat == true
-					quiet.fn()
-					if (p.hideInCombat == true) == wasQuiet then
-						fail(scenario, "Stay quiet in combat did not change the setting")
-					end
 					local wasSound = ns.db.profile.sound.enabled == true
 					sound.fn()
 					if (ns.db.profile.sound.enabled == true) == wasSound then
@@ -529,9 +523,9 @@ do
 						fail(scenario, pattern .. " is greyed out in a fight, where it is safe")
 					end
 				end
-				local quiet = prompt and child(prompt, "^No flashes in a fight$")
-				if not quiet or quiet.enabled == false then
-					fail(scenario, "Stay quiet in combat is held back in a fight, where it is only drawing")
+				local sound = prompt and child(prompt, "^Play a sound$")
+				if not sound or sound.enabled == false then
+					fail(scenario, "Play a sound is held back in a fight, where it is only sound")
 				end
 				-- The switch and a snooze, thrown in the fight.
 				child(menu, "^Enable$").fn()

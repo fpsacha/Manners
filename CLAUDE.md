@@ -58,15 +58,11 @@ function, switch and test named. Change both together.
   copy of `pcall`.
 - **Combat.** The secure button's attributes cannot change in combat: what is
   on the prompt when a fight starts stays until it ends, and Lua writes nothing
-  on the button in a fight. The exceptions are secure code or bindings set at
+  on the button in a fight. The exception is secure code set at
   the pull (`PLAYER_REGEN_DISABLED`, before the lockdown), never under it:
-  *Hide the prompt in a fight* (`Prompt/Fight.lua`: the snippet disarms the
-  prompt and its rows, then hides it, only when the bar macro holds no cast);
-  the fight's rota (the header steps the button once round the queue the fight
-  began with, then casts nothing; never armed from a passer-by offered from
-  memory alone); the fight key (`Prompt/FightKey.lua`: override bindings point
-  the prompt's key at a button armed with the chosen spell, never shown,
-  cleared at the release). The break-free, Mend Pet and cure buttons have
+  the fight's rota (`Prompt/Fight.lua`: the header steps the button once round
+  the queue the fight began with, then casts nothing; never armed from a
+  passer-by offered from memory alone). The break-free, Mend Pet and cure buttons have
   their own state drivers and sit at alpha 0; in a fight Lua paints only their
   regions and alpha. Nothing Manners chooses may keep break-free from showing
   and being pressed when needed; the cure button is the other way round,

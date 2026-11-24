@@ -5009,10 +5009,6 @@ if ns then
 		local db = ns.db.profile
 		db.prompt.showQueue = true
 		db.prompt.queueRows = 2
-		db.prompt.hideInCombat = false
-		-- The dim is one of the things that says held, and it is off by
-		-- default since 1.10.4: turned on here, so it is held to it.
-		db.prompt.dimInCombat = true
 		-- Held on the one person, as a fight held it before the rota: with
 		-- "In a fight, each press buffs the next person in line" on, the line
 		-- says where the rota stands instead (tests/scenarios/fight-rota.lua).
@@ -5033,10 +5029,6 @@ if ns then
 			Mock.inCombat = true
 			Mock.runTimers(0)
 
-			if regions.art:GetAlpha() >= 1 then
-				fail(scenario, "the panel kept full brightness over a frozen target, so nothing"
-					.. " about it says it cannot follow the queue")
-			end
 			if (regions.rows[1]:GetText() or "") ~= "" then
 				fail(scenario, "the queue list went on updating under a button that cannot be"
 					.. " aimed at any of it")
@@ -5058,8 +5050,8 @@ if ns then
 			-- next scan.
 			Mock.inCombat = false
 			ns.addon:PLAYER_REGEN_ENABLED()
-			if regions.art:GetAlpha() < 1 then
-				fail(scenario, "the dim outlived the fight, so the prompt looks held while it"
+			if tostring(regions.sub:GetText() or ""):find("held", 1, true) then
+				fail(scenario, "the hold outlived the fight, so the prompt looks held while it"
 					.. " is working normally")
 			end
 		end
@@ -5520,7 +5512,7 @@ local REQUIRED_OPTIONS = {
 	"restoreTarget", "channel", "onlyWhenReturning", "preset", "phrases", "roll",
 	"previewStart", "locked", "style", "accentByReason", "accentColor", "bgColor",
 	"accentMode", "flashStyle", "posPreset", "x", "y", "width", "height", "scale",
-	"alpha", "hideInCombat", "format", "showSub", "reasonTarget", "reasonOwed",
+	"alpha", "format", "showSub", "reasonTarget", "reasonOwed",
 	"reasonGroup", "reasonNearby", "reasonRefresh", "reasonUnknown", "font",
 	"fontSize", "fontColor", "classColor", "showIcon", "iconSize", "roundIcon",
 	"showCount", "showQueue", "queueRows", "debugClicks", "diag",
@@ -6998,7 +6990,6 @@ if ns then
 		ns.BuildQueue = function() return { after } end
 
 		local db = ns.db.profile
-		db.prompt.hideInCombat = false
 		local button = ns.Prompt:GetButton()
 		-- The client refuses Show, Hide and SetAttribute on this frame for the
 		-- length of a fight and says nothing about refusing them. The mock
@@ -7074,56 +7065,6 @@ if ns then
 	Mock.inCombat = false
 	ns.pendingClick = nil
 	wipe(ns.owed)
-end
-
--- ------------------------------------------------------------------ 107
--- The combat dim was put on in the branch that knows about lockdown and taken
--- off at the far end of Refresh, which four branches return before reaching.
--- Preview is the one that never heals: it stays alive for as long as the
--- options window is open, so a preview started during a fight sat at 0.55 alpha
--- indefinitely -- a mock-up that looks held, being used to judge a size and a
--- position, long after the fight it borrowed the dim from.
---
--- Starting one in a fight is refused now, so the dim is met the other way in:
--- a preview started as the fight ends, ahead of the event that says it has.
-Mock.reset()
-ns = load("a preview does not keep the dim of a fight that has ended")
-if ns then
-	local scenario = "a preview does not keep the dim of a fight that has ended"
-	drive(scenario, ns)
-	local regions = ns.Prompt:Regions()
-	-- The dim is off by default since 1.10.4; this is about the dim.
-	ns.db.profile.prompt.dimInCombat = true
-
-	-- The window is open, which is the one place a preview is of any use and
-	-- the reason it can outlive the fight it was started in.
-	Mock.optionsOpen = true
-	Mock.inCombat = true
-	ns.addon:PLAYER_REGEN_DISABLED()
-
-	if regions.art:GetAlpha() >= 1 then
-		fail(scenario, "SKIPPED -- the panel never dimmed for the fight")
-	else
-		-- A preview is no longer started in a fight (scenario 243), so the one
-		-- that can still find the dim on is one started the moment the lockdown
-		-- lifts, before PLAYER_REGEN_ENABLED has reached this addon and
-		-- repainted. Its own Refresh is then the first pass out of the fight,
-		-- and preview returns above the far end of Refresh.
-		Mock.inCombat = false
-		if not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
-		if not ns.Prompt:InTest() then
-			fail(scenario, "SKIPPED -- the preview would not start")
-		elseif regions.art:GetAlpha() < 1 then
-			fail(scenario, ("the fight ended and the preview stayed dimmed at %s: the"
-				.. " release is at the bottom of Refresh and preview returns above it")
-				:format(tostring(regions.art:GetAlpha())))
-		end
-		ns.addon:PLAYER_REGEN_ENABLED()
-	end
-
-	if ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
-	Mock.optionsOpen = false
-	Mock.inCombat = false
 end
 
 -- ------------------------------------------------------------------ 108
@@ -7409,7 +7350,6 @@ if ns then
 		pressed.targetName = ns.TargetName(pressed.name)
 
 		local db = ns.db.profile
-		db.prompt.hideInCombat = false
 		local button = ns.Prompt:GetButton()
 		-- Nothing about a refused call is visible from Lua, so the mock writes
 		-- down every protected method reached while the lockdown is on. It is
@@ -7989,108 +7929,6 @@ for _, case in ipairs({
 		IsSpellKnown = realKnown
 		IsPlayerSpell = realKnown
 	end
-end
-
--- ------------------------------------------------------------------ 117
--- "Hide in combat" hid nothing. The only call that ever read it was a
--- button:Hide() inside the combat branch -- a protected method on a protected
--- frame, refused by the client every single time it was made -- and that call
--- is now gone. A secure visibility driver could hide it ([combat] resolves
--- here; only [@Name] is restricted), but a hidden secure button still fires
--- from its key binding and /click, casting the frozen macro out of sight.
---
--- What is left is real. A click still casts the frozen macro in a fight, and
--- the confirmation flash for it is the one thing on a held panel that still
--- changes, so this decides whether it does. The label follows that, and the
--- check below holds both ends: the panel does not go away, and the setting
--- still governs the thing it is now named for.
-Mock.reset()
-ns = load("the combat switch does what it is called")
-if ns then
-	local scenario = "the combat switch does what it is called"
-	drive(scenario, ns)
-	Mock.advance(60)
-
-	local template = ns.BuildQueue()[1]
-	local toggle = findOption(ns.optionsTable, "hideInCombat")
-	if not (template and template.buff) then
-		fail(scenario, "SKIPPED -- nobody to click on")
-	elseif not toggle then
-		fail(scenario, "SKIPPED -- the combat switch is not on the page")
-	else
-		local name = tostring(type(toggle.name) == "function" and toggle.name() or toggle.name)
-		local desc = tostring(type(toggle.desc) == "function" and toggle.desc() or toggle.desc)
-
-		local entry = {}
-		for k, v in pairs(template) do entry[k] = v end
-		entry.name, entry.short, entry.reason, entry.priority = "Ana Field", "Ana", "owed", 1
-		entry.targetName = ns.TargetName(entry.name)
-
-		local button = ns.Prompt:GetButton()
-		Mock.protect(button)
-		local regions = ns.Prompt:Regions()
-		local post = button.scripts.PostClick
-		local ours = ns.FindBuff(ns.caps.class, entry.buff.key).ranks[1]
-
-		-- The sub-line, not the title. A held panel keeps naming `current` --
-		-- correctly, because the frozen macro is still aimed at them -- so the
-		-- name reads "Ana" whether the flash was painted or suppressed, and a
-		-- check on the title would have passed for the wrong reason.
-		local function clickInCombat(quiet)
-			Mock.inCombat = false
-			wipe(ns.tried)
-			ns.pendingClick = nil
-			ns.owed[entry.name] = { expires = GetTime() + 100, at = GetTime() }
-			ns.db.profile.prompt.hideInCombat = quiet
-			ns.Prompt:InvalidateMacro()
-			ns.Prompt:ApplyTarget(entry)
-			-- Put up by hand. The last press of the drive above blocked its own
-			-- candidate, so the panel is down by the time we get here -- and a
-			-- fight that finds it down proves nothing about whether a branch
-			-- would have taken it down.
-			button:Show()
-			Mock.inCombat = true
-			if post then pcall(post, button, "LeftButton", true) end
-			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", entry.name, nil, ours)
-			Mock.protectedCalls = {}
-			ns.Prompt:Refresh()
-			return tostring(regions.sub:GetText() or "")
-		end
-
-		local loud = clickInCombat(false)
-		local shownWhileLoud = button:IsShown()
-		local hushed = clickInCombat(true)
-
-		if loud:find("held", 1, true) or loud == "" then
-			fail(scenario, "SKIPPED -- the click was never confirmed on the panel even with the"
-				.. " switch off, so there is nothing for it to suppress: " .. loud)
-		elseif not hushed:find("held", 1, true) then
-			fail(scenario, "the switch is on and the prompt still flashed the click's outcome"
-				.. " during the fight: " .. hushed)
-		end
-
-		-- The half the old label promised and the client refuses. Both states
-		-- have to leave the panel standing, because Hide is protected.
-		if not (shownWhileLoud and button:IsShown()) then
-			fail(scenario, "the panel came down during a fight, which the client does not"
-				.. " allow and no branch should believe it has done")
-		end
-		if #Mock.protectedCalls > 0 then
-			fail(scenario, "the combat repaint called "
-				.. table.concat(Mock.protectedCalls, ", ") .. " on the secure button")
-		end
-		if name:lower():find("hide", 1, true) then
-			fail(scenario, "the switch is still called \"" .. name .. "\" over a panel it"
-				.. " cannot hide and no longer tries to")
-		end
-		if not desc:lower():find("flash", 1, true) then
-			fail(scenario, "the switch does not say what it actually governs, which is the"
-				.. " click's confirmation flash: " .. desc)
-		end
-	end
-	Mock.inCombat = false
-	ns.pendingClick = nil
-	wipe(ns.owed)
 end
 
 -- ------------------------------------------------------------------ 118
@@ -17455,63 +17293,6 @@ for _, case in ipairs({
 
 		IsSpellKnown = realKnown
 		IsPlayerSpell = realKnown
-	end
-end
-Mock.reset()
-
--- ------------------------------------------------------------------ 264
--- "Stay quiet in combat" gives the true reason the prompt stays up.
---
--- It told players the prompt "cannot be hidden" because Blizzard freezes secure
--- frames, and the comments behind it said a secure visibility driver was out
--- because this client does not resolve macro conditionals. Only the ones that
--- name a unit, [@Name], are restricted here; [combat] resolves, and other
--- addons on this client drive visibility with it. The prompt stays on screen
--- because a hidden secure button still fires from its key binding and /click,
--- casting the frozen macro out of sight -- and that is what the page now says.
-Mock.reset()
-ns = load("stay quiet in combat gives the true reason")
-if ns then
-	local scenario = "stay quiet in combat gives the true reason"
-	drive(scenario, ns)
-	local toggle = findOption(ns.optionsTable, "hideInCombat")
-	if not toggle then
-		fail(scenario, "SKIPPED -- the combat switch is not on the page")
-	else
-		local desc = optionText(toggle.desc)
-		if desc:find("cannot be hidden", 1, true) or desc:find("Blizzard freezes", 1, true) then
-			fail(scenario, "the switch still says the prompt cannot be hidden, when it is kept up"
-				.. " on purpose: " .. desc)
-		elseif not desc:find("binding", 1, true) then
-			fail(scenario, "the switch does not say why the prompt stays on screen: " .. desc)
-		end
-	end
-end
-Mock.reset()
-
--- ------------------------------------------------------------------ 265
--- "Stay quiet in combat" does not promise a green flash.
---
--- It said the prompt "still flashes green or red" to say what happened. The
--- wash is the reason's own colour -- amber, cyan, blue, grey or the accent you
--- picked -- and only a failure overrides it, with red. Nothing ever washes the
--- panel green, so somebody watching for green after a cast that worked took
--- the cast for lost.
-Mock.reset()
-ns = load("stay quiet in combat promises no green")
-if ns then
-	local scenario = "stay quiet in combat promises no green"
-	drive(scenario, ns)
-	local toggle = findOption(ns.optionsTable, "hideInCombat")
-	if not toggle then
-		fail(scenario, "SKIPPED -- the combat switch is not on the page")
-	else
-		local desc = optionText(toggle.desc)
-		if desc:lower():find("green", 1, true) then
-			fail(scenario, "the switch promises a green flash the prompt never paints: " .. desc)
-		elseif not desc:find("%f[%a]red%f[%A]") then
-			fail(scenario, "the switch no longer says a failure flashes red: " .. desc)
-		end
 	end
 end
 Mock.reset()

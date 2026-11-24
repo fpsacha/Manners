@@ -168,7 +168,7 @@ local function run(scenario, style, game)
 			local P = ns.Prompt
 			freshPrompt(ns, scenario)
 			local p = ns.db.profile.prompt
-			p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = style, "full", "pulse", true, false
+			p.style, p.effects, p.flashStyle, p.showIcon = style, "full", "pulse", true
 			p.showQueue = false
 			P:ApplyStyle()
 			ns.addon:Tick()
@@ -377,7 +377,7 @@ local function withLook(scenario, style, body)
 		ok, err = pcall(function()
 			freshPrompt(ns, scenario)
 			local p = ns.db.profile.prompt
-			p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = style, "full", "pulse", true, false
+			p.style, p.effects, p.flashStyle, p.showIcon = style, "full", "pulse", true
 			ns.Prompt:ApplyStyle()
 			owe(ns, "Anna Aim")
 			ns.addon:Tick()

@@ -11,6 +11,18 @@
   target, Fire Shield and the new cure display. Thank you for saying so. The
   fixes stay.
 
+### Off until you tick them
+- **In a fight:** the Will of the Forsaken, Mend Pet and cure buttons.
+- **On yourself** (*Who to buff*, *Myself*): weapon poisons, stones, oils and
+  fishing lures, Well-Rested, the companion pet, a mage's Familiar and Weapon
+  imbue scrolls, tracking and *Make a healthstone*, like food, flasks and
+  elixirs already were.
+
+### Gone from In a fight
+- *In a fight, my key casts*, *Hide the prompt in a fight*, *No flashes in a
+  fight* and *Dim the prompt in combat*. *In a fight, each press buffs the next
+  person in line* stays.
+
 ### Fixes
 - **Thank-you after a pause.** With *Wait a moment before thanking* on, the
   thank-you no longer gets lost when the giver's nameplate changes hands.

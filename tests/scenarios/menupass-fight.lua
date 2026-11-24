@@ -1,6 +1,6 @@
 -- Everything about a fight is on one page, In a fight: the prompt's fight
 -- switches and the buttons made for one (Will of the Forsaken, Mend Pet, the
--- cure, the fight key). Look keeps what the prompt looks like. The page has
+-- cure). Look keeps what the prompt looks like. The page has
 -- its own reset and its own combat line, and the sidebar, which does not
 -- scroll, is laid out smaller when its pages do not fit.
 --
@@ -14,10 +14,9 @@ local fail, load, drive = H.fail, H.load, H.drive
 local HAWK, MONKEY = 13165, 13163
 local WOTF = 7744
 
--- The thirteen controls, by path.
+-- The nine controls, by path.
 local FIGHT = {
-	"appearance.hideInFight", "appearance.fightRota", "appearance.fightKeySpell", "appearance.fightKeyOn",
-	"appearance.hideInCombat", "appearance.dimInCombat",
+	"appearance.fightRota",
 	"appearance.breakFree", "appearance.breakFreeKey", "appearance.mendInFight", "appearance.mendInFightKey",
 	"appearance.fightButtons", "appearance.cureFight", "appearance.cureFightKey",
 }
@@ -99,7 +98,10 @@ end
 do
 	local scenario = "menupass-fight: a Forsaken finds Will of the Forsaken there and turns it off"
 	with(scenario, nil, function(ns, UI)
+		-- Off by default since 1.12: switched on first, then off.
+		ns.db.profile.prompt.breakFree = true
 		ns.OpenOptions("fight")
+		ns.RefreshOptionsDisplay()
 		if not UI.RowShown("appearance.breakFree") then
 			fail(scenario, "a Scourge priest's In a fight has no Will of the Forsaken row")
 			return
@@ -121,7 +123,7 @@ do
 	local scenario = "menupass-fight: In a fight's reset puts every fight switch back, Look's leaves them"
 	with(scenario, nil, function(ns, UI)
 		local p, d = ns.db.profile.prompt, ns.defaults.profile.prompt
-		local fields = { "hideInCombat", "hideInFight", "fightRota", "breakFree", "cureFight", "dimInCombat" }
+		local fields = { "fightRota", "breakFree", "cureFight", "cureFightEach" }
 		local function unsettle()
 			for _, name in ipairs(fields) do p[name] = not d[name] end
 		end
@@ -201,7 +203,7 @@ do
 		if not (UI.visiblePages or {}).fight then fail(scenario, "In a fight is not in the sidebar") end
 		if (UI.visiblePages or {}).appearance then fail(scenario, "Look is in the sidebar for a character with no prompt") end
 		if not UI.RowShown("appearance.breakFree") then fail(scenario, "the Will of the Forsaken switch is not shown") end
-		for _, path in ipairs({ "appearance.hideInFight", "appearance.fightButtons", "appearance.fightRota" }) do
+		for _, path in ipairs({ "appearance.fightButtons", "appearance.fightRota" }) do
 			if UI.RowShown(path) then fail(scenario, path .. " is shown with no prompt") end
 		end
 		local lines = {}
@@ -219,8 +221,8 @@ do
 		if not UI.RowShown("appearance.mendInFight") then fail(scenario, "the Mend Pet switch is not shown") end
 		-- Call, Revive and Mend Pet are on the prompt (Options/Shared.lua's HasPrompt
 		-- counts pet care since the retail hunter's window was found cut down), so
-		-- hiding the prompt in a fight is a real choice for this hunter.
-		if not UI.RowShown("appearance.hideInFight") then fail(scenario, "Hide the prompt is not shown for a hunter whose prompt is pet care") end
+		-- the fight's rota is a real choice for this hunter.
+		if not UI.RowShown("appearance.fightRota") then fail(scenario, "the rota's switch is not shown for a hunter whose prompt is pet care") end
 		local lines = {}
 		local tip = { AddLine = function(_, text) lines[#lines + 1] = text end }
 		ns.AddSettingsLine(tip, "appearance.mendInFight")

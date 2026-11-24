@@ -62,6 +62,8 @@ local function session(scenario, flavour, body)
 	if ns then
 		local ok, err = pcall(function()
 			drive(scenario, ns)
+			-- Ticked, as a player who wants it has (off by default since 1.12).
+			for _, k in ipairs({ "tracking", "findtreasure" }) do ns.db.profile.ownBuffs.pick[k] = "auto" end
 			ns.Prompt:ExitTest()
 			ns.ForgetTrackingList()
 			local ctx = { name = ns.UnitFullName("player"), now = GetTime(), whenBuffed = "skip" }

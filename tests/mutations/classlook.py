@@ -103,8 +103,8 @@ mutate(ADV, "\t\t\tns.db.profile.prompt.profileStyle = nil\n",
 
 # --- a settings string ------------------------------------------------------
 
-mutate("Commands.lua", "\t\t\t\t\t\telseif name == \"prompt.classStyles\" or name == \"prompt.fightKeySpells\" then\n",
-       "\t\t\t\t\t\telseif name == \"prompt.classStyles.\" or name == \"prompt.fightKeySpells\" then\n",
+mutate("Commands.lua", "\t\t\t\t\t\telseif name == \"prompt.classStyles\" then\n",
+       "\t\t\t\t\t\telseif name == \"prompt.classStyles.\" then\n",
        "classlook: the picks do not travel",
        expect="classlook: a settings string", script=S)
 

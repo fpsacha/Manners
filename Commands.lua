@@ -998,10 +998,9 @@ do
 							or name == "ownBuffs.elixirKeep"
 							or name == "prompt.thankEmoteMore" then
 							kind = "set"
-						elseif name == "prompt.classStyles" or name == "prompt.fightKeySpells" then
+						elseif name == "prompt.classStyles" then
 							-- Use my class's look on each character: a class to the
-							-- one of its own looks picked (Looks/Looks.lua). The same
-							-- shape for In a fight, my key casts: a class to a row key.
+							-- one of its own looks picked (Looks/Looks.lua).
 							kind = "byclass"
 						elseif name == "buff.forClass" then
 							-- A class to one buff key (A blessing for each class).
@@ -2168,7 +2167,6 @@ function addon:HandleSlash(rawInput)
 		for _, line in ipairs(ns.BreakFreeLines and ns.BreakFreeLines() or {}) do self:Print("  " .. line) end
 		for _, line in ipairs(ns.MendPetLines and ns.MendPetLines() or {}) do self:Print("  " .. line) end
 		for _, line in ipairs(ns.CureFightLines and ns.CureFightLines() or {}) do self:Print("  " .. line) end
-		for _, line in ipairs(ns.FightKeyLines and ns.FightKeyLines() or {}) do self:Print("  " .. line) end
 
 		-- A buff table that never arrived says so first, or the lines below
 		-- read as "this class has nothing".

@@ -464,7 +464,6 @@ do
 		expectName(ns, scenario, "general.verbose", L["Show what Manners is doing in my chat window"])
 		expectName(ns, scenario, "general.minimapHeader", L["Minimap and chat window"])
 		expectName(ns, scenario, "when.verifiedOnly", L["Don't offer when the game hides their buffs"])
-		expectName(ns, scenario, "appearance.hideInCombat", L["No flashes in a fight"])
 		expectName(ns, scenario, "advanced.owedClassBuffsOnly", L["Only class buffs count as favours"])
 		expectName(ns, scenario, "general.bindKey", L["The prompt's key"])
 		expectName(ns, scenario, "advanced.reasonUnknown", L["When the game hides their buffs"])

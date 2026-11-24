@@ -493,7 +493,7 @@ end)
 withTree("look-warchief: the banner stirs at rest, on Full and out of a fight", CROWD, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "warchief", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "warchief", "full", "pulse", true
 	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)
@@ -548,7 +548,7 @@ end)
 
 -- ------------------------------------------------------------------ 12
 withTree("look-warchief: a fight dulls the iron and keeps the reason", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario, function(pp) pp.hideInCombat = false end)
+	local r, _, look = upIn(ns, scenario, function(pp) end)
 	if skipped(scenario, look) then return end
 	local colour = { look.brand._color[1], look.brand._color[2], look.brand._color[3] }
 	local paint = { look.paint._color[1], look.paint._color[2], look.paint._color[3] }

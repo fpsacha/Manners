@@ -25,11 +25,7 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   `pcall`.
 - **Combat.** The secure button's attributes cannot change in combat: what is
   on the prompt when a fight starts stays until it ends. The one exception is
-  secure code: with *Hide the prompt in a fight* on, `Prompt/Fight.lua`'s
-  snippet takes the macro off the prompt and its rows and only then hides the
-  prompt, and only when the pull (`PLAYER_REGEN_DISABLED`, before the
-  lockdown) has left the bar macro holding no cast (`ns.BarMacroDisarmed`).
-  The other is the fight's rota (`Prompt/Fight.lua`, `prompt.fightRota`, on):
+  secure code, the fight's rota (`Prompt/Fight.lua`, `prompt.fightRota`, on):
   at the pull the header is handed the macro of everybody in the queue, and a
   `SecureHandlerWrapScript` round the prompt's OnClick writes the next one on
   the button at every left press, so a fight's presses go once round the
@@ -44,8 +40,7 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   The break-free button (`Prompt/BreakFree.lua`, MannersBreakFree) casts
   only Will of the Forsaken, from its own key or a left click: armed out of
   combat whenever it applies, shown and hidden by its own state driver for
-  every fight, whatever Hide the prompt in a fight, a snooze or the prompt's
-  place at the pull say, but at alpha 0 (no tooltip, its highlight a region so
+  every fight, whatever a snooze or the prompt's place at the pull say, but at alpha 0 (no tooltip, its highlight a region so
   it takes the alpha) and faded in by Lua (a plain OnUpdate, as the cure's)
   only while you are afflicted; in a fight Lua paints only its regions and
   alpha. Afflicted is a plain read of the loss of control (FEAR, FEAR_MECHANIC,
@@ -58,7 +53,8 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   fight instead, and covers Mend Pet's button the same way; the cure button
   never reads it. Nothing Manners itself chooses may keep it from showing when
   it is needed and from being pressed, and the prompt's own key keeps to
-  buffs (unless *In a fight, my key casts* names a spell: below).
+  buffs. Off by default since 1.12 (`prompt.breakFree`), as are the Mend Pet
+  button (`beast.fightMend`) and the cure button (`prompt.cureFight`).
   The cure button (`Prompt/CureFight.lua`, MannersCureFight) is the other
   way round: nothing of it may be on the screen for nothing. It is armed out
   of combat and shown by its own state driver for every fight, but at alpha 0
@@ -92,28 +88,13 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   withholds is never compared or boolean-tested: a withheld debuff is passed
   over, and where the client withholds them (Forever, retail) with no list of
   what you can remove, only you and your target are read.
-  The fight key (`Prompt/FightKey.lua`, `ns.FightKey`, `MannersFightKey`) is
-  how the prompt's own key casts a spell in a fight, with `prompt.fightKeySpells`
-  (class -> a row key of that class's list; `"none"`: kept per class because every character
-  shares the profile; a pre-1.11.35 `fightKeySpell` is carried over by ClampSettings to the one class whose list holds it, or, for a key two classes share, to the class logging in when its list holds it, else dropped; it travels in a settings string as `PRIEST=flash,...`) and `prompt.fightKeyOn`. It is
-  not a line in the prompt's macro (nothing to put it on when nobody is owed,
-  the hide snippet and the rota both rewrite the macro, the buff lines ahead of
-  it start the global cooldown). At the pull (`PLAYER_REGEN_DISABLED`, still out
-  of the lockdown, after `ArmFightRota`) `Take` points each key bound to
-  `CLICK MannersPrompt:LeftButton` at a secure button of its own with
-  `SetOverrideBindingClick`, and the release clears them
-  (`ClearOverrideBindings`); neither is ever called under the lockdown, and a
-  reload inside a fight, which never fires the pull, leaves that fight's key on
-  buffs. The button is created out of combat, is armed with the spell's macro,
-  has no key, no texture and no `Show` anywhere in the file: it is never on the
-  screen, by the owner's rule. The prompt itself still casts nothing while hidden,
-  its macro, the hold, the hide snippet and the rota are untouched, a click on
-  the prompt still buffs and steps the rota, and the bar macro keeps to buffs.
-  A change made in a fight is saved and counts from the next pull.
-  Never hide the prompt by any route that leaves it, a row or the bar macro
-  able to cast: a hidden secure button still fires from its binding and
-  `/click`. The snippet writes nothing back; the repaint after the fight arms
-  the prompt afresh.
+  Gone in 1.12, when Manners went back to its essentials: the fight key (*In a
+  fight, my key casts*, `Prompt/FightKey.lua`), *Hide the prompt in a fight*
+  (the hide snippet in `Prompt/Fight.lua`), *No flashes in a fight* and *Dim
+  the prompt in combat*; ClampSettings lets their saved fields go. Never hide
+  the prompt by any route that leaves it, a row or the bar macro able to
+  cast: a hidden secure button still fires from its binding and `/click`. The
+  repaint after the fight arms the prompt afresh.
 - **Secure frames never anchor to a region.** The client refuses a protected
   frame's `SetPoint` onto a font string or texture ("Cannot anchor protected
   frames to regions"); 1.8.0 did it for the list's names and threw in

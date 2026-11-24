@@ -447,105 +447,21 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
-			-- The prompt off the screen for a fight, the player's ask. Not a
-			-- visibility driver alone: a hidden secure button still fires from
-			-- its key binding and /click, and the bar macro casts by its own
-			-- lines. Prompt/Fight.lua hides it from a secure snippet that first
-			-- takes the macro off the prompt and its list, and only once the
-			-- pull has left the bar macro holding no cast. Its own key: the
-			-- old "hideInCombat" below means the flashes, and keeps meaning
-			-- them for everybody who set it.
-			hideInFight = {
-				type = "toggle",
-				name = L["Hide the prompt in a fight"],
-				desc = function()
-					local text = L["Off the screen for the whole fight, and nothing casts from it meanwhile: not its key, not a name in its list, not the Manners macro on your bar. It comes back when the fight ends. A change made in a fight counts from the next one."]
-					if ns.FightKey and ns.FightKey.Chosen() then text = text .. " " .. L["While In a fight, my key casts names a spell, the prompt's key casts that spell in a fight instead."] end
-					return text
-				end,
-				order = 32.4,
-				width = "full",
-				get = pGet,
-				set = pSet,
-			},
 			-- The fight's rota (Prompt/Fight.lua): the prompt left up steps
-			-- through the people the fight began with, a press each. Nothing to
-			-- step with the prompt hidden for the fight.
+			-- through the people the fight began with, a press each.
 			fightRota = {
 				type = "toggle",
 				name = L["In a fight, each press buffs the next person in line"],
-				desc = function()
-					local text = L["A fight locks the prompt, so Manners hands it everybody who still needed a buff as the fight began, and each press of the prompt or its key casts at the next of them in turn. Off, every press in a fight casts at the one person the prompt was on. The Manners macro on an action bar keeps to that one person either way."]
-					if ns.FightKey and ns.FightKey.Chosen() then text = text .. " " .. L["While In a fight, my key casts names a spell, the prompt's key casts that spell in a fight instead."] end
-					return text
-				end,
+				desc = L["A fight locks the prompt, so Manners hands it everybody who still needed a buff as the fight began, and each press of the prompt or its key casts at the next of them in turn. Off, every press in a fight casts at the one person the prompt was on. The Manners macro on an action bar keeps to that one person either way."],
 				order = 32.45,
 				width = "full",
-				disabled = function() return P().hideInFight == true end,
 				get = pGet,
 				set = pSet,
-			},
-			-- The prompt's own key casting a spell of the player's choosing in a
-			-- fight (Prompt/FightKey.lua): an override binding taken at the pull
-			-- and given back at the end; nothing extra on the screen.
-			fightKeySpell = {
-				type = "select",
-				name = L["In a fight, my key casts"],
-				desc = function()
-					local text = L["The prompt's key buffs out of a fight. Pick a spell here and the same key casts it in a fight instead, for as long as the fight lasts; nothing extra appears on screen. Clicking the prompt still buffs. Only spells you know are listed. It needs a key for the prompt, and the Manners macro on an action bar keeps to buffs. A change made in a fight counts from the next one."]
-					if not ns.caps.conditionalTargeting then
-						text = text .. " " .. L["A spell you can cast on others lands on your target when it is a friend, else on you."]
-					end
-					return text
-				end,
-				order = 32.455,
-				width = "full",
-				hidden = function() return #ns.FightKey.Choices() <= 1 end,
-				values = function()
-					local out = {}
-					for _, entry in ipairs(ns.FightKey.Choices()) do
-						out[entry.key] = entry.key == "none" and L["Nothing (keep to buffs)"] or entry.name
-					end
-					return out
-				end,
-				sorting = function()
-					local out = {}
-					for _, entry in ipairs(ns.FightKey.Choices()) do out[#out + 1] = entry.key end
-					return out
-				end,
-				-- Kept per class: the profile is shared by every character.
-				get = function() return ns.FightKey.Value() end,
-				set = function(_, value)
-					ns.FightKey.Set(nil, value)
-					ns.Guard("fight key", ns.FightKey.Refresh, ns.FightKey)
-				end,
-			},
-			fightKeyOn = {
-				type = "select",
-				name = L["Cast it on"],
-				desc = L["For a spell you can cast on others. A spell only for yourself always lands on you."],
-				order = 32.456,
-				hidden = function()
-					if not ns.caps.conditionalTargeting then return true end
-					local row = ns.FightKey.Chosen()
-					return row == nil or row.self == true
-				end,
-				values = {
-					friend = L["Whoever is under my mouse, else my target, else me"],
-					me = L["Me"],
-				},
-				sorting = { "friend", "me" },
-				get = pGet,
-				set = function(info, value)
-					pSet(info, value)
-					ns.Guard("fight key", ns.FightKey.Refresh, ns.FightKey)
-				end,
 			},
 			-- Breaking free in a fight (Prompt/BreakFree.lua): a Forsaken's
 			-- Will of the Forsaken on a button of its own beside the prompt,
 			-- with a key of its own. Never shown to a character without the
-			-- ability (the probe's caps.breakFree). Live whatever Hide the
-			-- prompt in combat says: the button is not the prompt.
+			-- ability (the probe's caps.breakFree). Off by default since 1.12.
 			breakFree = {
 				type = "toggle",
 				name = L["Show a Will of the Forsaken button when I am feared, charmed or asleep"],
@@ -728,26 +644,6 @@ function Page.BuildLookTab()
 					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
 				end,
 			},
-			-- Next to Animations, because that is what it is: the flashes of
-			-- a click in a fight, not whether anybody is offered.
-			--
-			-- The key keeps its old name, "hide in combat", but it hides
-			-- nothing: with the switch above off the panel stays up in a
-			-- fight, and this decides whether the confirmation flash of a
-			-- click in one still shows. It writes the prompt's own table, so
-			-- pGet/pSet (restyle).
-			hideInCombat = {
-				type = "toggle",
-				name = L["No flashes in a fight"],
-				desc = function()
-					return L["The prompt stays up in a fight, its key binding still casting, unless %s is on; this stops only the flashes that say what a click did, red if it failed."]
-						:format(L["Hide the prompt in a fight"])
-				end,
-				order = 32.5,
-				width = "full",
-				get = pGet,
-				set = pSet,
-			},
 			-- The window fading while a look is changed (Window.lua, PeekTarget).
 			peekOnChange = {
 				type = "toggle",
@@ -755,18 +651,6 @@ function Page.BuildLookTab()
 				desc = L["On: after a change on Look, and while you drag a slider or pick a colour, this window fades for a moment so you can see the prompt behind it. Off: it stays as it is."],
 				order = 35.7,
 				width = "full",
-				get = pGet,
-				set = pSet,
-			},
-			dimInCombat = {
-				type = "toggle",
-				name = L["Dim the prompt in combat"],
-				desc = L["In a fight the built-in looks are drawn at about half strength, so the prompt reads as held. Off, it stays at the opacity you set."],
-				order = 32.6,
-				width = "full",
-				-- The looks from Looks/ draw a fight their own way (combatArtAlpha,
-				-- Combat), so the setting only reaches Glass, Framed and Minimal.
-				disabled = function() return ns.Looks.Get(P().style) ~= nil end,
 				get = pGet,
 				set = pSet,
 			},
@@ -1065,9 +949,7 @@ function Page.BuildLookTab()
 			showCooldown = {
 				type = "toggle",
 				name = L["Show the global cooldown on the icon"],
-				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
-					.. "\n\n|cff888888" .. L["Hidden in a fight while this is on:"] .. "|r "
-					.. "|cffffd100" .. L["No flashes in a fight"] .. "|r",
+				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."],
 				order = 54,
 				width = "full",
 				disabled = function() return not P().showIcon end,

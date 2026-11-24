@@ -51,7 +51,7 @@ local function dress(ns, scenario, style)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle = style, "full", "pulse"
-	p.hideInCombat, p.showIcon, p.showSub, p.width = false, true, true, 260
+	p.showIcon, p.showSub, p.width = true, true, 260
 	ns.Prompt:ApplyStyle()
 	return p
 end

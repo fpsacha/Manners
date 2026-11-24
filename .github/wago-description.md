@@ -8,16 +8,15 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 
 - **One press, never a hunt:** your target, whoever buffed you, people who ask in chat, you, your group and passers-by missing your buff, each in its own colour (with a colour-blind set).
 - **More than buffs:** your resurrection for the group's dead, a cure for a poison, curse or disease if you tick it (on yourself too), and courtesies on request: a mage's water, food and portals, a warlock's healthstones and summons, and a polite ask for a buff you lack.
-- **Your own buffs:** armor, aura, aspect, shield and the poison or oil for each weapon come up as "You", and food, flasks and scrolls if you switch them on. Never in a fight, nothing used while you run, and up to ten spells of your own under *Add a spell of my own*.
+- **Your own buffs:** armor, aura, aspect and shield come up as "You", and the poison or oil for each weapon, food, flasks and scrolls if you switch them on. Never in a fight, nothing used while you run, and up to ten spells of your own under *Add a spell of my own*.
 - **For your tank:** Earth Shield, Beacon of Light, Oath of Light and the other one-person buffs go to your group's tank.
 - **Paladins:** Kings first, and **a blessing for each class** (Wisdom for mages, say).
-- **Hunters:** Call, Revive and Mend Pet when your pet needs them, *Bond with my pet*, and Mend Pet on a button of its own in a fight.
-- **Your key in a fight:** *In a fight, my key casts*, a shield or a quick heal you know on the prompt's own key for the length of the fight, nothing new on the screen.
-- **Cures in a fight:** *Show my cure on a button in a fight, only while somebody needs it*, a button that shows only when somebody near you needs your cure.
+- **Hunters:** Call, Revive and Mend Pet when your pet needs them, *Bond with my pet*, and, if you tick it, Mend Pet on a button of its own in a fight.
+- **Cures in a fight:** tick *Show my cure on a button in a fight, only while somebody needs it* for a button that shows only when somebody near you needs your cure.
 - **Good manners, kept:** a favour ledger with titles, thirteen **milestones**, and for whoever earns them all the **hall of fame**, the *Gentlefolk of Good Manners*.
 - **Something to say,** if you like: **In character**, over three thousand lines picked for your race, class and the moment (about a hundred of them the Forsaken's own), or a quiet `/thank`.
 - **Yours to arrange:** twenty-nine looks and one for your class, **profiles that switch by themselves** as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
-- **Kept out of the way:** a *Never offer* list, *Skip players in a fight*, *Offer nothing in cities and inns*, *Hide the prompt in a fight* and `/manners snooze`.
+- **Kept out of the way:** a *Never offer* list, *Skip players in a fight*, *Offer nothing in cities and inns* and `/manners snooze`.
 
 **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight), in English, German, Spanish, French, Italian, Korean, Brazilian Portuguese and Simplified and Traditional Chinese.
 

@@ -9,10 +9,6 @@ HOLD = 'button:SetAttribute("pressAndHoldAction", true)'
 
 # --- a key press is a down click ---------------------------------------------
 
-mutate("Prompt/FightKey.lua", HOLD, "-- " + HOLD,
-       "pass2-fight: the fight key without pressAndHoldAction",
-       expect=P + "the fight key casts on its key with ActionButtonUseKeyDown off", script=S)
-
 mutate("Prompt/CureFight.lua", HOLD, "-- " + HOLD,
        "pass2-fight: the cure button without pressAndHoldAction",
        expect=P + "the cure button casts on its key with ActionButtonUseKeyDown off", script=S)

@@ -159,13 +159,6 @@ mutate("Options/Look.lua",
        "look: Text colour names its own page",
        expect="Text colour does not end by pointing at Colour names by class", script=S)
 
-# The cooldown sweep silent about the combat setting that stills it.
-mutate("Options/Look.lua",
-       "\t\t\t\t\t.. \"|cffffd100\" .. L[\"No flashes in a fight\"] .. \"|r\",\n",
-       "\t\t\t\t\t.. L[\"No flashes in a fight\"],\n",
-       "look: cooldown points nowhere",
-       expect="Show the global cooldown does not point at Keep the prompt still", script=S)
-
 # Retired: "look: text section points nowhere". appearance.wordingNote is
 # gone; Prompt wording is a fold on Look itself, so nothing points at it.
 

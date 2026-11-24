@@ -99,7 +99,7 @@ do
 			broker.OnClick({}, "RightButton")
 			local prompt = child(opened, "^Prompt$")
 			if not prompt then fail(scenario, "SKIPPED -- the menu has no Prompt") return end
-			if not child(prompt, "^No flashes in a fight$") then fail(scenario, "the Prompt submenu lacks No flashes in a fight") end
+			if child(prompt, "^No flashes in a fight$") then fail(scenario, "the Prompt submenu still has No flashes in a fight, gone in 1.12") end
 			local animations = child(prompt, "^Animations$")
 			if not animations then
 				fail(scenario, "the Prompt submenu does not read Animations")

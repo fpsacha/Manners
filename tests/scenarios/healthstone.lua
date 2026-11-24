@@ -2,7 +2,8 @@
 -- himself. Create Healthstone (6201) is offered when no healthstone is in the
 -- bags (Buffs.lua, makehealthstone, `holds`), outside a fight and standing
 -- still, on every client that has the spell (a Soul Shard in the bags where the
--- spell uses one: Forever, Classic Era and Burning Crusade). On by default.
+-- spell uses one: Forever, Classic Era and Burning Crusade). Off by default
+-- since 1.12; the setup here ticks it.
 --
 -- Every scenario name starts with "healthstone:" so the mutations in
 -- tests/mutations/healthstone.py can name the one that has to catch them.
@@ -87,6 +88,8 @@ local function with(scenario, opts, body)
 		rawset(_G, "StaticPopup_Hide", function() end)
 		local ns = load(scenario)
 		if not ns then return end
+		-- Ticked at login, as a player who wants it has (off by default since 1.12).
+		for _, k in ipairs({ "makehealthstone" }) do ns.defaults.profile.ownBuffs.pick[k] = "auto" end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.self = true
 		ns.Guard("probe", ns.ProbeCapabilities)
@@ -178,15 +181,15 @@ do
 end
 
 do
-	local scenario = "healthstone: switched off, nothing is offered; a new profile has it on"
+	-- Off in a new profile since 1.12 (tests/scenarios/essentials-defaults.lua
+	-- holds that); the setup here ticked it.
+	local scenario = "healthstone: ticked it is offered, unticked nothing is"
 	with(scenario, { bags = { [SHARD] = 3 } }, function(ns)
-		local pick = ns.db.profile.ownBuffs.pick.makehealthstone
-		if pick ~= nil and pick ~= "auto" then fail(scenario, "a new profile has it as " .. tostring(pick)) end
-		if ns.OwnPick(ns.FindOwnFamily("makehealthstone")) ~= "auto" then fail(scenario, "a new profile does not read Automatic") end
-		if key(mine(ns)) ~= "createhealthstone" then fail(scenario, "a new profile, offered " .. key(mine(ns))) return end
+		if ns.OwnPick(ns.FindOwnFamily("makehealthstone")) ~= "auto" then fail(scenario, "ticked, it does not read Automatic") end
+		if key(mine(ns)) ~= "createhealthstone" then fail(scenario, "ticked, offered " .. key(mine(ns))) return end
 		local own = findOption(ns.optionsTable, "own_makehealthstone")
 		if not own or own.hidden() then fail(scenario, "Who to buff shows no switch for it") return end
-		if own.get() ~= true then fail(scenario, "the switch is not ticked in a new profile") end
+		if own.get() ~= true then fail(scenario, "the switch does not read ticked") end
 		own.set(nil, false)
 		if ns.db.profile.ownBuffs.pick.makehealthstone ~= "off" then
 			fail(scenario, "unticked, the pick is " .. tostring(ns.db.profile.ownBuffs.pick.makehealthstone))

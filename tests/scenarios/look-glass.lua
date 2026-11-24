@@ -278,7 +278,6 @@ withTree("look-glass: light drifts in the glass at rest on Full; not on Calm, in
 	tick(ns)
 	if resting() == 0 then fail(scenario, "back on Full nothing runs") end
 
-	p.hideInCombat = false
 	fight(ns, true)
 	tick(ns)
 	if resting() ~= 0 then fail(scenario, "in a fight " .. resting() .. " of the lights still run") end
@@ -424,7 +423,6 @@ withTree("look-glass: a favour catches the gilt, a landing flashes it and winks 
 	ns.Prompt:ShowOutcome("failed", "Anna Aim", "x")
 	if (dress.wink._plays or 0) ~= wink then fail(scenario, "a refusal winks the star") end
 	-- Nor in a fight.
-	p.hideInCombat = false
 	fight(ns, true)
 	tick(ns)
 	local n = 0

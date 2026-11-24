@@ -112,7 +112,6 @@ Prompt\Supplies.lua
 Prompt\BreakFree.lua
 Prompt\MendPet.lua
 Prompt\CureFight.lua
-Prompt\FightKey.lua
 Options\Shared.lua
 Options\Launcher.lua
 Options\Start.lua

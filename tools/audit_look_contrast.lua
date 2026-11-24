@@ -43,7 +43,7 @@ local ns = H.load()
 H.boot(ns, CROWD)
 local P = ns.Prompt
 local p = ns.db.profile.prompt
-p.effects, p.flashStyle, p.showIcon, p.hideInCombat, p.showQueue = "full", "pulse", true, false, false
+p.effects, p.flashStyle, p.showIcon, p.showQueue = "full", "pulse", true, false
 P:ApplyStyle()
 H.tick(ns)
 Mock.advance(3)

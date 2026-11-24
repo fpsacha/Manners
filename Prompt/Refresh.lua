@@ -284,7 +284,7 @@ function Prompt:RefreshPanel()
 		end
 		-- A click still works in combat, so its outcome wins over the held
 		-- line. Art only: a panel the fight found hidden stays hidden.
-		if self:OutcomeLive() and not p.hideInCombat then
+		if self:OutcomeLive() then
 			self:PaintOutcome()
 		else
 			-- Repainted from `current`, the frozen macro's identity, so an
@@ -300,10 +300,7 @@ function Prompt:RefreshPanel()
 				-- (Fight.lua): which of how many the next press is for.
 				if R.subText:IsShown() then
 					local at, of = self:FightRotaAt()
-					-- With the prompt's key lent to the fight key (FightKey.lua)
-					-- a press no longer steps the round: a click does.
-					local moves = ns.FightKey and ns.FightKey:Taken() and L["in a fight -- %d of %d, a click moves on"]
-						or L["in a fight -- %d of %d, a press moves on"]
+					local moves = L["in a fight -- %d of %d, a press moves on"]
 					SetLine(R.subText, "|cffb0b0b0" .. (at and of > 1 and moves:format(at, of)
 						or L["held -- in combat"]) .. "|r")
 					-- For the fuse after the fight, which keeps the panel as

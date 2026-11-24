@@ -57,68 +57,6 @@ do
 	end
 end
 
--- ------------------------------------------------------------------ 3
--- In a fight, my key casts on the shared Default profile: chosen on a priest,
--- it must not arm a paladin who never chose it.
-do
-	local scenario = "pass2-window: a fight key chosen on a priest does not arm a paladin on the same profile"
-	local sv
-	local everything = setmetatable({}, { __index = function() return true end })
-	local function login(class, body)
-		Mock.reset()
-		Mock.setFlavour("vanilla")
-		Mock.class = class
-		Mock.knownSpells = everything
-		-- The one saved file, shared by both logins (the mock's AceDB).
-		if sv then Mock.sv = sv else sv = Mock.sv end
-		local ok, err = pcall(function()
-			local ns = load(scenario)
-			if not ns then return end
-			freshPrompt(ns, scenario)
-			ns.Guard("probe", ns.ProbeCapabilities)
-			body(ns)
-			noErrors(scenario, ns)
-		end)
-		Mock.reset()
-		if not ok then fail(scenario, "threw: " .. tostring(err)) end
-	end
-	local chose = false
-	login("PRIEST", function(ns)
-		local select_ = findOption(ns.optionsTable, "fightKeySpell")
-		if not select_ or select_.values().flash == nil then
-			fail(scenario, "SKIPPED -- the priest has no Flash Heal to pick")
-			return
-		end
-		select_.set({ "fightKeySpell" }, "flash")
-		chose = ns.FightKey.Chosen() ~= nil
-		if not chose then fail(scenario, "SKIPPED -- the priest's choice did not take") end
-	end)
-	if chose then
-		login("PALADIN", function(ns)
-			local row = ns.FightKey.Chosen()
-			if row then
-				fail(scenario, "the paladin's prompt key is lent to '" .. tostring(row.key) .. "' (spell " .. tostring(row.id) .. ") in a fight, chosen on a priest")
-			end
-			local select_ = findOption(ns.optionsTable, "fightKeySpell")
-			if select_ and select_.hidden() ~= true then
-				local value = select_.get({ "fightKeySpell" })
-				if select_.values()[value] == nil then
-					fail(scenario, "the paladin's select holds " .. tostring(value) .. ", which it does not list")
-				end
-			end
-		end)
-		login("WARRIOR", function(ns)
-			local select_ = findOption(ns.optionsTable, "fightKeySpell")
-			if select_ and select_.hidden() ~= true then
-				local value = select_.get({ "fightKeySpell" })
-				if select_.values()[value] == nil then
-					fail(scenario, "the warrior's select holds " .. tostring(value) .. ", which it does not list: a blank field")
-				end
-			end
-		end)
-	end
-end
-
 -- ------------------------------------------------------------------ 4
 do
 	local scenario = "pass2-window: own words cut to fit end on a whole character"
@@ -167,16 +105,17 @@ do
 					fail(scenario, "SKIPPED -- " .. path .. " is drawn on no page")
 				end
 			end
-			p.prompt.cureFight = false
-			p.beast.fightMend = false
+			-- Both off by default since 1.12: ticked, a reset puts them back off.
+			p.prompt.cureFight = true
+			p.beast.fightMend = true
 			Page.ResetPage("who")
-			if p.prompt.cureFight ~= true then
+			if p.prompt.cureFight ~= false then
 				fail(scenario, "Offer my cure in a fight stays " .. tostring(p.prompt.cureFight) .. " after the page's reset")
 			end
 			-- Mend Pet's is a hunter's pet's: My pet's reset puts it back.
 			Page.ResetPage("pet")
-			if p.beast.fightMend == false then
-				fail(scenario, "Offer Mend Pet in a fight stays off after My pet's reset")
+			if p.beast.fightMend ~= false then
+				fail(scenario, "Offer Mend Pet in a fight stays on after My pet's reset")
 			end
 			noErrors(scenario, ns)
 		end)
@@ -287,54 +226,12 @@ do
 end
 
 -- ------------------------------------------------------------------ 8
--- A profile saved before the fight key was kept per class: the one key goes to
--- the class whose list alone holds it; one two classes share goes to the class
--- logging in when its list holds it, and is dropped otherwise.
+-- The fight's options gone in 1.12 (In a fight, my key casts and Cast it on,
+-- Hide the prompt in a fight, No flashes in a fight, Dim the prompt in combat):
+-- whatever a profile saved of them is let go by the repair, and nothing of
+-- them travels in a settings string.
 do
-	local scenario = "pass2-window: an old shared fight key goes to the one class that holds it"
-	local everything = setmetatable({}, { __index = function() return true end })
-	local function login(class, legacy, body)
-		Mock.reset()
-		Mock.setFlavour("vanilla")
-		Mock.class = class
-		Mock.knownSpells = everything
-		local ok, err = pcall(function()
-			local ns = load(scenario)
-			if not ns then return end
-			freshPrompt(ns, scenario)
-			ns.Guard("probe", ns.ProbeCapabilities)
-			local p = ns.db.profile.prompt
-			p.fightKeySpells = nil
-			p.fightKeySpell = legacy
-			ns.ClampSettings()
-			body(ns, p)
-			noErrors(scenario, ns)
-		end)
-		Mock.reset()
-		if not ok then fail(scenario, "threw: " .. tostring(err)) end
-	end
-	login("PRIEST", "shield", function(ns, p)
-		if p.fightKeySpell ~= nil then fail(scenario, "the old field is kept: " .. tostring(p.fightKeySpell)) end
-		if type(p.fightKeySpells) ~= "table" or p.fightKeySpells.PRIEST ~= "shield" then
-			fail(scenario, "Power Word: Shield, only a priest's, was not carried to the priest")
-		end
-		if ns.FightKey.Value() ~= "shield" then fail(scenario, "the priest's select reads " .. tostring(ns.FightKey.Value())) end
-	end)
-	login("PALADIN", "flash", function(ns, p)
-		if p.fightKeySpell ~= nil then fail(scenario, "the old field is kept: " .. tostring(p.fightKeySpell)) end
-		if p.fightKeySpells.PALADIN ~= "flash" then fail(scenario, "flash, shared by two classes, was not carried to the paladin logging in") end
-		if p.fightKeySpells.PRIEST ~= nil then fail(scenario, "flash was given to a priest as well") end
-	end)
-	login("MAGE", "flash", function(ns, p)
-		if p.fightKeySpell ~= nil then fail(scenario, "the old field is kept: " .. tostring(p.fightKeySpell)) end
-		if next(p.fightKeySpells) ~= nil then fail(scenario, "flash was given to a mage, whose list lacks it") end
-	end)
-end
-
--- ------------------------------------------------------------------ 8b
--- The fight key travels in a settings string, class by class.
-do
-	local scenario = "pass2-window: the fight key travels in a settings string"
+	local scenario = "pass2-window: the fight options gone in 1.12 are let go from a saved profile"
 	Mock.reset()
 	Mock.setFlavour("vanilla")
 	Mock.class = "PRIEST"
@@ -342,20 +239,17 @@ do
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
-		ns.Guard("probe", ns.ProbeCapabilities)
 		local p = ns.db.profile.prompt
-		p.fightKeySpells = { PRIEST = "flash" }
+		p.fightKeySpell, p.fightKeySpells, p.fightKeyOn = "shield", { PRIEST = "flash" }, "me"
+		p.hideInFight, p.hideInCombat, p.dimInCombat = true, true, true
+		ns.ClampSettings()
+		for _, key in ipairs({ "fightKeySpell", "fightKeySpells", "fightKeyOn", "hideInFight", "hideInCombat", "dimInCombat" }) do
+			if rawget(p, key) ~= nil then fail(scenario, "prompt." .. key .. " is kept: " .. tostring(rawget(p, key))) end
+			if ns.defaults.profile.prompt[key] ~= nil then fail(scenario, "prompt." .. key .. " still has a default") end
+		end
 		local text = ns.ExportSettings() or ""
-		if not text:find("prompt.fightKeySpells=PRIEST=flash", 1, true) then
-			fail(scenario, "the string lacks PRIEST=flash: " .. text)
-		end
-		p.fightKeySpells = {}
-		if ns.ImportSettings(text) ~= true then
-			fail(scenario, "the import was refused")
-			return
-		end
-		if p.fightKeySpells.PRIEST ~= "flash" then
-			fail(scenario, "the choice did not come back: " .. tostring(p.fightKeySpells.PRIEST))
+		for _, key in ipairs({ "fightKey", "hideInFight", "hideInCombat", "dimInCombat" }) do
+			if text:find(key, 1, true) then fail(scenario, "the settings string still carries " .. key .. ": " .. text) end
 		end
 		noErrors(scenario, ns)
 	end)

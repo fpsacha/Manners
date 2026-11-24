@@ -53,6 +53,8 @@ local function withBF(scenario, body, opts)
 	if ns then
 		ok, err = pcall(function()
 			-- A default changed before the first scan (a button never made).
+			-- Switched on, as a player who ticked it has (off by default since 1.12).
+			ns.defaults.profile.prompt.breakFree = true
 			if opts.defaults then opts.defaults(ns) end
 			freshPrompt(ns, scenario)
 			Mock.timers = {}
@@ -303,6 +305,10 @@ local function with(scenario, opts, body)
 		local ns = load(scenario)
 		if not ns then return end
 		ns.KeyNudge = nil
+		-- The Mend Pet and Will of the Forsaken buttons switched on, as a player who
+		-- ticked them has (off by default since 1.12).
+		ns.defaults.profile.beast.fightMend = true
+		ns.defaults.profile.prompt.breakFree = true
 		freshPrompt(ns, scenario)
 		if opts.before then opts.before(ns) end
 		Mock.timers = {}

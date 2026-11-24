@@ -680,13 +680,12 @@ local function FullEffects()
 	return p ~= nil and p.effects ~= "calm"
 end
 
--- The alpha art takes in a fight: a look's own, else half strength for the
--- built-in looks when "Dim the prompt in combat" is on, else full.
+-- The alpha art takes in a fight: a look's own, else full (the built-in
+-- looks' half-strength dim, Dim the prompt in combat, went in 1.12).
 local function CombatRestAlpha()
 	local look = S.activeLook
 	if look and look.combatArtAlpha then return look.combatArtAlpha end
-	local p = ns.db and ns.db.profile.prompt
-	return p and p.dimInCombat and 0.55 or 1
+	return 1
 end
 
 -- The alpha art rests at: the fight's, when held, full otherwise. The outro
@@ -876,11 +875,9 @@ end
 function Prompt:SyncCooldown()
 	if not R.cooldown then return end
 	local p = ns.db and ns.db.profile.prompt
-	-- Not in a fight with "Stay quiet in combat" on, which promises a still
-	-- panel. The Cooldown frame is not protected, so hiding it in combat is
-	-- allowed; SetCombatHold asks again as the fight starts and ends.
-	local quiet = p and p.hideInCombat and InCombatLockdown()
-	if not (p and p.showCooldown and p.showIcon) or quiet then
+	-- The Cooldown frame is not protected, so hiding it in combat is allowed;
+	-- SetCombatHold asks again as the fight starts and ends.
+	if not (p and p.showCooldown and p.showIcon) then
 		Try(R.cooldown, "Clear")
 		R.cooldown:Hide()
 		return
@@ -1013,11 +1010,10 @@ end
 
 -- The motion for an outcome, once: rings and light for a confirmed buff, a
 -- shake and a contracting ring for a refusal, nothing for an unconfirmed cast.
--- None when quiet in combat, on "Calm", or with the panel not shown.
+-- None on "Calm", or with the panel not shown.
 function Prompt:PlayOutcomeFlourish(kind)
 	local p = ns.db and ns.db.profile.prompt
 	if not p or not FullEffects() then return end
-	if InCombatLockdown() and p.hideInCombat then return end
 	if not R.button:IsShown() then return end
 	self:StopFlourishes()
 	if S.activeLook then

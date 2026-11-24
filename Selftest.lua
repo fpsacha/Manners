@@ -883,7 +883,7 @@ Check("button.clicks", "button", L["clicks"], function(add)
 	end
 	-- The fight buttons made so far are registered the same way, with the same
 	-- rule: a key press is a down click and needs pressAndHoldAction.
-	for _, name in ipairs({ "FightKey", "CureFight", "BreakFree", "MendPet", "Supplies" }) do
+	for _, name in ipairs({ "CureFight", "BreakFree", "MendPet", "Supplies" }) do
 		local owner = ns[name]
 		local fb = owner and type(owner.Button) == "function" and owner:Button() or nil
 		if fb and type(fb.GetAttribute) == "function" then
@@ -1372,9 +1372,6 @@ Check("fight.keys", "fight", L["keys"], function(add)
 			add(WARN, ("Shift+%s is the key for %s, so Shift on the cure key never casts the second cure"):format(
 				cureKey, byKey[shifted]))
 		end
-	end
-	if ns.FightKey and ns.FightKey.Applies(db) and not KeyOf(ns.Setup.COMMAND) then
-		add(WARN, "the fight key spell rides the prompt's key, and the prompt has none")
 	end
 end)
 

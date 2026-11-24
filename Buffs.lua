@@ -3375,7 +3375,7 @@ end
 
 -- Make a healthstone (GitHub issue 32): a warlock with no healthstone in the bags
 -- is offered Create Healthstone (6201), outside a fight and standing still. A
--- family of its own, on by default (no `optIn`), `holds`: up while any item of its
+-- family of its own, off by default since 1.12 (Core.lua's defaults), `holds`: up while any item of its
 -- spell's `items` is in the bags (Core.lua, ReadOwnFamily), so a stone with
 -- charges left, of any rank or Improved copy, is never made over. Create
 -- Healthstone is on all five clients (wago.tools, Forever 1.60.1.70790, Classic

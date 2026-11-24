@@ -77,22 +77,6 @@ mutate("Core.lua",
        expect=SUMMARY,
        script=S)
 
-# The summary says the prompt is up when it was hidden.
-mutate("Core.lua",
-       "hidden and \"hidden\" or \"up\"",
-       "\"up\"",
-       "trail-mark: the summary never says hidden",
-       expect=SUMMARY,
-       script=S)
-
-# The fight key's presses are not counted.
-mutate("Prompt/FightKey.lua",
-       "\tif tally then tally.keyPresses = (tally.keyPresses or 0) + 1 end\n",
-       "",
-       "trail-mark: the fight key's presses are not counted",
-       expect=SUMMARY,
-       script=S)
-
 # A pull does not start the count.
 mutate("Core.lua",
        "\tns.fightTally.started = GetTime()\n",

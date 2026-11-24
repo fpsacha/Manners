@@ -201,6 +201,12 @@ local function with(scenario, opts, body)
 		local ns = load(scenario)
 		if not ns then return end
 		ns.KeyNudge = nil
+		-- The Mend Pet button in a fight switched on, as a player who ticked it has (off
+		-- by default since 1.12); opts.pristine leaves it at its default.
+		if not opts.pristine then
+			ns.defaults.profile.beast.fightMend = true
+			ns.defaults.profile.prompt.breakFree = true
+		end
 		freshPrompt(ns, scenario)
 		if opts.before then opts.before(ns) end
 		Mock.timers = {}
@@ -225,6 +231,7 @@ local function relog(scenario, opts)
 	local ns = load(scenario)
 	if not ns then return nil end
 	ns.KeyNudge = nil
+	ns.defaults.profile.beast.fightMend = true
 	freshPrompt(ns, scenario)
 	Mock.timers = {}
 	Mock.printed = {}
@@ -327,10 +334,12 @@ end
 -- ------------------------------------------------------------------ switches
 do
 	local scenario = "hunterpet2: defaults, and a damaged pace put back"
-	with(scenario, {}, function(ns)
+	with(scenario, { pristine = true }, function(ns)
 		local beast = ns.db.profile.beast
+		-- The Mend Pet button in a fight is off out of the box since 1.12.
+		if beast.fightMend ~= false then fail(scenario, "fightMend is not off in a new profile") end
 		for _, key in ipairs(ns.Beast.SWITCHES) do
-			if key ~= "growl" and key ~= "pace" and beast[key] ~= true then fail(scenario, key .. " is not on in a new profile") end
+			if key ~= "growl" and key ~= "pace" and key ~= "fightMend" and beast[key] ~= true then fail(scenario, key .. " is not on in a new profile") end
 		end
 		if beast.growl ~= false then fail(scenario, "Growl's reminder is on in a new profile") end
 		if beast.pace ~= "sometimes" then fail(scenario, "the pace is " .. tostring(beast.pace)) end

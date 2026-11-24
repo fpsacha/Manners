@@ -872,12 +872,7 @@ ns.WindowLayout = {
 			icon = ICONS.fight,
 			sections = {
 				{ key = "fight.prompt", title = L["The prompt in a fight"], items = {
-					"appearance.hideInFight",
 					"appearance.fightRota",
-					"appearance.fightKeySpell",
-					{ "appearance.fightKeyOn", indent = true },
-					"appearance.hideInCombat",
-					"appearance.dimInCombat",
 				} },
 				{ key = "fight.buttons", title = L["Buttons for when you need them"], items = {
 					-- A Forsaken's Will of the Forsaken (Prompt/BreakFree.lua).
@@ -1208,13 +1203,12 @@ ns.WindowLayout = {
 			["appearance.classLook"] = true,
 			["appearance.scale"] = true, ["appearance.alpha"] = true,
 			["appearance.soundEnabled"] = true, ["appearance.soundFile"] = true,
-			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,
+			["appearance.showQueue"] = true,
 			["appearance.breakFree"] = true, ["appearance.breakFreeKey"] = true,
 			["appearance.mendInFight"] = true, ["appearance.mendInFightKey"] = true,
 			["appearance.fightButtons"] = true,
 			["appearance.cureFight"] = true, ["appearance.cureFightKey"] = true,
 			["appearance.cureFightEach"] = true, ["appearance.cureFightKey2"] = true,
-			["appearance.fightKeySpell"] = true, ["appearance.fightKeyOn"] = true,
 		},
 	},
 
@@ -1309,7 +1303,6 @@ ns.WindowLayout = {
 			return L["Only Glass, Framed and Minimal draw this."]
 		end,
 		["appearance.textShadow"] = L["Only Glass, Framed and Minimal draw this."],
-		["appearance.dimInCombat"] = L["Only Glass, Framed and Minimal draw this."],
 	},
 
 	-- The unit a slider's box shows (see the header comment).
@@ -1341,7 +1334,6 @@ ns.WindowLayout = {
 		["who.ownFoodOutside"] = L["food well fed outside world leveling levelling experience"],
 		["who.ownHoldMoving"] = L["moving move running run walking jump still hold"],
 		-- Asked for as hiding "the window" in a fight.
-		["appearance.hideInFight"] = L["window frame invisible fight"],
 		-- Asked for as moving "the bar".
 		["appearance.moveInEditMode"] = L["bar position drag place"],
 		-- The gallery answers a search for look as the switch over it does.
@@ -1366,7 +1358,6 @@ ns.WindowLayout = {
 		["who.beastTraining"] = L["hunter pet training points"], ["appearance.mendInFight"] = L["hunter pet mend fight button key"],
 		["appearance.cureFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["appearance.cureFightEach"] = L["cure each second button druid poison curse fight"],
-		["appearance.fightKeySpell"] = L["fight combat key spell shield heal barrier"],
 		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
 		["who.curesFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["who.ownSpellAdd"] = L["custom spell add new buff own"],
@@ -1376,8 +1367,6 @@ ns.WindowLayout = {
 		-- The words players typed for a control: wotf, rez, reply, queue, color.
 		["appearance.breakFree"] = L["wotf forsaken break free fear charm sleep fight button turn off hide"],
 		["appearance.breakFreeKey"] = L["wotf forsaken key bind"],
-		["appearance.hideInCombat"] = L["flash flashes red combat fight"],
-		["appearance.dimInCombat"] = L["dim fade combat fight"],
 		["appearance.showQueue"] = L["queue list waiting next"],
 		["who.res"] = L["resurrect rez res dead revive"],
 		["who.resStrangers"] = L["resurrect rez res dead revive"],

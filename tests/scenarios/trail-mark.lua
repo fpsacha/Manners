@@ -283,7 +283,6 @@ do
 		end
 		local line = summaries[1]
 		if not line:find("fight summary: 7s;", 1, true) then fail(scenario, "no length of 7 seconds: " .. line) end
-		if not line:find("prompt hidden;", 1, true) then fail(scenario, "the hidden prompt is not in it: " .. line) end
 		if not line:find("rota ", 1, true) then fail(scenario, "no rota in it: " .. line) end
 		if not line:find("cure shown 2 times, 5 reads, 3 withheld", 1, true) then fail(scenario, "the cure's counts are not in it: " .. line) end
 		if not line:find("break free lit 0 times", 1, true) then fail(scenario, "break free is not in it: " .. line) end
@@ -293,23 +292,7 @@ do
 		local again = 0
 		for _, t in ipairs(lines(ns, "fight")) do if t.text:find("^fight summary:") then again = again + 1 end end
 		if again ~= 1 then fail(scenario, "a second release wrote another summary") end
-	end, { bar = true, edit = function(p) p.hideInFight = true end })
-
-	-- The fight key's presses, and the prompt left up.
-	with(scenario, function(ns)
-		pull(ns)
-		for _ = 1, 3 do
-			Mock.advance(2)
-			Mock.pressKey("F")
-		end
-		release(ns)
-		local text = joined(lines(ns, "fight"))
-		if not text:find("prompt up;", 1, true) then fail(scenario, "the prompt left up is not said: " .. text) end
-		if not text:find("fight key 3 presses;", 1, true) then fail(scenario, "the fight key's presses are not counted: " .. text) end
-	end, { bar = true, edit = function(p, ns)
-		p.hideInFight = false
-		p.fightKeySpells = { PRIEST = "shield" }
-	end })
+	end, { bar = true, edit = function(p) p.cureFight = true end })
 end
 
 do

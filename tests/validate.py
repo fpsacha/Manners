@@ -260,6 +260,17 @@ for _listing in ("curseforge-description.md", "wago-description.md"):
         if _old in _text:
             print("  .github/%s names '%s', which the menu pass renamed" % (_listing, _old))
             fail += 1
+    # The fight's options 1.12 removed, named nowhere a player reads.
+    for _gone in ("In a fight, my key casts", "Hide the prompt in a fight", "No flashes in a fight",
+                  "Dim the prompt in combat"):
+        if _gone in _text:
+            print("  .github/%s names '%s', which 1.12 removed" % (_listing, _gone))
+            fail += 1
+for _gone in ("In a fight, my key casts", "Hide the prompt in a fight", "No flashes in a fight",
+              "Dim the prompt in combat"):
+    if _gone in readme_src:
+        print("  README.md names '%s', which 1.12 removed" % _gone)
+        fail += 1
 
 print("\n== the %d generated toc(s) are what the generator would write =="
       % len(maketocs.expected()))

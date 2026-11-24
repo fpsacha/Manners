@@ -54,6 +54,8 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		-- Ticked, as a player who wants it has (off by default since 1.12).
+		for _, k in ipairs({ "tracking" }) do ns.db.profile.ownBuffs.pick[k] = "auto" end
 		ns.ForgetTrackingList()
 		local family = tracking(ns)
 		if not family then

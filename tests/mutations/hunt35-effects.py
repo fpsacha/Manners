@@ -129,13 +129,6 @@ mutate(EFFECTS,
        "hunt35: Calm gets the full entrance",
        expect="on calm the panel came up with the wrong entrance", script=S)
 
-# "Keep the prompt dim and still" ignored.
-mutate(EFFECTS,
-       "\tif InCombatLockdown() and p.hideInCombat then return end\n",
-       "",
-       "hunt35: the effects ignore the quiet fight",
-       expect="with the prompt kept dim and still in combat the", script=S)
-
 # An effect that touches the secure button in a fight.
 mutate(EFFECTS,
        "\t\tself:PlayShine(sr, sg, sb, 0.30)\n\t\tR.art.settle:Play()\n",

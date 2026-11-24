@@ -18,8 +18,8 @@
 -- it fell; the wash's frame under every frame of light; the crack under the
 -- words and inside the bottom eight units at every size; the icon given its
 -- colour back at every clear, for a flag's cost on the scans between; every
--- group parked and stopped with the look; Calm and a quiet fight playing none
--- of it; the old band's file gone.
+-- group parked and stopped with the look; Calm playing none of it; the old
+-- band's file gone.
 --
 -- The evidence is the frame tree's (tests/frametree.lua).
 
@@ -63,7 +63,7 @@ local function near(a, b, eps) return a ~= nil and b ~= nil and math.abs(a - b) 
 local function upIn(ns, scenario, style, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.flashStyle, p.effects, p.hideInCombat = style, "pulse", "full", false
+	p.style, p.flashStyle, p.effects = style, "pulse", "full"
 	p.showIcon, p.roundIcon, p.showSub = true, false, true
 	-- The framed look's own material, not its painting (painted-framed.lua).
 	p.classicArt = true
@@ -657,7 +657,7 @@ end)
 
 -- ------------------------------------------------------------------ 11
 -- Calm plays none of it and keeps the wash static, set and left at its old
--- alphas; a quiet fight plays none of it either.
+-- alphas.
 withTree(T .. "Calm keeps the static wash", ANNA, function(ns, scenario)
 	local r = upIn(ns, scenario, "glass", function(p) p.effects = "calm" end)
 	local g = newGroups(r)
@@ -685,25 +685,6 @@ withTree(T .. "Calm keeps the static wash", ANNA, function(ns, scenario)
 	for name in pairs(g) do
 		if after[name] ~= before[name] then fail(scenario, "with Effects on Calm the " .. name .. " still played") end
 	end
-	-- A fight with "Keep the prompt still in combat": nothing plays, the wash
-	-- is not even painted.
-	local rf = upIn(ns, scenario, "glass", function(p) p.hideInCombat = true end)
-	local gf = newGroups(rf)
-	Mock.inCombat = true
-	ns.addon:PLAYER_REGEN_DISABLED()
-	ns.addon:Tick()
-	FT.settle()
-	local b = counts(gf)
-	Mock.advance(1)
-	ns.Prompt:ShowOutcome("cast", "Anna Aim")
-	Mock.advance(1)
-	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
-	local a = counts(gf)
-	for name in pairs(gf) do
-		if a[name] ~= b[name] then fail(scenario, "with the prompt kept still in combat the " .. name .. " still played") end
-	end
-	Mock.inCombat = false
-	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
 end)
 
 -- ------------------------------------------------------------------ 12

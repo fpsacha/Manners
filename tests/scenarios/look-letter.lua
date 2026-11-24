@@ -96,7 +96,6 @@ local function upIn(ns, scenario, edit, who)
 	p.classicArt = true
 	p.flashStyle = "pulse"
 	p.effects = "full"
-	p.hideInCombat = false
 	p.showIcon = true
 	p.roundIcon = false
 	p.showSub = true
@@ -1466,16 +1465,6 @@ withTree("look-letter: in a fight no effect touches a protected frame, and none 
 	for _, group in ipairs(FT.groups()) do
 		local o = group._owner
 		if o == button or (o and o._protected) then fail(scenario, "an animation group is on a protected frame") break end
-	end
-	ns.db.profile.prompt.hideInCombat = true
-	Mock.advance(1)
-	local s2 = snapshot(g)
-	ns.Prompt:ShowOutcome("cast", "Anna Aim")
-	Mock.advance(1)
-	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
-	local s3 = snapshot(g)
-	for _, key in ipairs({ "land", "reject", "shake", "settle", "scroll", "crack" }) do
-		if s3[key] ~= s2[key] then fail(scenario, "with the prompt kept dim and still in combat the " .. key .. " still played") end
 	end
 	Mock.inCombat = false
 	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end

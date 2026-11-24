@@ -73,7 +73,7 @@ local function dress(ns, scenario, style, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle = style, "full", "pulse"
-	p.hideInCombat, p.showIcon, p.showSub, p.width = false, true, true, 260
+	p.showIcon, p.showSub, p.width = true, true, 260
 	-- The Letter's own art (its scroll unrolls): its painted frame is painted-letter.lua's.
 	if style == "letter" then p.classicArt = true end
 	if edit then edit(p) end

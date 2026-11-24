@@ -97,10 +97,10 @@ end
 scenario = "menupass-changed: a changed switch, slider and choice are marked"
 with(scenario, "MAGE", "general", function(ns, UI)
 	local p = ns.db.profile
-	p.prompt.hideInFight = true
+	p.prompt.fightRota = false
 	p.timing.skipSeconds = 300
 	p.filters.whenBuffed = "always"
-	for _, path in ipairs({ "appearance.hideInFight", "advanced.skipSeconds", "when.whenBuffed" }) do
+	for _, path in ipairs({ "appearance.fightRota", "advanced.skipSeconds", "when.whenBuffed" }) do
 		showing(ns, UI, path)
 		if not UI.RowShown(path) then
 			fail(scenario, path .. " is not drawn")
@@ -110,16 +110,16 @@ with(scenario, "MAGE", "general", function(ns, UI)
 	end
 	local want = UI.DefaultOf("advanced.skipSeconds", UI.Item("advanced.skipSeconds"))
 	if want ~= ns.defaults.profile.timing.skipSeconds then fail(scenario, "DefaultOf answers " .. tostring(want)) end
-	p.prompt.hideInFight = false
-	showing(ns, UI, "appearance.hideInFight")
-	if markShown(UI, "appearance.hideInFight") then fail(scenario, "the mark stays on a switch put back by hand") end
+	p.prompt.fightRota = true
+	showing(ns, UI, "appearance.fightRota")
+	if markShown(UI, "appearance.fightRota") then fail(scenario, "the mark stays on a switch put back by hand") end
 end)
 
 -- ------------------------------------------------------------------ 3
 scenario = "menupass-changed: the mark puts one setting back through its own setter"
 with(scenario, "MAGE", "general", function(ns, UI)
 	local p = ns.db.profile
-	p.prompt.hideInFight = true
+	p.prompt.fightRota = false
 	p.timing.skipSeconds = 300
 	p.filters.whenBuffed = "always"
 	local path = "advanced.skipSeconds"
@@ -140,7 +140,7 @@ with(scenario, "MAGE", "general", function(ns, UI)
 		fail(scenario, "skipSeconds is " .. tostring(p.timing.skipSeconds) .. " after the click")
 	end
 	if scans ~= 1 then fail(scenario, "the click rescanned " .. scans .. " times, not once") end
-	if p.prompt.hideInFight ~= true or p.filters.whenBuffed ~= "always" then
+	if p.prompt.fightRota ~= false or p.filters.whenBuffed ~= "always" then
 		fail(scenario, "the click touched the other changes")
 	end
 	if row.mark:IsShown() then fail(scenario, "the mark stays after the setting is back") end

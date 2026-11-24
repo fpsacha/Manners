@@ -7,7 +7,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 ![Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
 - **One press, never a hunt.** Whoever buffed you, your group, somebody who asks in chat, a passer-by missing your buff: the right person is on the prompt, in a sensible order, and your target comes back after every cast.
-- **More than buffs.** Your resurrection for the group's dead, a cure for a poison, curse or disease, and a mage's or warlock's courtesies (water, portals, healthstones, summons) for whoever asks, and a polite ask for a buff you lack, if you tick it. Your own armor, aura, poison or oil comes up as "You" when it lapses.
+- **More than buffs.** Your resurrection for the group's dead, a cure for a poison, curse or disease, and a mage's or warlock's courtesies (water, portals, healthstones, summons) for whoever asks, and a polite ask for a buff you lack, if you tick it. Your own armor or aura comes up as "You" when it lapses, and a poison or an oil too once you tick it.
 - **Good manners, kept.** A favour ledger with titles, thirteen milestones and a hall of fame for whoever earns them all. If your character should speak, over three thousand In character lines, about a hundred of them the Forsaken's own.
 
 Yours to arrange: twenty-nine looks, a blessing for each class for paladins, profiles that switch by themselves as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
@@ -31,9 +31,8 @@ Yours to arrange: twenty-nine looks, a blessing for each class for paladins, pro
 - **Thorns, not on you in a dungeon.** *Not on me in a dungeon or raid*, under Thorns' *Offer to*.
 - **Skip players in a fight.** On *Who to skip*: no buff that drags somebody's mobs onto you.
 - **Ask in your own words.** *What the ask says* takes *My own words* and a line you write.
-- **Your pet, hunters.** Call, Revive and Mend Pet when it needs them, Feed Pet on WoW Forever, Classic Era and Burning Crusade, *Bond with my pet* for a pat or a kind word now and then, and Mend Pet on a button of its own in a fight.
-- **Your key in a fight.** *In a fight, my key casts* lets the prompt's own key cast a shield or a quick heal you know, Power Word: Shield or Ice Barrier say, for as long as the fight lasts, with nothing new on the screen.
-- **Your cure, in a fight.** *Show my cure on a button in a fight, only while somebody needs it* puts your class's cure on a button of its own that appears only when somebody near you carries a poison, curse, disease or harmful spell it can remove.
+- **Your pet, hunters.** Call, Revive and Mend Pet when it needs them, Feed Pet on WoW Forever, Classic Era and Burning Crusade, *Bond with my pet* for a pat or a kind word now and then, and, if you tick it, Mend Pet on a button of its own in a fight.
+- **Your cure, in a fight.** Tick *Show my cure on a button in a fight, only while somebody needs it* and your class's cure gets a button of its own that appears only when somebody near you carries a poison, curse, disease or harmful spell it can remove.
 
 > **I read every comment here and on GitHub.** Most of the list above was asked for in these comments, and a new version comes out most days. Found a bug? Please send a log with it: see **Report a bug** below.
 
@@ -51,7 +50,7 @@ Out of a fight, a dead member of your group comes first with your **resurrection
 
 A **cure** goes ahead of a buff with *Cure my party and raid*, *Cure passers-by* or *Cure myself too* ticked. Everybody gets the first buff they lack before anybody gets a second. Tank buffs (Earth Shield, Beacon of Light, Oath of Light on WoW Forever, Symbiotic Relationship, Blistering Scales and the like) go to your group's tank. In a dungeon or raid, carry the reagent and one group cast covers the party. Two Manners users of one class in a group split it, so nobody is buffed twice.
 
-It skips the dead, the out of range, anyone a buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged, anyone flagged for PvP. A *Never offer* list keeps people off the prompt unless they buff you, since returning a favour is the point. *Offer nothing in cities and inns*, *Offer nothing in dungeons, raids and battlegrounds*, *Hide the prompt in a fight* and `/manners snooze` keep it quiet when you want quiet.
+It skips the dead, the out of range, anyone a buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged, anyone flagged for PvP. A *Never offer* list keeps people off the prompt unless they buff you, since returning a favour is the point. *Offer nothing in cities and inns*, *Offer nothing in dungeons, raids and battlegrounds* and `/manners snooze` keep it quiet when you want quiet.
 
 ### Clients and languages
 
@@ -74,13 +73,13 @@ The *Simple view* shows only the ten or so settings your class changes on each p
 - **Druid:** Mark of the Wild, Thorns for everyone, the tanks, the tanks and you, or you alone, Moonkin Form for you, Symbiosis on Mists.
 - **Paladin:** Kings first, then Wisdom or Might, a blessing for each class and Greater Blessings by class; Beacon of Light (Oath of Light on WoW Forever) for the tank; your aura and Righteous Fury.
 - **Shaman:** Earth Shield for the tank, your shield and weapon imbues, Skyfury on retail.
-- **Warlock:** Unending Breath and Detect Invisibility where your game has them, Dark Intent on Mists, your armor and Demonic Sacrifice, a Firestone or Spellstone on WoW Forever, a healthstone for yourself when you have none, healthstones and summons for whoever asks.
+- **Warlock:** Unending Breath and Detect Invisibility where your game has them, Dark Intent on Mists, your armor and Demonic Sacrifice, a Firestone or Spellstone on WoW Forever, a healthstone for yourself when you have none if you tick it, healthstones and summons for whoever asks.
 - **Warrior:** Battle Shout for the people it reaches (your whole raid on WoW Forever), Commanding Shout where it exists.
 - **Hunter:** your aspect and Trueshot Aura, and your pet looked after.
 - **Rogue:** a poison for each hand, from your bags or your spellbook.
 - **Death knight, monk, evoker:** Horn of Winter and Legacy of the Emperor on Mists, Blessing of the Bronze and Source of Magic on retail.
 
-Every class can be reminded of food, flasks, elixirs, scrolls and a stone, oil or lure for its weapon, where its game has them, and every class has a look of its own among the twenty-nine.
+Every class can be reminded of food, flasks, elixirs, scrolls and a stone, oil or lure for its weapon, where its game has them, each switched on by you, and every class has a look of its own among the twenty-nine.
 
 ### The good-manners side
 

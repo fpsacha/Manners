@@ -146,36 +146,6 @@ do
 	end
 end
 
--- ------------------------------------------------------------------ when 3
--- The combat switch, now on Look next to Animations, writes the prompt's own
--- table, under the key it always had.
-do
-	local scenario = "look tab: hideInCombat writes the prompt's setting"
-	local ns = session(scenario)
-	local look = ns and ns.optionsTable and ns.optionsTable.args.appearance
-	local toggle = look and look.args.hideInCombat
-	if ns and not toggle then
-		fail(scenario, "hideInCombat is not on the Look tab")
-	elseif toggle then
-		local p, f = ns.db.profile.prompt, ns.db.profile.filters
-		local before = p.hideInCombat
-		f.hideInCombat = nil
-		toggle.set({ "appearance", "hideInCombat" }, not before)
-		if p.hideInCombat ~= not before then
-			fail(scenario, "hideInCombat writes prompt.hideInCombat no longer")
-		end
-		if f.hideInCombat ~= nil then
-			fail(scenario, "hideInCombat wrote into the filters table")
-		end
-		if toggle.get({ "appearance", "hideInCombat" }) ~= p.hideInCombat then
-			fail(scenario, "hideInCombat does not read prompt.hideInCombat")
-		end
-		toggle.set({ "appearance", "hideInCombat" }, before)
-		f.hideInCombat = nil
-		noErrors(scenario, ns)
-	end
-end
-
 -- ------------------------------------------------------------------ when 4
 -- The line under the mana floor says what the floor does at its value, and
 -- goes with the floor on a class with no mana bar.

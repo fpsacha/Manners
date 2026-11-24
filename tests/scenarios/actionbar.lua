@@ -549,7 +549,7 @@ do
 					Mock.bindings = {}
 					SetBinding(key, COMMAND)
 					local p = ns.db.profile.prompt
-					p.style, p.width, p.locked, p.hideInCombat = style, width, true, false
+					p.style, p.width, p.locked = style, width, true
 					-- The look's own key chip, which Earlier art draws: a painted look's
 					-- keycap is its own painted-<look>.lua's.
 					p.classicArt = true

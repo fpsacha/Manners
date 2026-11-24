@@ -1244,9 +1244,7 @@ function Page.BuildStartTab()
 				desc = function()
 					local p = ns.db and ns.db.profile.prompt
 					local fight
-					if p and p.hideInFight then
-						fight = L["In a fight it casts nothing, as the prompt hidden for the fight does."]
-					elseif p and p.fightRota ~= false then
+					if p and p.fightRota ~= false then
 						fight = L["In a fight it casts at the one person the fight began with: only the prompt and its key move on to the others."]
 					else
 						fight = L["In a fight it casts at the one person the fight began with, as the prompt does."]

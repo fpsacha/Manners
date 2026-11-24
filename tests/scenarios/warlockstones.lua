@@ -116,6 +116,8 @@ local function with(scenario, opts, body)
 	local ok, err = pcall(function()
 		local ns = load(scenario)
 		if not ns then return end
+		-- Ticked at login, as a player who wants it has (off by default since 1.12).
+		for _, k in ipairs({ "warlockstone", "oilmain", "oiloff" }) do ns.defaults.profile.ownBuffs.pick[k] = "auto" end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.self = true
 		body(ns)

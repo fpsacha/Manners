@@ -335,8 +335,7 @@ withTree("the fade out is cancelled by the next person and never leaves the pane
 end)
 
 -- ------------------------------------------------------------------ look 6
--- In a fight the effects are art, never the button, and "Stay quiet in combat"
--- keeps the outcome still.
+-- In a fight the effects are art, never the button.
 withTree("the effects never touch the secure button in a fight",
 	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
 	local scenario = "the effects never touch the secure button in a fight"
@@ -366,7 +365,7 @@ withTree("the effects never touch the secure button in a fight",
 	local b, s = plays(burst), plays(shine)
 	ns.Prompt:ShowOutcome("cast", "Anna Aim")
 	if plays(burst) == b or plays(shine) == s then
-		fail(scenario, "with Stay quiet in combat off, a buff landing in a fight got no flourish")
+		fail(scenario, "a buff landing in a fight got no flourish")
 	end
 	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
 	if #Mock.protectedCalls > 0 then
@@ -376,35 +375,6 @@ withTree("the effects never touch the secure button in a fight",
 	for k, v in pairs(attributes) do
 		if button.attributes[k] ~= v then
 			fail(scenario, "an effect changed the button's " .. tostring(k) .. " in a fight")
-		end
-	end
-	-- And quiet means quiet.
-	ns.db.profile.prompt.hideInCombat = true
-	b, s = plays(burst), plays(shine)
-	local k = plays(r.shake)
-	Mock.advance(1)
-	ns.Prompt:ShowOutcome("cast", "Anna Aim")
-	Mock.advance(1)
-	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
-	if plays(burst) ~= b or plays(shine) ~= s or plays(r.shake) ~= k then
-		fail(scenario, "Stay quiet in combat is on and a click in a fight still set the panel moving")
-	end
-	-- The sweep as well. Every cast of a fight starts a global cooldown, most
-	-- of them from the action bars, and a sweep on each is the busiest thing a
-	-- panel asked to sit still could do.
-	local cd = r.cooldown
-	if cd then
-		Mock.advance(1)
-		Mock.spellCooldowns = { [61304] = { startTime = Mock.now, duration = 1.5 } }
-		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna", "Cast-9", 1459)
-		if cd:IsShown() then
-			fail(scenario, "Stay quiet in combat is on and the icon still sweeps with every cast of the fight")
-		end
-		-- And back as the fight ends, for what is left of the cooldown.
-		Mock.inCombat = false
-		ns.addon:PLAYER_REGEN_ENABLED()
-		if not cd:IsShown() then
-			fail(scenario, "the fight ended part-way through a global cooldown and the sweep did not come back")
 		end
 	end
 	Mock.inCombat = false
@@ -876,14 +846,12 @@ end)
 -- A fight that starts while the panel fades out brings it back gently.
 --
 -- The button cannot be hidden in a fight, so a panel on its way out when one
--- starts stays up, dimmed and held. It used to snap from wherever the fade had
--- got to straight to the dim, which read as a glitch; now it is taken there.
+-- starts stays up and held. It used to snap from wherever the fade had got to
+-- straight to full strength, which read as a glitch; now it is taken there.
 withTree("a fight during the fade out brings the panel back gently",
 	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
 	local scenario = "a fight during the fade out brings the panel back gently"
 	freshPrompt(ns, scenario)
-	-- The dim is the thing under test, so it is turned on here (off by default).
-	ns.db.profile.prompt.dimInCombat = true
 	owe(ns, "Anna Aim")
 	ns.addon:Tick()
 	local r = ns.Prompt:Regions()
@@ -911,68 +879,29 @@ withTree("a fight during the fade out brings the panel back gently",
 	elseif plays(comeback) == before then
 		fail(scenario, "a fight caught the panel part-faded and it snapped back instead of returning")
 	elseif not (fade._fromAlpha and fade._fromAlpha > 0.6 and fade._fromAlpha < 0.9
-		and math.abs((fade._toAlpha or 0) - 0.55) < 0.001) then
-		fail(scenario, ("the way back runs from %s to %s, not from where the fade had got to the"
-			.. " fight's dim"):format(tostring(fade._fromAlpha), tostring(fade._toAlpha)))
-	elseif math.abs((r.art:GetAlpha() or 0) - 0.55) > 0.001 then
-		fail(scenario, ("the panel rests at %.2f in the fight, not dimmed"):format(r.art:GetAlpha() or 0))
+		and math.abs((fade._toAlpha or 0) - 1) < 0.001) then
+		fail(scenario, ("the way back runs from %s to %s, not from where the fade had got to full"
+			.. " strength"):format(tostring(fade._fromAlpha), tostring(fade._toAlpha)))
+	elseif math.abs((r.art:GetAlpha() or 0) - 1) > 0.001 then
+		fail(scenario, ("the panel rests at %.2f in the fight, not at full strength"):format(r.art:GetAlpha() or 0))
 	end
 	Mock.inCombat = false
 end)
 
--- A built-in prompt keeps its full strength in a fight: the dim is off by
--- default (it stacked with a low Opacity and made the prompt vanish), and
--- "Dim the prompt in combat" brings it back at half strength.
-withTree("the built-in prompt is not dimmed in a fight unless asked for",
+-- A built-in prompt keeps its full strength in a fight (its half-strength dim,
+-- Dim the prompt in combat, went in 1.12: it stacked with a low Opacity and
+-- made the prompt vanish).
+withTree("the built-in prompt is not dimmed in a fight",
 	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
-	local scenario = "the built-in prompt is not dimmed in a fight unless asked for"
+	local scenario = "the built-in prompt is not dimmed in a fight"
 	freshPrompt(ns, scenario)
 	owe(ns, "Anna Aim")
 	ns.addon:Tick()
 	local r = ns.Prompt:Regions()
-	if ns.db.profile.prompt.dimInCombat then
-		fail(scenario, "SKIPPED -- Dim the prompt in combat is on by default")
-		return
-	end
 	Mock.inCombat = true
 	ns.addon:PLAYER_REGEN_DISABLED()
 	if (r.art:GetAlpha() or 0) < 0.999 then
-		fail(scenario, ("the panel rests at %.2f in a fight with the dim off"):format(r.art:GetAlpha() or 0))
-	end
-	Mock.inCombat = false
-	ns.addon:PLAYER_REGEN_ENABLED()
-	ns.db.profile.prompt.dimInCombat = true
-	Mock.inCombat = true
-	ns.addon:PLAYER_REGEN_DISABLED()
-	if math.abs((r.art:GetAlpha() or 0) - 0.55) > 0.001 then
-		fail(scenario, ("with the dim on the panel rests at %.2f, not 0.55"):format(r.art:GetAlpha() or 0))
-	end
-	Mock.inCombat = false
-end)
-
--- The dim changed in a fight shows at once: the restyle it asks for waits for
--- the end of the fight, but the dim is art's alpha, which a fight allows, and
--- after the fight there is no dim left to show.
-withTree("the dim changed in a fight shows at once",
-	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
-	local scenario = "the dim changed in a fight shows at once"
-	freshPrompt(ns, scenario)
-	owe(ns, "Anna Aim")
-	ns.addon:Tick()
-	local r = ns.Prompt:Regions()
-	local p = ns.db.profile.prompt
-	p.dimInCombat = false
-	Mock.inCombat = true
-	ns.addon:PLAYER_REGEN_DISABLED()
-	p.dimInCombat = true
-	ns.Prompt:ApplyStyle()
-	if math.abs((r.art:GetAlpha() or 0) - 0.55) > 0.001 then
-		fail(scenario, ("turned on in a fight, the panel stays at %.2f"):format(r.art:GetAlpha() or 0))
-	end
-	p.dimInCombat = false
-	ns.Prompt:ApplyStyle()
-	if (r.art:GetAlpha() or 0) < 0.999 then
-		fail(scenario, ("turned off in a fight, the panel stays at %.2f"):format(r.art:GetAlpha() or 0))
+		fail(scenario, ("the panel rests at %.2f in a fight"):format(r.art:GetAlpha() or 0))
 	end
 	Mock.inCombat = false
 	ns.addon:PLAYER_REGEN_ENABLED()

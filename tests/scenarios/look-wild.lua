@@ -105,7 +105,7 @@ end
 local function atRest(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "wild", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "wild", "full", "pulse", true
 	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
@@ -808,7 +808,7 @@ end)
 
 -- ------------------------------------------------------------------ 12
 withTree("look-wild: a fight stills the wood and keeps the reason", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario, function(pp) pp.hideInCombat, pp.accentMode = false, "both" end)
+	local r, _, look = upIn(ns, scenario, function(pp) pp.accentMode = "both" end)
 	if skipped(scenario, look) then return end
 	local water = { look.water[1]._color[1], look.water[1]._color[2], look.water[1]._color[3] }
 	local moon = { look.moon._color[1], look.moon._color[2], look.moon._color[3] }

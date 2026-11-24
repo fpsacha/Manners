@@ -153,22 +153,20 @@ do
 local TRAIL_MAX = 300
 -- What one fight did, counted on the fight's own paths (never the scan) and
 -- written as one trail line when it ends.
-ns.fightTally = { started = nil, keyPresses = 0 }
+ns.fightTally = { started = nil }
 function ns.FightSummary()
 	local tally = ns.fightTally
 	if not tally.started then return end
 	local took = math.max(0, math.floor(GetTime() - tally.started))
 	tally.started = nil
 	local prompt = ns.Prompt
-	local hidden = prompt and prompt.FightHideArmed and prompt:FightHideArmed()
 	local steps, of
 	if prompt and prompt.FightRotaSteps then steps, of = prompt:FightRotaSteps() end
 	local rota = steps and ("%d steps of %d"):format(steps, of or 0) or "none"
 	local cure = ns.CureFight and ns.CureFight.LastFight and ns.CureFight.LastFight() or {}
 	local lit = ns.BreakFree and ns.BreakFree.FightLit and ns.BreakFree.FightLit() or 0
-	ns.Trail("fight", ("fight summary: %ds; prompt %s; rota %s; fight key %d presses; cure shown %d times, %d reads, %d withheld; break free lit %d times")
-		:format(took, hidden and "hidden" or "up", rota, tally.keyPresses or 0,
-			cure.shows or 0, cure.reads or 0, cure.secret or 0, lit))
+	ns.Trail("fight", ("fight summary: %ds; rota %s; cure shown %d times, %d reads, %d withheld; break free lit %d times")
+		:format(took, rota, cure.shows or 0, cure.reads or 0, cure.secret or 0, lit))
 end
 function ns.Trail(kind, text, who)
 	local db = ns.addon and ns.addon.db
@@ -504,8 +502,10 @@ local defaults = {
 			feed = true,
 			mend = true,
 			bond = true,
-			-- All on but Growl's reminder; moments come Sometimes.
-			all = true, leaveFood = true, growl = false, training = true, fightMend = true,
+			-- All on but Growl's reminder and the Mend Pet button in a fight
+			-- (Prompt/MendPet.lua: off by default since 1.12, a switch the player
+			-- turns on); moments come Sometimes.
+			all = true, leaveFood = true, growl = false, training = true, fightMend = false,
 			pace = "sometimes", answer = true, words = true, memory = true,
 			praise = true, comfort = true, welcome = true, sorry = true, hello = true, morning = true,
 			road = true, play = true, share = true, family = true, missed = true, saved = true,
@@ -755,13 +755,6 @@ local defaults = {
 			height = 44,
 			scale = 1,
 			alpha = 1,
-			-- Only suppresses the click-outcome flash in a fight: Hide() on a
-			-- protected frame is refused in combat. The key keeps its old name
-			-- because renaming it would silently reset everyone's setting.
-			hideInCombat = false,
-			-- The whole prompt off the screen for a fight, its key, its list and
-			-- the bar macro casting nothing meanwhile (Prompt/Fight.lua).
-			hideInFight = false,
 			-- In a fight, with the prompt left up, each press moves the button
 			-- on to the next person the queue held as the fight began
 			-- (Prompt/Fight.lua, the fight's rota). Off, a fight holds the
@@ -770,8 +763,9 @@ local defaults = {
 			-- A Forsaken's Will of the Forsaken on a button of its own beside
 			-- the prompt, shown in every fight and lit up while feared,
 			-- charmed or asleep (Prompt/BreakFree.lua). Only a character with
-			-- the ability ever sees the switch.
-			breakFree = true,
+			-- the ability ever sees the switch. Off by default since 1.12 (Manners
+			-- back to its essentials): a switch the player turns on.
+			breakFree = false,
 			-- When the Will of the Forsaken and Mend Pet buttons show in a fight
 			-- (Prompt/BreakFree.lua, Prompt/MendPet.lua): needed, out of sight (alpha
 			-- 0) until Manners sees the need; always, dim for the whole fight as before
@@ -779,29 +773,15 @@ local defaults = {
 			fightButtons = "needed",
 			-- The class's cure on a button of its own beside the prompt for a
 			-- fight, out of sight until somebody near you needs it
-			-- (Prompt/CureFight.lua). On for everybody: it stays out of sight (alpha 0)
-			-- until a read in the fight finds somebody near with a debuff the cure removes.
-			cureFight = true,
+			-- (Prompt/CureFight.lua): out of sight (alpha 0) until a read in the
+			-- fight finds somebody near with a debuff the cure removes. Off by
+			-- default since 1.12 (Manners back to its essentials).
+			cureFight = false,
 			-- A class with two cures (a druid, a priest or a shaman on the older
 			-- clients) gets a button and a key for each, the second below the
 			-- first, each shown only for the kinds its cure takes off. Off: one
 			-- button, the second cure on Shift (Prompt/CureFight.lua).
 			cureFightEach = true,
-			-- The spell the prompt's own key casts in a fight, by a row key of
-			-- Prompt/FightKey.lua's list, kept per class (CLASS -> key) because
-			-- every character shares the profile; none, or "none", keeps the key
-			-- to buffs. The key is pointed at a button of its own for the length
-			-- of the fight. (Before 1.11.35 one key for all: fightKeySpell, which
-			-- ClampSettings carries over once.)
-			fightKeySpells = {},
-			-- Who that spell lands on, for a spell that can go on others, on a client
-			-- where [@unit] resolves: "friend" (the player under the mouse, else
-			-- the target, else you) or "me".
-			fightKeyOn = "friend",
-			-- The built-in looks (Glass, Framed, Minimal) draw the prompt at about
-			-- half strength in a fight when this is on, so it reads as held. Off by
-			-- default: a dim that stacks with a low Opacity made it vanish.
-			dimInCombat = false,
 			-- The options window fading after a change on Look, so the prompt
 			-- shows behind it (Options/Window/Window.lua, PeekTarget). Off since
 			-- 1.11.20: players found it in the way.
@@ -1013,6 +993,13 @@ for _, families in pairs(ns.OWN_BUFFS or {}) do
 		if family.consumable then defaults.profile.ownBuffs.pick[family.key] = "off" end
 		-- And a spell few keep up, asked for by those who do (Buffs.lua, optIn).
 		if family.optIn then defaults.profile.ownBuffs.pick[family.key] = "off" end
+		-- Since 1.12, Manners back to its essentials: the extras on yourself are
+		-- off until ticked. A weapon's poison, stone, oil or fishing lure
+		-- (Buffs.lua, enhance), Forever's mage scrolls (isScroll: the Familiar
+		-- and the Weapon imbue), tracking, and Make a healthstone.
+		if family.enhance or family.isScroll or family.tracking or family.key == "makehealthstone" then
+			defaults.profile.ownBuffs.pick[family.key] = "off"
+		end
 	end
 end
 for _, families in pairs(ns.OWN_BUFFS or {}) do
@@ -6270,31 +6257,12 @@ function ns.ClampSettings()
 	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
 	oneOf(p, "keycap", { look = true, show = true, hide = true }, "look")
 	oneOf(p, "fightButtons", { needed = true, always = true }, "needed")
-	oneOf(p, "fightKeyOn", { friend = true, me = true }, "friend")
-	-- In a fight, my key casts: one key for every class before it was kept
-	-- per class. Carried to the class whose list holds it when that is one
-	-- class alone; a key two classes share (flash) goes to the class logging
-	-- in when its list holds it, else it is dropped.
-	if type(p.fightKeySpells) ~= "table" then p.fightKeySpells = {} end
-	for class, key in pairs(p.fightKeySpells) do
-		if type(class) ~= "string" or type(key) ~= "string" then p.fightKeySpells[class] = nil end
-	end
-	if p.fightKeySpell ~= nil then
-		local old = p.fightKeySpell
-		p.fightKeySpell = nil
-		if type(old) == "string" and old ~= "none" and ns.FightKey then
-			local classes = ns.FightKey.ClassesFor(old)
-			local mine = ns.caps and ns.caps.class
-			local target
-			if #classes == 1 then
-				target = classes[1]
-			else
-				for _, c in ipairs(classes) do
-					if c == mine then target = mine end
-				end
-			end
-			if target and p.fightKeySpells[target] == nil then p.fightKeySpells[target] = old end
-		end
+	-- Gone in 1.12, when Manners went back to its essentials: In a fight, my
+	-- key casts (and Cast it on), Hide the prompt in a fight, No flashes in a
+	-- fight and Dim the prompt in combat. Whatever a profile saved of them is
+	-- let go, so nothing of them is read or travels in a settings string.
+	for _, gone in ipairs({ "fightKeySpell", "fightKeySpells", "fightKeyOn", "hideInFight", "hideInCombat", "dimInCombat" }) do
+		p[gone] = nil
 	end
 	oneOf(p, "thankEmoteToken", ns.THANK_EMOTE_SET, "THANK")
 	-- The others to pick from: a table of known tokens, each true; anything
@@ -6698,8 +6666,6 @@ function addon:TickBody()
 	if mendPet and mendPet:Wanted() then ns.Guard("mend pet", mendPet.Refresh, mendPet) end
 	local cureFight = ns.CureFight
 	if cureFight and cureFight:Wanted() then ns.Guard("cure in a fight", cureFight.Refresh, cureFight) end
-	local fightKey = ns.FightKey
-	if fightKey and fightKey:Wanted() then ns.Guard("fight key", fightKey.Refresh, fightKey) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
@@ -6906,7 +6872,6 @@ function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 function addon:PLAYER_REGEN_DISABLED()
 	ns.Trail("fight", "a fight started")
 	ns.fightTally.started = GetTime()
-	ns.fightTally.keyPresses = 0
 	-- First, while the button can still be touched: a drag held into the pull
 	-- is let go of and its position kept, rather than released in the fight.
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
@@ -6924,14 +6889,9 @@ function addon:PLAYER_REGEN_DISABLED()
 	if ns.Prompt then ns.Prompt.armedForFight = true end
 	if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
 	-- After that repaint wrote the bar macro, and still before the lockdown:
-	-- whether the fight takes the prompt off the screen (Prompt/Fight.lua).
-	if ns.Prompt then ns.Guard("hide for the fight", ns.Prompt.ArmFightHide, ns.Prompt) end
-	-- And, with the prompt left up, the rota its presses step through in the
-	-- fight (Prompt/Fight.lua): the queue as that repaint built it.
+	-- the rota the prompt's presses step through in the fight
+	-- (Prompt/Fight.lua), the queue as that repaint built it.
 	if ns.Prompt then ns.Guard("rota for the fight", ns.Prompt.ArmFightRota, ns.Prompt) end
-	-- And the prompt's own keys pointed at the fight key's button, still out of
-	-- the lockdown (Prompt/FightKey.lua); given back at the end of the fight.
-	if ns.FightKey then ns.Guard("fight key", ns.FightKey.Take, ns.FightKey) end
 	-- Nothing of yours is used in a fight: the consumables button goes now,
 	-- before the lockdown, and its snippet makes sure of it at the lockdown.
 	if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
@@ -6977,11 +6937,8 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- Requests held through the fight get their minute from now, before the
 	-- Refresh below so it can offer them.
 	ns.Guard("requests after the fight", ns.RequestsAfterFight)
-	-- A prompt the fight took off the screen is armed afresh and shown by the
-	-- repaint below, as any repaint arms and shows it (Prompt/Fight.lua).
-	if ns.Prompt then ns.Guard("fight hide release", ns.Prompt.ReleaseFightHide, ns.Prompt) end
+	-- The rota let go; the repaint below arms the prompt afresh (Prompt/Fight.lua).
 	if ns.Prompt then ns.Guard("fight rota release", ns.Prompt.ReleaseFightRota, ns.Prompt) end
-	if ns.FightKey then ns.Guard("fight key release", ns.FightKey.Release, ns.FightKey) end
 	-- The prompt's break-free line off before the repaint below, and the
 	-- break-free button armed for the next fight (Prompt/BreakFree.lua).
 	if ns.BreakFree then ns.Guard("break free release", ns.BreakFree.Release, ns.BreakFree) end

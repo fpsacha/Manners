@@ -257,16 +257,10 @@ do
 	end, { edit = function(p) p.cureFight, p.cureFightEach = true, false end })
 
 	with(scenario, function(ns)
-		Mock.bindings = {}
-		local list = results(ns, "fight.keys")
-		if not any(list, "WARN", "the fight key spell rides the prompt's key, and the prompt has none") then
-			fail(scenario, "a fight key with no prompt key is not a warning: " .. show(list))
-		end
-		Mock.bindings.F = PROMPT
-		if any(results(ns, "fight.keys"), "WARN", "rides the prompt's key") then fail(scenario, "warned with a key bound") end
+		Mock.bindings = { F = PROMPT }
 		if not any(results(ns, "fight.keys"), "PASS", "prompt=F") then fail(scenario, "the prompt's key is not listed") end
 		if not any(results(ns, "fight.keys"), "PASS", "mark=click") then fail(scenario, "the mark key is not listed") end
-	end, { class = "PRIEST", edit = function(p) p.fightKeySpells = { PRIEST = "shield" } end })
+	end, { class = "PRIEST" })
 end
 
 do

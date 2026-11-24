@@ -32,7 +32,6 @@ end
 -- (Prompt/Panel.lua); the fight buttons must too.
 do
 	local rows = {
-		{ "the fight key", "MannersFightKey", function(ns) ns.FightKey:Create() return ns.FightKey:Button() end },
 		{ "the cure button", "MannersCureFight", function(ns) ns.CureFight:Create() return ns.CureFight:Button() end },
 		{ "the break-free button", "MannersBreakFree", function(ns) ns.BreakFree:Create() return ns.BreakFree:Button() end },
 		{ "the mend-pet button", "MannersMendPet", function(ns) ns.MendPet:Create() return ns.MendPet:Button() end },

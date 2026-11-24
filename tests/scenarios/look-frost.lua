@@ -110,7 +110,7 @@ end
 local function atRest(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "frost", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "frost", "full", "pulse", true
 	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
@@ -902,7 +902,7 @@ end)
 
 -- ------------------------------------------------------------------ 13
 withTree("look-frost: a fight stills the ice and keeps the reason", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario, function(pp) pp.hideInCombat, pp.accentMode = false, "both" end)
+	local r, _, look = upIn(ns, scenario, function(pp) pp.accentMode = "both" end)
 	if skipped(scenario, look) then return end
 	local mist = { look.mist[1]._color[1], look.mist[1]._color[2], look.mist[1]._color[3] }
 	local rune = { look.rune._color[1], look.rune._color[2], look.rune._color[3] }

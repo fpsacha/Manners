@@ -9,16 +9,6 @@ S = "runscenarios.py"
 
 # --- the layout ---
 
-# The combat switch, now on Look next to Animations, drifted out of Getting my
-# attention (re-anchored from its old place on this tab).
-mutate("Options/Look.lua",
-       ":format(L[\"Hide the prompt in a fight\"])\n\t\t\t\tend,\n"
-       "\t\t\t\torder = 32.5,\n",
-       ":format(L[\"Hide the prompt in a fight\"])\n\t\t\t\tend,\n"
-       "\t\t\t\torder = 38,\n",
-       "when tab: combat switch out of its section",
-       expect="is out of order: it comes before hideInCombat", script=S)
-
 # Retired: "when tab: favour time points nowhere" and "favour pointer with
 # favours off". when.favoursHeader and when.favoursNote are gone: the window
 # draws Offer a buff back for on this page, so there is no pointer left.
@@ -103,21 +93,6 @@ mutate("Options/Advanced.lua",
        expect="when reset: filters.verifiedOnly was not put back", script=S)
 
 # --- the combat switch ---
-
-# Moved here and bound to the filters table, so the saved setting is lost.
-mutate("Options/Look.lua",
-       ":format(L[\"Hide the prompt in a fight\"])\n\t\t\t\tend,\n"
-       "\t\t\t\torder = 32.5,\n"
-       "\t\t\t\twidth = \"full\",\n"
-       "\t\t\t\tget = pGet,\n"
-       "\t\t\t\tset = pSet,\n",
-       ":format(L[\"Hide the prompt in a fight\"])\n\t\t\t\tend,\n"
-       "\t\t\t\torder = 32.5,\n"
-       "\t\t\t\twidth = \"full\",\n"
-       "\t\t\t\tget = Page.fGet,\n"
-       "\t\t\t\tset = Page.fSet,\n",
-       "when tab: combat switch writes filters",
-       expect="hideInCombat writes prompt.hideInCombat no longer", script=S)
 
 # --- the mana note ---
 

@@ -113,7 +113,7 @@ for _, style in ipairs(STYLES) do
 			local P = ns.Prompt
 			freshPrompt(ns, scenario)
 			local p = ns.db.profile.prompt
-			p.style, p.effects, p.showIcon, p.hideInCombat, p.showQueue = style, "full", true, false, false
+			p.style, p.effects, p.showIcon, p.showQueue = style, "full", true, false
 			P:ApplyStyle()
 			owe(ns, "Anna Aim")
 			ns.addon:Tick()

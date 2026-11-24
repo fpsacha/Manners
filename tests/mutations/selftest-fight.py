@@ -91,11 +91,3 @@ mutate("Selftest.lua",
        "selftest-fight: one key on two commands passes",
        expect=SHIFT,
        script=S)
-
-# A fight key with no prompt key passes.
-mutate("Selftest.lua",
-       "\tif ns.FightKey and ns.FightKey.Applies(db) and not KeyOf(ns.Setup.COMMAND) then\n",
-       "\tif false then\n",
-       "selftest-fight: a fight key with no prompt key passes",
-       expect=SHIFT,
-       script=S)

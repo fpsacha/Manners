@@ -99,7 +99,7 @@ end
 local function atRest(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "fel", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "fel", "full", "pulse", true
 	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
@@ -637,7 +637,7 @@ end)
 
 -- ------------------------------------------------------------------ 12
 withTree("look-fel: a fight puts the fire out and keeps the reason", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario, function(pp) pp.hideInCombat, pp.accentMode = false, "both" end)
+	local r, _, look = upIn(ns, scenario, function(pp) pp.accentMode = "both" end)
 	if skipped(scenario, look) then return end
 	local band = { look.band._color[1], look.band._color[2], look.band._color[3] }
 	local shard = { look.shard._color[1], look.shard._color[2], look.shard._color[3] }

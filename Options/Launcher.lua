@@ -792,16 +792,9 @@ local function FillPromptMenu(parent, fight)
 		HeldForFight(reset)
 	end
 	Divider(parent)
-	-- These three are drawing and sound, never where the button is or what it
+	-- These two are drawing and sound, never where the button is or what it
 	-- casts: the style is put back after the fight by ApplyStyle itself, so
 	-- they stay open in one.
-	Check(parent, L["No flashes in a fight"], function() return ns.db.profile.prompt.hideInCombat end,
-		Act(function()
-			local now = ns.db.profile.prompt
-			now.hideInCombat = not now.hideInCombat
-			ns.Prompt:ApplyStyle()
-			ns.RepaintOptions()
-		end))
 	Check(parent, L["Play a sound"], function() return ns.db.profile.sound.enabled end,
 		Act(function()
 			local sound = ns.db.profile.sound

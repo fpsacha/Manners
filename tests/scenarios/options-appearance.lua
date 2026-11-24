@@ -63,7 +63,7 @@ local ORDER = {
 	"posHeader", "scale", "alpha", "width", "height",
 	"styleHeader", "classLook", "style", "lookHeader", "classicArt", "classicArtNote", "keycap", "bgColor", "accentByReason", "reasonPalette", "accentColor",
 	"accentMode", "accentDead",
-	"attentionHeader", "flashStyle", "effects", "hideInFight", "fightRota", "fightKeySpell", "fightKeyOn", "breakFree", "breakFreeKey", "mendInFight", "mendInFightKey", "fightButtons", "cureFight", "cureFightEach", "cureFightKey", "cureFightKey2", "hideInCombat", "dimInCombat", "soundEnabled", "soundFile",
+	"attentionHeader", "flashStyle", "effects", "fightRota", "breakFree", "breakFreeKey", "mendInFight", "mendInFightKey", "fightButtons", "cureFight", "cureFightEach", "cureFightKey", "cureFightKey2", "soundEnabled", "soundFile",
 	"soundOwedOnly", "noSound", "peekOnChange",
 	"tooltipHeader", "tooltip", "tooltipPosition",
 	"textHeader", "font", "fontSize", "fontColor", "classColor", "textShadow", "showSub", "showGuild",
@@ -118,7 +118,6 @@ do
 			style = "Panel style", bgColor = "Panel colour", accentByReason = "Colour by why they are offered",
 			reasonPalette = "Colour set", accentColor = "Colour to use otherwise", accentMode = "Put the colour on",
 			flashStyle = "Flash when someone buffs me", effects = "Animations",
-			hideInCombat = "No flashes in a fight",
 			soundEnabled = "Play a sound", soundFile = "Sound", soundOwedOnly = "Only for people who buff me",
 			fontColor = "Text colour", classColor = "Colour names by class", showSub = "Show a second line",
 			showCount = "Show how many are waiting", showQueue = "List the next few below",
@@ -407,10 +406,9 @@ do
 			fail(scenario, "Text colour does not end by pointing at Colour names by class: " .. desc)
 		end
 		desc = text(args.showCooldown.desc)
-		-- On this tab now, so named without a tab.
-		if not desc:find("|cffffd100No flashes in a fight|r", 1, true)
-			or desc:find("(When to offer)", 1, true) then
-			fail(scenario, "Show the global cooldown does not point at Keep the prompt still: " .. desc)
+		-- No Fight setting stills the sweep since 1.12, so it points at none.
+		if desc:find("No flashes in a fight", 1, true) then
+			fail(scenario, "Show the global cooldown still points at No flashes in a fight, gone in 1.12: " .. desc)
 		end
 		desc = text(args.roundIcon.desc)
 		if desc:find("|cff888888", 1, true) then
@@ -456,35 +454,6 @@ do
 				fail(scenario, "open on Minimal with the icon off and Calm, where nothing answers it")
 			end
 			p.style, p.effects, p.showIcon, p.accentMode = was[1], was[2], was[3], was[4]
-		end
-		noErrors(scenario, ns)
-	end
-end
-
--- Dim the prompt in combat reaches only the built-in looks: the ones from
--- Looks/ draw a fight their own way, so on them it is greyed out rather than a
--- switch that does nothing.
-do
-	local scenario = "look: Dim the prompt in combat is greyed out on a look with its own fight"
-	local ns, tab, args = session(scenario)
-	if ns then
-		local option = args.dimInCombat
-		if not (option and type(option.disabled) == "function") then
-			fail(scenario, "Dim the prompt in combat has no greyed-out rule")
-		else
-			local p = ns.db.profile.prompt
-			local was = p.style
-			for _, style in ipairs({ "glass", "framed", "minimal" }) do
-				p.style = style
-				if option.disabled() then fail(scenario, "greyed out on " .. style .. ", which it dims") end
-			end
-			for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon" }) do
-				p.style = style
-				if ns.Looks.Get(style) and not option.disabled() then
-					fail(scenario, "open on " .. style .. ", which draws a fight its own way")
-				end
-			end
-			p.style = was
 		end
 		noErrors(scenario, ns)
 	end

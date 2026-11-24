@@ -43,7 +43,6 @@ local function upIn(ns, scenario, edit)
 	p.classicArt = true
 	p.flashStyle = "pulse"
 	p.effects = "full"
-	p.hideInCombat = false
 	p.showIcon = true
 	p.roundIcon = false
 	p.showSub = true

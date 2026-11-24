@@ -13,8 +13,7 @@
 --     owed, once; rings for a buff the game confirmed; a contracting ring and
 --     a shake for a refusal; nothing for a cast nobody confirmed);
 --   * Calm plays none of the new motion, only fades;
---   * in a fight none of it is on a protected frame, and on "Keep the prompt
---     dim and still" none of it plays;
+--   * in a fight none of it is on a protected frame;
 --   * all of it stops with the look, the panel and the repaint that is about
 --     somebody else, and parks what it lit at nothing;
 --   * each stays inside its time (an arrival under half a second, a landing
@@ -71,7 +70,6 @@ local function upIn(ns, scenario, style, edit)
 	p.style = style
 	p.flashStyle = "pulse"
 	p.effects = "full"
-	p.hideInCombat = false
 	p.showIcon = true
 	p.roundIcon = false
 	if edit then edit(p) end
@@ -278,7 +276,7 @@ for _, style in ipairs(ALL) do
 	withTree(name, ANNA, function(ns, scenario)
 		freshPrompt(ns, scenario)
 		local p = ns.db.profile.prompt
-		p.style, p.effects, p.flashStyle, p.hideInCombat = style, "calm", "pulse", false
+		p.style, p.effects, p.flashStyle = style, "calm", "pulse"
 		p.showIcon, p.roundIcon = true, false
 		ns.Prompt:ApplyStyle()
 		ns.addon:Tick()
@@ -335,8 +333,7 @@ for _, effects in ipairs({ "full", "calm" }) do
 end
 
 -- ------------------------------------------------------------------ 4
--- In a fight none of it is on a protected frame, and on "dim and still" none
--- of it plays.
+-- In a fight none of it is on a protected frame.
 for _, style in ipairs(ALL) do
 	local name = "hunt35-effects: in a fight no effect touches a protected frame, in " .. style
 	withTree(name, ANNA, function(ns, scenario)
@@ -370,19 +367,6 @@ for _, style in ipairs(ALL) do
 			if o == button or (o and o._protected) then
 				fail(scenario, "an animation group is on a protected frame")
 				break
-			end
-		end
-		-- "Keep the prompt dim and still": none of it plays.
-		ns.db.profile.prompt.hideInCombat = true
-		Mock.advance(1)
-		local s2 = snapshot(g)
-		ns.Prompt:ShowOutcome("cast", "Anna Aim")
-		Mock.advance(1)
-		ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
-		local s3 = snapshot(g)
-		for _, key in ipairs({ "land", "reject", "shake", "settle" }) do
-			if s3[key] ~= s2[key] then
-				fail(scenario, "with the prompt kept dim and still in combat the " .. key .. " still played")
 			end
 		end
 		Mock.inCombat = false

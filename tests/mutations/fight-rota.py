@@ -60,12 +60,6 @@ mutate(FIGHT,
        expect="switched off, the pull still made a rota", script=S)
 
 mutate(FIGHT,
-       "\tif header:GetAttribute(\"manners-hide\") or S.testMode then return end\n",
-       "\tif S.testMode then return end\n",
-       "fight-rota: a rota armed on a prompt hidden for the fight",
-       expect="a rota was armed on a prompt hidden for the fight", script=S)
-
-mutate(FIGHT,
        "\t\tif #entries >= ROTA_MAX then break end\n",
        "",
        "fight-rota: a rota of everybody in sight",
@@ -106,12 +100,6 @@ mutate("Prompt/Macro.lua",
        "\treturn text, record\n",
        "fight-rota: a macro too long for the client put in the rota",
        expect="characters", script=S)
-
-mutate("Options/Look.lua",
-       "\t\t\t\tdisabled = function() return P().hideInFight == true end,\n",
-       "\t\t\t\tdisabled = function() return false end,\n",
-       "fight-rota: the switch live with the prompt hidden for the fight",
-       expect="the switch is live with the prompt hidden for the fight", script=S)
 
 mutate(FIGHT,
        "\t\tif entry ~= top and entry.buff and not (entry.name == top.name and entry.buff.key == top.buff.key)\n\t\t\tand not Reached(entry) then\n",

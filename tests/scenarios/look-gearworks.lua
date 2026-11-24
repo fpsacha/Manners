@@ -111,7 +111,7 @@ end
 local function atRest(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "gearworks", "full", "pulse", true, false
+	p.style, p.effects, p.flashStyle, p.showIcon = "gearworks", "full", "pulse", true
 	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
@@ -677,7 +677,7 @@ end)
 
 -- ------------------------------------------------------------------ 14
 withTree("look-gearworks: a fight dulls the brass and keeps the reason", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario, function(pp) pp.hideInCombat = false end)
+	local r, _, look = upIn(ns, scenario, function(pp) end)
 	if skipped(scenario, look) then return end
 	pass(ns, 1)
 	local colour = { look.dial._color[1], look.dial._color[2], look.dial._color[3] }

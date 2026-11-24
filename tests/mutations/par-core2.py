@@ -127,8 +127,8 @@ mutate("Options/Start.lua",
        expect="does not say what the macro does in a fight", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\t\telseif p and p.fightRota ~= false then\n",
-       "\t\t\t\t\telseif p then\n",
+       "\t\t\t\t\tif p and p.fightRota ~= false then\n",
+       "\t\t\t\t\tif p then\n",
        "par-core2: the bar macro's button promises the prompt moves on with the rota off",
        expect="with the rota off the line still says the prompt moves on", script=S)
 

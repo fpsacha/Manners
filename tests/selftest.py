@@ -1544,7 +1544,7 @@ mutate("Prompt/Refresh.lua",
        "		self:SetCombatHold(true)\n",
        "",
        "a frozen prompt that still looks live",
-       expect="the panel kept full brightness over a frozen target",
+       expect="the straps did not dull in a fight",
        script="runscenarios.py")
 
 # 25. and the tooltip over it, which is the most detailed and most convincing
@@ -2011,23 +2011,13 @@ mutate("Prompt/Refresh.lua",
 #     Blizzard refuses for the length of the fight. A refused Hide is invisible;
 #     a refused Show is the confirmation not appearing, which is the feature.
 mutate("Prompt/Refresh.lua",
-       """		if self:OutcomeLive() and not p.hideInCombat then
+       """		if self:OutcomeLive() then
 			self:PaintOutcome()""",
-       "\t\tif self:OutcomeLive() and not p.hideInCombat then\n"
+       "\t\tif self:OutcomeLive() then\n"
        "\t\t\tR.button:Show()\n"
        "\t\t\tself:PaintOutcome()",
        "a protected Show inside the combat branch",
        expect="on the secure button in combat",
-       script="runscenarios.py")
-
-# 60. the combat dim released at the bottom of Refresh, which preview returns
-#     above. Written as the blind spot rather than as a deletion: every other
-#     path still heals, so only the check that is about preview can catch it.
-mutate("Prompt/Refresh.lua",
-       "\tif not InCombatLockdown() then self:SetCombatHold(false) end",
-       "\tif not InCombatLockdown() and not S.testMode then self:SetCombatHold(false) end",
-       "a preview left holding the dim of a fight",
-       expect="the fight ended and the preview stayed dimmed",
        script="runscenarios.py")
 
 # 61. the grace-window entry built without the field that says whether anybody
@@ -2171,7 +2161,7 @@ mutate("Prompt/Refresh.lua",
 #     than guarded, because a guard on it would be just as dead.
 mutate("Prompt/Refresh.lua",
        "\t\tlocal debt = S.current and S.current.name and ns.owed[S.current.name]",
-       "\t\tif p.hideInCombat or not S.current then R.button:Hide() end\n"
+       "\t\tif not S.current then R.button:Hide() end\n"
        "\t\tlocal debt = S.current and S.current.name and ns.owed[S.current.name]",
        "the combat branch's own refused Hide",
        expect="repainting the held panel called",
@@ -2267,24 +2257,6 @@ mutate("Options/Advanced.lua",
        "\t\t\t\thidden = NoOthers,\n\t\t\t\tget = fGetMacro,",
        "handing back a target that is never taken",
        expect="hand back a target the macro never takes",
-       script="runscenarios.py")
-
-# 83. "Hide in combat" over a panel that cannot be hidden. The call that read
-#     it was protected and refused every time it ran, and it is gone.
-mutate("Options/Look.lua",
-       'name = L["No flashes in a fight"],',
-       'name = L["Hide in combat"],',
-       "a switch named for something it cannot do",
-       expect="is still called",
-       script="runscenarios.py")
-
-# 84. and the thing it does do, taken away -- which would leave a switch that
-#     is now genuinely wired to nothing at all.
-mutate("Prompt/Refresh.lua",
-       "\t\tif self:OutcomeLive() and not p.hideInCombat then",
-       "\t\tif self:OutcomeLive() then",
-       "a combat switch wired to nothing",
-       expect="still flashed the click's outcome",
        script="runscenarios.py")
 
 # 85. the source list that named three of the four unit tokens the scan walks.
@@ -3809,7 +3781,7 @@ mutate("Core.lua",
        "\tend)\n",
        "",
        "combat hold waiting for the next scan",
-       expect="the prompt admits it is frozen in combat: the panel kept full brightness",
+       expect="the prompt admits it is frozen in combat: nothing on the panel says the prompt is held",
        script="runscenarios.py")
 
 # A refusal with a guid missing on one side matched to the only settle in the
@@ -4346,22 +4318,6 @@ mutate("Options/Launcher.lua",
        "\telseif false then\n",
        "tooltip silent about a class with no buffs",
        expect="the tooltip does not say why a rogue sees no prompt",
-       script="runscenarios.py")
-
-# "Stay quiet in combat" claiming the prompt cannot be hidden.
-mutate("Options/Look.lua",
-       "L[\"The prompt stays up in a fight, its key binding still casting,",
-       "L[\"It cannot be hidden in combat because Blizzard freezes secure frames, its key binding still casting,",
-       "quiet-in-combat says it cannot be hidden",
-       expect="the switch still says the prompt cannot be hidden",
-       script="runscenarios.py")
-
-# "Stay quiet in combat" promising a green flash nothing paints.
-mutate("Options/Look.lua",
-       " say what a click did, red if it failed.\"]",
-       " say what a click did, green or red.\"]",
-       "quiet-in-combat promises a green flash",
-       expect="the switch promises a green flash the prompt never paints",
        script="runscenarios.py")
 
 # The greeting sending the player to a Game Menu entry this client lacks.

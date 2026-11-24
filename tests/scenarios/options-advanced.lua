@@ -153,9 +153,8 @@ local LOOK_RESET = {
 -- In a fight's reset: what the prompt does when a fight starts and the
 -- buttons made for one. They moved off Look with the page.
 local FIGHT_RESET = {
-	{ "prompt", "hideInCombat" }, { "prompt", "hideInFight" }, { "prompt", "fightRota" },
-	{ "prompt", "breakFree" }, { "prompt", "cureFight" }, { "prompt", "dimInCombat" },
-	{ "prompt", "fightKeySpells" }, { "prompt", "fightKeyOn" },
+	{ "prompt", "fightRota" }, { "prompt", "breakFree" }, { "prompt", "cureFight" },
+	{ "prompt", "cureFightEach" }, { "prompt", "fightButtons" }, { "beast", "fightMend" },
 }
 local LOOK_KEPT = {
 	{ "prompt", "x" }, { "prompt", "y" }, { "prompt", "point" }, { "prompt", "relPoint" },

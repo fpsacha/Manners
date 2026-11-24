@@ -65,6 +65,8 @@ local function warlock(scenario, flavour, spell, body)
 		rawset(_G, "StaticPopup_Hide", function() end)
 		local ns = load(scenario)
 		if not ns then return end
+		-- Ticked at login, as a player who wants it has (off by default since 1.12).
+		for _, k in ipairs({ "makehealthstone" }) do ns.defaults.profile.ownBuffs.pick[k] = "auto" end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.self = true
 		ns.Guard("probe", ns.ProbeCapabilities)
@@ -141,6 +143,8 @@ do
 		rawset(_G, "IsInInstance", function() return true, "pvp" end)
 		rawset(_G, "UnitIsDeadOrGhost", function(unit) return unit == "player" and Mock.dead == true end)
 		Mock.playerHeld = {}
+		-- Ticked at login, as a player who wants it has (off by default since 1.12).
+		for _, k in ipairs({ "makehealthstone" }) do ns.defaults.profile.ownBuffs.pick[k] = "auto" end
 		freshPrompt(ns, scenario)
 		Mock.playerHeld = {}
 		local db = ns.db.profile

@@ -44,6 +44,8 @@ local function with(scenario, body, opts)
 	local ns = load(scenario)
 	if ns then
 		ok, err = pcall(function()
+			-- Switched on, as a player who ticked it has (off by default since 1.12).
+			ns.defaults.profile.prompt.breakFree = true
 			freshPrompt(ns, scenario)
 			Mock.timers = {}
 			Mock.secureActions = true
