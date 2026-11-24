@@ -17908,7 +17908,51 @@ local H = {
 		return list, sections
 	end,
 }
+-- The client's functions as the first file finds them, and the fields of its
+-- C_ tables, put back after every file: a file that replaced one and did not
+-- put it back (fireshield.lua kept H.strangers' UnitExists, which knows no
+-- target; selftest-fight.lua left C_LossOfControl false, so the mock's
+-- metatable never answered it again) would hand the next file in the same worker a different client
+-- than the one it gets alone, and a whole-suite bin failed in files that pass
+-- alone. What a file leaves is the mock's to undo, whatever order they run in.
+do
+	local clean, fields = {}, {}
+	local function kept(k, v)
+		return type(v) == "function" or (type(k) == "string" and k:find("^C_") ~= nil)
+	end
+	run.snapshot = function()
+		for k, v in pairs(_G) do
+			if kept(k, v) then
+				clean[k] = v
+				if type(v) == "table" then
+					local copy = {}
+					for f, x in pairs(v) do copy[f] = x end
+					fields[k] = copy
+				end
+			end
+		end
+	end
+	run.restore = function()
+		for k, v in pairs(_G) do
+			if kept(k, v) and clean[k] == nil then rawset(_G, k, nil) end
+		end
+		for k, v in pairs(clean) do
+			if rawget(_G, k) ~= v then rawset(_G, k, v) end
+			local copy = fields[k]
+			if copy then
+				for f in pairs(v) do
+					if copy[f] == nil then v[f] = nil end
+				end
+				for f, x in pairs(copy) do
+					if v[f] ~= x then v[f] = x end
+				end
+			end
+		end
+	end
+end
 if extras then
+	Mock.reset()
+	run.snapshot()
 	for i = 1, #extras do
 		local path = extras[i]
 		local name = tostring(path):match("[^/\\]+$") or tostring(path)
@@ -17920,6 +17964,7 @@ if extras then
 			local ok, runErr = pcall(chunk, dir, H)
 			if not ok then fail(name, "threw: " .. tostring(runErr)) end
 		end
+		run.restore()
 		Mock.reset()
 	end
 end
