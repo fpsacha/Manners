@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "22 November 2026", sections = {
+	{ version = "1.11.41", date = "22 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Report a bug.|r One window takes you from what went wrong to a link that opens the issue on GitHub filled in and the report to paste, from Diagnostics, the footer of the options window, the minimap menu or /manners bug.",
 			"|cffffd100Mark this moment.|r Press a key the second something goes wrong, even in a fight, and the report shows what Manners saw then.",
