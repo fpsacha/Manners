@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "24 November 2026", sections = {
+	{ version = "1.11.42", date = "24 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Back to what Manners is for.|r 1.11.41's extras are gone: the buttons for the moment (Counterspell, Blink, the drink and the rest), the falling and low-mana prompts, Report a bug, Mark this moment, water and food for your target, Fire Shield and the...",
 		} },
