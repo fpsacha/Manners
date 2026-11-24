@@ -80,6 +80,18 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Open
 
+- **KoriKaiMoon: party members missing a paladin's blessings ignored in a
+  dungeon (Forever).** Not reproduced. `tests/scenarios/dungeon-party.lua`
+  walks a five-man in an instance out of a fight with the defaults: everybody
+  missing a blessing is offered, also with the spell's range check silent and
+  the follow prompt withheld, with Greater Blessing of Kings and its symbols
+  (too few of one class for it), and again after a pull.
+  `tests/scenarios/forclass.lua` already covers another paladin's blessing.
+  Left to look at: range or aura reads that the game answers differently inside
+  an instance (a "no" from `IsSpellInRange` or the follow prompt, or reads
+  withheld after the fight is over), and *Only offer people whose buffs can be
+  read*. A `/manners debug` from inside a dungeon while it happens is needed.
+
 - **GitHub issue 28 (first press of a CLICK bind errors).** Nothing in the press
   path fails on a first press: the mock casts once on it. Waiting on the
   player's error text or a `/manners clicks` log. Meanwhile the key boxes take a

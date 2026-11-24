@@ -11,6 +11,11 @@
   options, and on for everybody who never unticked it. Untick *Simple view*
   under the search box for the rest.
 
+### Changes
+- **Blessings in a dungeon.** New checks of a paladin's party in a dungeon. If
+  somebody is still passed over, a /manners debug from inside helps (thanks
+  to KoriKaiMoon).
+
 ## 1.12.0
 
 *24 November 2026*

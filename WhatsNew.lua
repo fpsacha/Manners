@@ -10,6 +10,9 @@ ns.WhatsNew = {
 			"|cffffd100No more achievements.|r The milestones, their toasts, the hall of fame and the ledger's titles are gone.",
 			"|cffffd100A truly simple Simple view.|r Just the essentials, about a tenth of the options, and on for everybody who never unticked it.",
 		} },
+		{ title = "Changes", accent = "7cc4ff", entries = {
+			"|cff7cc4ffBlessings in a dungeon.|r New checks of a paladin's party in a dungeon.",
+		} },
 	} },
 	{ version = "1.12.0", date = "24 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
