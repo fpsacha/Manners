@@ -7,14 +7,17 @@ local _, ns = ...
 ns.WhatsNew = {
 	{ version = "Unreleased", date = "24 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Back to the essentials.|r Manners now starts with only what it is for: returning favours, buffing your group and passers-by, and saying thanks.",
+			"|cffffd100Report a bug.|r A window that walks you through a report and opens the GitHub form already filled in (launcher menu, or /manners bug).",
+		} },
+		{ title = "Changes", accent = "7cc4ff", entries = {
+			"|cff7cc4ffRemoved:|r |cffffffffIn a fight, my key casts|r, |cffffffffHide the prompt in a fight|r, |cffffffffNo flashes in a fight|r and |cffffffffDim the prompt in combat|r.",
+			"|cff7cc4ffRighteous Fury alone.|r On Automatic, a Protection paladin playing alone is reminded of it, by talents (thanks to molnare).",
+		} },
+	} },
+	{ version = "1.11.42", date = "24 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Back to what Manners is for.|r 1.11.41's extras are gone: the buttons for the moment (Counterspell, Blink, the drink and the rest), the falling and low-mana prompts, Report a bug, Mark this moment, water and food for your target, Fire Shield and the...",
-		} },
-		{ title = "Off until you tick them", accent = "7cc4ff", entries = {
-			"|cff7cc4ffIn a fight:|r the Will of the Forsaken, Mend Pet and cure buttons.",
-			"|cff7cc4ffOn yourself|r (|cffffffffWho to buff|r, |cffffffffMyself|r): weapon poisons, stones, oils and fishing lures, Well-Rested, the companion pet, a mage's Familiar and Weapon imbue scrolls, tracking and |cffffffffMake a healthstone|r, like food, flasks and elixirs...",
-		} },
-		{ title = "Gone from In a fight", accent = "7cc4ff", entries = {
-			"|cffffffffIn a fight, my key casts|r, |cffffffffHide the prompt in a fight|r, |cffffffffNo flashes in a fight|r and |cffffffffDim the prompt in combat|r.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Thank-you after a pause.|r With |cffffffffWait a moment before thanking|r on, the thank-you no longer gets lost when the giver's nameplate changes hands.",
@@ -45,21 +48,6 @@ ns.WhatsNew = {
 			"|cffff9a52A button for each cure.|r A druid, a priest or a shaman on the older clients gets a button and a key for each, shown only for its own debuffs (|cffffffffA button for each cure|r, on).",
 			"|cffff9a52/moo to thank with.|r |cffffffffEmote to use|r (What I say) now offers /moo, last on the list, for any race (GitHub issue 35).",
 			"|cffff9a52Will of the Forsaken shows when you lose control in a fight|r even where the game will not say what took it, and for fears by mechanic (|cffffffffIn a fight > Show a Will of the Forsaken button...|r, GitHub issue 33).",
-		} },
-	} },
-	{ version = "1.11.38", date = "21 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Food, stones and oils on the run, your call.|r |cffffffffMy own buffs > Hold my food, stones and oils while I move|r (on) can be turned off, and they then stay on the prompt while you move (GitHub issue 31).",
-			"|cffffd100Who to skip > Paste a list of names|r puts a pasted list on the never-offer list, one name a line or with commas between.",
-			"|cffffd100Skip the players and guilds OlympusMute mutes|r (off, shown when OlympusMute is loaded): |cffffffffWho to skip|r leaves out the players and guilds it mutes, like the never-offer list; a favour owed is still returned.",
-			"|cffffd100Offer my cure in a fight is on for everybody:|r the cure button still shows only when somebody near you carries a curse, poison or disease you can remove.",
-			"|cffffd100A controller button in the key boxes.|r The prompt's key on |cffffffffStart here|r (and every other key box) takes a controller button: click the box and press it.",
-		} },
-		{ title = "Battlegrounds", accent = "7cc4ff", entries = {
-			"|cff7cc4ffYour own buffs come back after a death there,|r though the game hides your auras in a match.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Retail: a hunter's options window is whole again.|r |cffffffffMy pet|r, |cffffffffWho to skip|r, |cffffffffWhen to offer|r, |cffffffffIn a fight|r and |cffffffffLook|r were hidden from a retail hunter.",
 		} },
 	} },
 }

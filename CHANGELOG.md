@@ -5,23 +5,31 @@
 *24 November 2026*
 
 ### Highlights
+- **Back to the essentials.** Manners now starts with only what it is for:
+  returning favours, buffing your group and passers-by, and saying thanks.
+  The extras are still there, off until you tick them: Will of the Forsaken,
+  the cure and Mend Pet buttons in a fight, consumables, a fishing lure, the
+  sleeping bag, your companion pet, tracking, a mage's scrolls and Make a
+  healthstone.
+- **Report a bug.** A window that walks you through a report and opens the
+  GitHub form already filled in (launcher menu, or /manners bug).
+
+### Changes
+- **Removed:** *In a fight, my key casts*, *Hide the prompt in a fight*, *No
+  flashes in a fight* and *Dim the prompt in combat*. The fight's rota stays.
+- **Righteous Fury alone.** On Automatic, a Protection paladin playing alone is
+  reminded of it, by talents (thanks to molnare).
+
+## 1.11.42
+
+*24 November 2026*
+
+### Highlights
 - **Back to what Manners is for.** 1.11.41's extras are gone: the buttons for
   the moment (Counterspell, Blink, the drink and the rest), the falling and
   low-mana prompts, Report a bug, Mark this moment, water and food for your
   target, Fire Shield and the new cure display. Thank you for saying so. The
   fixes stay.
-
-### Off until you tick them
-- **In a fight:** the Will of the Forsaken, Mend Pet and cure buttons.
-- **On yourself** (*Who to buff*, *Myself*): weapon poisons, stones, oils and
-  fishing lures, Well-Rested, the companion pet, a mage's Familiar and Weapon
-  imbue scrolls, tracking and *Make a healthstone*, like food, flasks and
-  elixirs already were.
-
-### Gone from In a fight
-- *In a fight, my key casts*, *Hide the prompt in a fight*, *No flashes in a
-  fight* and *Dim the prompt in combat*. *In a fight, each press buffs the next
-  person in line* stays.
 
 ### Fixes
 - **Thank-you after a pause.** With *Wait a moment before thanking* on, the
