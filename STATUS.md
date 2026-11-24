@@ -8,219 +8,24 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*22 November 2026. Last release: 1.11.40.*
+*23 November 2026. Last release: 1.11.41 (live everywhere, and in the owner's
+game folder). The full hand-off is `.claude/handoff-2026-11-23.md`.*
 
-- **Released today:** 1.11.38 (controller buttons in key boxes, battlegrounds
-  after a death, mute list, hold food while moving), 1.11.39 (healthstone
-  reminder, Will of the Forsaken on loss of control, /moo, cure button for
-  secret auras and a button per cure, *Food still offered outside dungeons and
-  raids*) and 1.11.40 (own buffs asked again after a death in a battleground:
-  the cast on yourself went unnoticed under Forever's surname spelling, issue
-  38). All issues from 32 to 38 are closed.
-- **In flight:** the Report a bug flow, on branch `report-flow` (worktree
-  `Manners-wt-report`), not yet merged: `Options/BugReport.lua` (window, link,
-  Mark this moment, the hold-back watch, the "Report it" chat link), a fight
-  summary line, the trail at 300, the self-test's *Fight buttons and keys*
-  group, `tools/read_report.py`, the issue form's category and game fields. Its
-  own scenarios: `bugreport.lua`, `trail-mark.lua`, `selftest-fight.lua`.
-  The branch also carries the unreleased r39 fixes (cure button, break free on a
-  second fear, healthstone "()", battleground food after a death, Greater
-  Blessing, slider unit words, own-buff controls, the debug dungeon line).
-  No workflow runs.
-  Old worktrees kept on purpose (uncommitted files or unmerged): `look-fel`,
-  `look-wild`, `relcheck`, `logo`, `ci-diag-generators`.
-- **Water and food for your target,** on branch `water-target` (worktree
-  `Manners-wt-water`), not yet merged: *Offer water and food to my target*,
-  *How much to trade* (Fill by default, asked water and food fill too),
-  scenarios `water-target.lua`, mutations `water-target.py`.
-- **Cast watch check-up,** on branch `castwatch-diag` (worktree
-  `Manners-wt-castwatch`), not yet merged: the cast watch counts every cast it
-  hears from others (players and mobs) and how much of it the game withheld, reads a spell
-  out of a plain cast id, blocks the one-person rule on a cast nobody can read,
-  and says when a buff was read too long after it landed; one trail line per loss
-  of control, with whether break free lit; the cure line says whether the game's
-  list of removable debuffs is there and what it answered. Scenarios
-  `castwatch-heard.lua`, `loc-trail.lua`, `curefight-list.lua`. Game-only
-  question: Blizzard's notes say other players' casts are secret on Forever and
-  retail (`SecretWhenUnitSpellCastRestricted`), so the cast watch may never name
-  a stranger there; the next check-up's heard counts, taken with no mobs about, settle it.
-- **Buttons for the moment,** on branch `mage-moments` (worktree
-  `Manners-wt-moments`, cut from `castwatch-diag`), BUILT in two commits, not
-  merged: the framework (`Prompt/MomentsData.lua`, `MomentsSense.lua`,
-  `Moments.lua`: one secure button a slot, a plain gate and a game-painted layer
-  over it, an unprotected cover that swallows clicks while dark, a row left of
-  the prompt), Counterspell, Blink, Ice Block, Cold Snap, Evocation, the mana
-  gem (counted at the pull, `Moments:Take`, and on bag events), Slow Fall (a
-  watch asks IsFalling while you move or fight; Lua shows and hides its button
-  out of a fight), Spellsteal (and slot 8 for the other classes: Purge, Dispel Magic, Tranquilizing Shot, Shield Slam off by default; the `removable` signal), Fire Ward and Frost Ward (on, lit by a fire or frost hit while the
-  target is hostile; and by the school of the target's own cast, three routes,
-  below), the
-  cure button's cover (`db.global.cureCoverLeaks`), the diagnostics (a line per
-  button on the trail, in the fight summary, in Mark this moment, in
-  `/manners debug` and in the self-test), the options and the eight locales.
-  The drink (slot 11, `moments.drink`, for every class with mana, on by default;
-  scenarios `moments-drink.lua` and `moments-drink-edges.lua`, mutations `moments-drink.py` and
-  `moments-drink-edges.py`, all CAUGHT): out of
-  a fight only, lit by the same low-mana route as Evocation (a plain compare, or
-  UnitPowerPercent and a curve where the client hides the mana, as Forever does
-  even out of a fight), with a drink in the bags, standing still, not drinking;
-  the press is `/use item:<best>` (conjured water first, then any other drink by
-  its use spell), rewritten on bag events. Added after the owner saw no prompt at
-  29 / 2592 mana out of a fight. Evocation and the mana gem stay fight-only on
-  purpose: long cooldowns worth keeping for the pull, and lit out of a fight they
-  would put two more hidden-route buttons, invisible but clickable, on the screen
-  all the time. One honest cost: on Forever, where the mana is hidden, the
-  drink's icon-sized spot takes the mouse (its cover swallows the first click)
-  out of a fight while a drink is in the bags and you stand still (only for the
-  left button: the right and middle buttons go through to the world, so the camera
-  still turns there). The drink's own clock ends on a plain absence of its aura only
-  once that aura has been seen (read by the Drink name and by the id of the cast that
-  began it, so a conjured refreshment counts); a press ends the first-of-two opening;
-  the pick is recounted on a level-up and on rising, not only on bag events.
-  More game-only questions: does UNIT_POWER_UPDATE fire for you out of a fight on
-  Forever while your mana is hidden (if not, the drink lights at the next bag,
-  movement or own-cast event instead of a tick); is the Drink aura plain out of a
-  fight (hidden, the clock of your own drink stands in, ended by moving); do
-  GetItemSpell and IsUsableItem answer plainly (a drink Manners cannot name is
-  not picked, except conjured water, which comes from its own list); on Mists and
-  retail a drink whose use spell is Refreshment or Food & Drink is not
-  recognised unless it is conjured.
-  **The wards by the cast's school** (`CastSchools.lua`, `tools/make_cast_schools.py`,
-  `Sense.CastSchool`, `Sense.ProbeSchool`, scenario `moments-cast-school.lua`,
-  mutations `moments-cast-school.py`): where `UnitCastingInfo("target")` gives a
-  plain spell id (Classic Era, TBC; Mists has no wards), the table says whether it
-  burns or freezes and the ward lights at the start of the cast ("cast school:
-  exact"). On Forever the id is hidden (the check-up: 10 casts heard, the spell id
-  and the cast id withheld), so Manners builds a curve over Forever's fire and frost
-  spell ids and asks `Curve:Evaluate` for the hidden id, painting the ward's art
-  from the hidden answer ("cast school: from the game"), two quick clicks as with
-  the other hidden routes. If the client refuses (pcall once, at setup with your
-  hidden mana as the test number, or at the first hidden id when none was at
-  hand), the wards keep today's rule ("by what hit you"). Game-only questions:
-  the forever branch documents `Curve:Evaluate` as `SecretArguments =
-  "AllowedWhenUntainted"`, which suggests an addon is refused: the check-up's
-  *cast school* line (self-test, *What the game says in a fight*, and
-  /manners debug) will read "from the game" or "by what hit you (Curve:Evaluate
-  refused a hidden number ...)". If it reads "from the game", whether a Linear
-  curve with a 0.25 triangle round each id answers 1 exactly at an id on the real
-  client's curve (float spacing is 0.125 at the largest id, 1.3 million); whether
-  the answer paints (SetAlpha of an evaluated hidden number: the first paint is
-  tried once, `refused school` in the debug line). If it reads "exact": whether
-  the id is eighth or ninth (both are read). The fire and frost list leaves out
-  buffs, summons and dummies, and a fire spell the list misses falls back to the
-  hit rule (never a guess under a named spell).
-  Scenarios `moments*.lua` and `curefight-cover.lua`, mutations of the same
-  names, every one proven CAUGHT. The whole suite, the other clients' baselines
-  and a full self-test are the owner's test pass. Open: the rows' spell ids are
-  held to the mock's data only where it has them (`tools/audit_ids.py` has no
-  hook for them); the keys of a class other than the mage's.
-  What only a fight tells: whether your own health and mana are hidden (then
-  Ice Block takes two clicks, and whether the target's cast flag is hidden, so
-  Counterspell does), whether the target's cast events arrive, whether
-  the cooldown flag isActive is filled, whether the per-spell lock flag tells a
-  stun from a fear, whether IsFalling is readable in a fight, whether a gem's
-  cooldown is, whether a buff's stealable flag is, and the covers' leak counters
-  (a moment row's count is the session's, kept on its slot; the cure button's is
-  `cureCoverLeaks`).
-  Later ideas: Polymorph on a second attacker (a button cannot change its target
-  in a fight); a cover sized by the game from the hidden value, lifting the
-  two-click rule; the break-free cover (up between control gained with
-  HasFullControl plainly true and the next loss, dropped in the handler before
-  any read); Mend Pet lit from the pet's hidden health by the same curve; the
-  wards by the combat log's school on Classic Era and TBC; range by
-  SPELL_RANGE_CHECK_UPDATE; an always-visible mode with its own switch; a
-  Slow Fall that does not hand your target back when you target nobody.
-  Then the owner's first look in game (23 November) changed it, on the same branch:
-  each button is a CARD of his look (`Prompt/MomentsCard.lua`, `Looks/CardArt.lua`
-  moved out of the picker): the look's picture with the spell's icon, name and a
-  reason line over it, stacked above the prompt by `Moments.Place` (nearest first,
-  clear of the list, the painted art, the buttons beside the prompt; below where
-  there is no room), *Card size* (`moments.cardSize`), and *Show where the buttons
-  for the moment sit* (`Moments.Preview`, on the page and in the minimap menu). A
-  card is the look's picture and does not move; its life is a pulse of that picture.
-  The reasons are lowercase, as the prompt's own, so "Low mana" is "low mana". His
-  Blink came a second late: the trail ("loss of control: ? (secret)" at :05,
-  "moment blink: lit" at :06) fits two paths and cannot say which, so both are
-  fixed and proven: the global cooldown (a flag read at the last cooldown event
-  kept Blink "cooling down", now `Sense.OnlyGcd` over the spell 61304 for the
-  `fast` rows) and a loss of control whose count is hidden (nothing started the
-  guess before PLAYER_CONTROL_LOST, now `Sense.locAt` at LOSS_OF_CONTROL_ADDED);
-  the urgent rows appear with no fade, and a held row says why on the trail
-  ("held dark: ..."). Scenarios `moments-fast.lua`, `moments-card.lua`,
-  `moments-stack.lua`, `moments-preview.lua`, `keybox-words.lua`, mutations of the
-  same names, all CAUGHT. Game-only questions: does 61304 answer isActive plainly
-  on Forever (`/manners debug` says "global cooldown: unreadable" if not, and the
-  old rule stands), and what the "held dark" line says in his next check-up.
-  A review of the cards then found and fixed, in `moments-review.lua` (mutations
-  of the same name, CAUGHT): a look of `Looks/` told Place nothing of its art or
-  its list (`ApplyLook` now sets `artAbove`, `artBelow`, `queueGap`); the held-dark
-  line took the gap from the lit line (own count, `always`); a dark card swallowed
-  clicks over the whole card (now the icon's rectangle alone: `SetHitRectInsets`
-  and the cover); a card was 74 percent of the prompt on a taller view (the tool
-  writes each look's view, `Looks.PreviewView`, so Card size 100, the new default,
-  is the prompt's own size; the slider runs 80 to 150); a ward said "just hit you"
-  for a hit forty seconds old (`ByHit`'s third answer); a lit card kept stale words
-  (Judge writes the reason again). Not done, a choice: the card is still the
-  look's 256 x 64 picture, which is soft above the 1.5 times it is drawn at; live
-  painted pieces would repeat the layout of every look (each has its own
-  `PaintedPlace`) and a larger picture needs `render_prompt.py` drawn at four times.
-- **Cure button from the game's aura display (issue 43),** on branch
-  `feedback-1123` (worktree `Manners-wt-feedback`, cut from `mage-moments`), not
-  merged: on Forever 1.60.1 the game's list of removable debuffs throws for an
-  addon in a fight, so every cure read was withheld. `Prompt/CureNeed.lua` puts
-  the game's own `CustomAuraContainerTemplate` (one aura slot, `HARMFUL|RAID`,
-  narrowed to each button's kinds by `includeDispelTypes`) under each cure
-  button for you, target, focus, party and raid; the button stays dark and takes
-  two quick clicks there. Shift and Ctrl per cure (`prompt.cureFightMods`, per
-  class; *Plain press*, *With Shift*, *With Ctrl*), the key's tooltip naming
-  them, and Who to buff's cure switch replaced by a pointer to In a fight.
-  Scenarios `curefight-container.lua`, `curefight-mods.lua`, mutations of the
-  same names, all CAUGHT. The offensive dispels the issue also asks for (Purge,
-  Tranquilizing Shot, Shield Slam, offensive Dispel Magic) are not built.
-  Game-only questions: whether an addon's `CreateFrame("AuraContainer", ...,
-  "CustomAuraContainerTemplate")` is allowed on Forever (the check-up's *cure
-  need* line says "from the game's aura display" or "withheld (... refused: why)");
-  whether its slot frame then shows a curse in a fight (the player's eyes); whether
-  `includeDispelTypes` filters a secret dispel type (else a button shows every
-  removable kind); whether `EnableMouse(false)` is allowed on the slot frame
-  (else its tooltip shows under the cover); whether Ctrl on the cure key reaches
-  it when Ctrl plus that key is bound to something else in the game.
-- **Fire Shield from the imp on the tank (issue 22),** on branch `feedback-1123`,
-  not merged: a warlock's buff for others cast by his pet (`Buffs.lua`
-  `fireshield`, new flags `pet` = 688 Summon Imp and `forTank`; Classic Era,
-  Forever, Burning Crusade; three minutes, target 35 so `partyOnly`; `optIn`,
-  `neverSelf`). Known once Summon Imp is; offered only while a pet out knows a
-  rank in the pet's spellbook (`ns.PetCasts`, kept until `UNIT_PET` or
-  `SPELLS_CHANGED`; `ns.PetReady` in `CastableBuffs`), only to the party member
-  `ns.IsTankUnit` calls a tank or one who asks by name (`Castable`; the walk reads
-  roles while such a buff is in hand, `opts.forTank`). The press is the usual
-  `/target` and `/cast Fire Shield`; the pet's `UNIT_SPELLCAST_SUCCEEDED` (a frame
-  of its own, `ns.HearPetCasts`) settles it, since no SENT comes for a pet. Your
-  imp's aura on the tank reads as yours. Switch *Fire Shield from my imp on the
-  tank*, Who to buff. Scenarios `fireshield.lua`, mutations `fireshield.py`, all
-  CAUGHT. Game-only question: does `/cast Fire Shield` from the prompt's press
-  have the imp cast it on the target the `/target` line picked, on each client
-  (Forever has no `[@unit]`), and does the pet's cast event arrive within half a
-  second (else the press reads "nothing was cast" after two seconds, and the
-  tank is offered it again only until the aura shows).
-- **Waiting on the owner:** nothing.
-- **Waiting on players:** issue 33 (which game, the Will of the Forsaken
-  button), issue 39 (nonpromqueen: which "special, longer thank-you" option
-  went missing; nothing was found removed), issue 21 (no popup: their client and `/manners debug`). The cure button on
-  Forever under secret auras is only proven in the simulator: user_fer3yhwuvuz52jwg
-  and LuckyDan were asked for `/manners debug` if it still does not show.
-- **Next:** (1) rewrite the retail and Mists baselines: `python
-  tests/runscenarios.py --flavour mainline --update-baseline --jobs 4`, then
-  `--flavour mists`, read the diff, commit. (2) Read new CurseForge comments
-  and `gh issue list --label player`; build, whole suite, release, no asking.
-  (3) If nonpromqueen names an option, find where it went.
-- **Watch out:** the nightly pass (11 PM) answers comments and can release on
-  its own: check the page and `git branch --list "feedback-*"` first. All of
-  today's CurseForge replies are posted (201); its `state.json` lists them. I
-  once dropped its `pending` notes by mistake and rewrote them condensed. A
-  reply to a comment never goes up twice (`.claude/snippets/curseforge-reply.js`).
-  Releases go out without asking once the whole suite is green on the exact
-  commit.
+- **In flight:** nothing. All of the session's worktrees are merged and removed;
+  the old ones kept on purpose stay (`look-fel`, `look-wild`, `relcheck`,
+  `logo`, `ci-diag-generators`).
+- **Waiting on players:** Lor3_404 and ladysteph ("the game did not say who"
+  buffed them on Forever: diagnostics asked for), vexis58 (game), issue 33,
+  issue 21.
+- **Game-only questions** (the check-up lines answer them): the cure's aura
+  display on Forever, the wards' curve over a hidden spell id, spell 61304's
+  global cooldown read, the imp's Fire Shield on the targeted tank, enrage auras.
+- **Next:** read Lor3_404's diagnostic and fix the unnamed-buffer case; post
+  the "1.11.41 is out" notes to user_fer3yhwuvuz52jwg and kevtron82 if the
+  comment page loads older threads.
+- **Watch out:** the whole suite takes about 22 minutes; the nightly pass's
+  state.json says what was answered today. Releases go out without asking once
+  the whole suite is green on the exact commit.
 
 ## State
 
