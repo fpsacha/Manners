@@ -27,8 +27,8 @@ local function with(scenario, body, opts)
 	Mock.setFlavour(opts.flavour or "camelot")
 	Mock.class = opts.class or "DRUID"
 	Mock.knownSpells = everything()
-	local saved = {}
-	for _, name in ipairs({ "OlympusMuteDB", "C_UnitAuras", "C_LossOfControl", "UnitIsCharmed", "C_Item" }) do
+	local saved, names = {}, { "OlympusMuteDB", "C_UnitAuras", "C_LossOfControl", "UnitIsCharmed", "C_Item" }
+	for _, name in ipairs(names) do
 		saved[name] = rawget(_G, name)
 	end
 	local restore = strangers({})
@@ -48,7 +48,10 @@ local function with(scenario, body, opts)
 			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
 		end
 	end)
-	for name, value in pairs(saved) do rawset(_G, name, value) end
+	-- By the list, not pairs(saved): a name that was not set (C_LossOfControl,
+	-- which the mock answers from its metatable) is nil there, and pairs would
+	-- skip it and leave the scenario's false behind for the next file.
+	for _, name in ipairs(names) do rawset(_G, name, saved[name]) end
 	Mock.modifiers = {}
 	restore()
 	Mock.reset()

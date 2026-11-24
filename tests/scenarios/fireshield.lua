@@ -77,8 +77,10 @@ local function session(scenario, opts, body)
 			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
 		end
 	end)
-	restore()
+	-- The other way round from the taking: what was saved is H.strangers'
+	-- UnitExists, and its restore puts back the one from before it.
 	for _, name in ipairs(TOUCHED) do rawset(_G, name, saved[name]) end
+	restore()
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end

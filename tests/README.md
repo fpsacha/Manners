@@ -181,6 +181,14 @@ local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
 ```
 
+A whole-suite run puts many of these files in one process, so after each one
+the extras loop puts back every global function and every `C_` name (and the
+fields of each `C_` table) as the first file found them, then calls
+`Mock.reset()`: a file that leaves one replaced cannot change the client the
+next file sees. A file still puts back what it replaces itself, by the list
+of names it touched (a `pairs()` over saved values skips the ones that were
+nil).
+
 Their mutations go in `tests/mutations/<topic>.py`, which `selftest.py` runs
 with `mutate()` in scope.
 
