@@ -384,19 +384,6 @@ do
 		if UI.SubInView("who") ~= nil then fail(scenario, "the simple view keeps an empty sub-division in view") end
 		local all = chips(UI)[1]
 		if not (all and all.key == nil and all.chip.mark:IsShown()) then fail(scenario, "All is not marked in the simple view") end
-		-- What the short list leaves out is counted for the sub-division in view.
-		if not choose(UI, "who.sources") then fail(scenario, "no Offer my buff to in the simple view") return end
-		local left = 0
-		for _, sec in ipairs(UI.Model("who").sections) do
-			if not sec.away then
-				for _, e in ipairs(sec.entries) do
-					if e.bySimple then left = left + 1 end
-				end
-			end
-		end
-		if UI.simpleHidden ~= left then
-			fail(scenario, ("the simple view says it leaves %s out of Offer my buff to, not %d"):format(tostring(UI.simpleHidden), left))
-		end
 		-- Back to the full view, the sub-division chosen first returns.
 		ns.SetMenuView("full")
 		choose(UI, "who.first")

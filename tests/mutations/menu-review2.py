@@ -10,7 +10,6 @@ ONCE = "a later /manners opened"
 SILENT = "nothing was said and"
 VIA = "and its result left the view"
 STRIP = "the strip speaks of targeting in the simple view"
-SCROLLS = "the simple view does not draw the switch that turns it back on"
 
 # /manners opens the page last open, whatever the reminder just said.
 mutate("Commands.lua",
@@ -47,9 +46,3 @@ mutate("Options/Window/WindowChrome.lua",
        "menu-review2: the combat line speaks of a control the simple view leaves out",
        expect=STRIP, script=S)
 
-# The short list without the Scrolls switch.
-mutate("Options/Window/Layout.lua",
-       "\t\t\t[\"who.ownScrolls\"] = true,\n",
-       "",
-       "menu-review2: the short list has no Scrolls switch",
-       expect=SCROLLS, script=S)

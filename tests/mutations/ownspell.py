@@ -202,13 +202,6 @@ mutate("Core.lua",
        "ownspell: offered during its cooldown",
        expect="ownspell: cooldown:", script=S)
 
-# The section is on the short list.
-mutate("Options/Window/Layout.lua",
-       "\t\t\t[\"who.ownSpellNote\"] = true, [\"who.ownSpellAdd\"] = true,",
-       "\t\t\t[\"who.ownSpellNote\"] = true,",
-       "ownspell: the box to add a spell is not on the short list",
-       expect="menu: Add a spell of my own is on the short list", script=S)
-
 mutate("OwnSpells.lua",
        "if me == nil and friend and ns.safecall",
        "if me == nil and ns.safecall",

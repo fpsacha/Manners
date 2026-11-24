@@ -51,8 +51,8 @@ of Pandaria Classic** and **retail**, in nine languages.
   manager that can use, duplicate, rename or delete any of them, with *Undo*.
 - **Twenty-nine looks.** From a pane of dark glass to a death knight's
   runeblade, picked from a gallery of cards on four shelves.
-- **Options that start short.** A simple view of each page, a long page in
-  parts you pick from a bar, and a painted icon for each page.
+- **Options that start short.** A Simple view with just the essentials, a
+  long page in parts you pick from a bar, and a painted icon for each page.
 - **In character, if you like.** A line when you buff somebody, fitted to your
   race, class and the moment: the Forsaken alone have about a hundred.
 
@@ -97,12 +97,11 @@ prompt.
 
 <img src=".github/media/manners-actionbar.png" alt="The prompt with a key on its chip, a row of action bar slots with the Manners macro on one showing the spell a press would cast with its cooldown sweep, and the prompt with a controller button's picture on its chip" width="640">
 
-**3. Stay in the Simple view.** A new profile opens the options in the
-*Simple view*: each page draws only the ten or so settings a player of your
-class changes, every buff's own switch among them. *Show everything* under the
-list brings the rest, and the search box finds any setting in either view.
+**3. Stay in the Simple view.** The options open in the *Simple view*: just
+the essentials, about a tenth of the options. Untick *Simple view* under the
+search box for the rest; the search box finds any setting in either view.
 
-<img src=".github/media/manners-options.png" alt="The options window on Start here in the Simple view: two questions, a key for the prompt, the favour ledger, with the Simple view switch and the Move the prompt button ringed" width="640">
+<img src=".github/media/manners-options.png" alt="The options window on Start here in the Simple view: two questions and a key for the prompt, with the Simple view switch and the Move the prompt button ringed" width="640">
 
 A new profile offers your buff to everyone near you, says nothing aloud and
 reminds you of your own buffs. That suits most players; the rest of this page
@@ -954,11 +953,14 @@ it too.
   along the top are found as well. Pick a result and the window goes there,
   opens the part and the section and flashes the setting; one hidden behind a
   switch says which to turn on first.
-- ***Simple view***, a switch under the search box. On, each page draws only
-  its short list, and says under it how many settings it leaves out, with
-  *Show everything*. *Start here*, *Profiles* and *Diagnostics* are always
-  drawn whole. A new profile starts in the simple view; one made before it
-  existed keeps everything on screen and is offered it once.
+- ***Simple view***, a switch under the search box, on unless you untick it.
+  On, the window shows only the essentials: Manners on or off, the prompt's
+  key, *Lock* and *Move the prompt*, the buff to cast, who to buff (favours
+  owed, your group, passers-by, yourself), the never-offer list, quiet in
+  cities and instances, a few of the looks' settings, the /thank and the
+  voice, *Snooze* and *Report a bug*. A page with none of them leaves the
+  sidebar, and a line at the top of each page says the rest is in the full
+  view. Hiding changes no setting.
 - Each page opens with a line under its title saying what is on it.
 - A gold mark in the margin beside a setting means it is not at its default;
   click it to put that one back. *What I changed*, the same gold mark in the footer, lists every

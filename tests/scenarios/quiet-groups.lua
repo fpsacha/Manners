@@ -304,9 +304,6 @@ do
 						fail(scenario, path .. " is in " .. tostring(section.key) .. ", not In a party or a raid")
 					end
 				end
-				if not (layout.simple and layout.simple.items[path]) then
-					fail(scenario, path .. " is left out of the short list")
-				end
 				if layout.parents and layout.parents[path] ~= nil then
 					fail(scenario, path .. " is named to search as hidden by a switch, and nothing hides it")
 				end

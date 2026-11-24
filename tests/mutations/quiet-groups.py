@@ -74,12 +74,6 @@ mutate("Options/Window/Layout.lua",
        expect="quiet-groups: the switches sit under Say a line, off by default", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t[\"click.quietInParty\"] = true, [\"click.quietInRaid\"] = true, [\"click.thankNotInGroup\"] = true,\n",
-       "\t\t\t[\"click.quietInParty\"] = true, [\"click.thankNotInGroup\"] = true,\n",
-       "quiet-groups: Say nothing in a raid off the short list",
-       expect="quiet-groups: the switches sit under Say a line, off by default", script=S)
-
-mutate("Options/Window/Layout.lua",
        "\t\t[\"click.quietInRaid\"] = function() return L[\"Needs %s ticked, on %s.\"]:format(NameOf(\"click.enabled\"), TabOf(\"click.enabled\")) end,\n",
        "",
        "quiet-groups: the greyed Say nothing in a raid says nothing of what to tick",

@@ -8,6 +8,7 @@ ns.WhatsNew = {
 	{ version = "Unreleased", date = "24 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100No more achievements.|r The milestones, their toasts, the hall of fame and the ledger's titles are gone.",
+			"|cffffd100A truly simple Simple view.|r Just the essentials, about a tenth of the options, and on for everybody who never unticked it.",
 		} },
 	} },
 	{ version = "1.12.0", date = "24 November 2026", sections = {

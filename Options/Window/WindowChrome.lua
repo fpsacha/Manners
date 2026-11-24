@@ -760,7 +760,7 @@ local function LaySidebar(side, layout, compact)
 		local line, any = side.lines[gi], false
 		for _, id in ipairs(group) do
 			local b, page = side.buttons[id], layout.pages[id]
-			if page and UI.PageVisible(id) then
+			if page and UI.PageListed(id) then
 				if not any and placed and line then
 					line:ClearAllPoints()
 					line:SetPoint("TOPLEFT", side.frame, "TOPLEFT", 8, -(y + lineAt))

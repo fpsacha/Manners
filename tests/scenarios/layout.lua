@@ -119,7 +119,7 @@ local function Collect(layout, problem)
 	use(footer.build, "the footer", "footer.build")
 	use(footer.about, "the footer", "footer.about")
 	local menu = layout.menu or {}
-	for _, slot in ipairs({ "simple", "offer", "try", "dismiss", "more", "everything" }) do
+	for _, slot in ipairs({ "simple", "more" }) do
 		use(menu[slot], "the simple view", "menu." .. slot)
 	end
 	for pageId, page in pairs(layout.pages or {}) do

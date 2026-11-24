@@ -626,59 +626,40 @@ end
 local function shownRow(row) return row ~= nil and row.frame:IsShown() == true end
 
 do
-	local scenario = "menu: a new profile starts on the short list, one from before keeps everything and is offered it once"
-	with(scenario, { page = "when", newProfile = true }, function(ns, UI)
+	local scenario = "menu: a new profile starts on the short list, and so does one that never chose"
+	with(scenario, { page = "who", newProfile = true }, function(ns, UI)
 		if Mock.sv.profile.menuView ~= "simple" or ns.MenuView() ~= "simple" then
 			fail(scenario, "a new profile's view is " .. tostring(Mock.sv.profile.menuView) .. ", not the short list")
 		end
-		if shownRow(UI.MenuRow("offer")) then fail(scenario, "a new profile is offered the view it is already in") end
-		-- The same profile at a later login, from before the view existed: it
-		-- has been through the repair, and has no view yet.
-		Mock.sv.profile.menuView = nil
-		local later = load(scenario)
-		if not later then return end
-		drive(scenario, later)
-		later.Prompt:ExitTest()
-		local LUI = later.WindowUI
-		if Mock.sv.profile.menuView ~= "offer" then
-			fail(scenario, "a profile from before is stamped " .. tostring(Mock.sv.profile.menuView) .. ", not offered the view")
-			return
+		-- The line over the page, naming the switch.
+		local row, note = UI.MenuRow("more")
+		local said = row and row.text and row.text:GetText() or ""
+		if not shownRow(row) then
+			fail(scenario, "the simple view does not say more is in the full view")
+		elseif not said:find("Simple view", 1, true) then
+			fail(scenario, "the line over the page does not name the switch: " .. said)
 		end
-		later.OpenOptions("when")
-		if later.MenuView() ~= "offer" then fail(scenario, "the offer reads as " .. tostring(later.MenuView())) end
-		-- Everything on screen, and the offer over it with its two buttons.
-		later.OpenOptions("quiet")
-		if not LUI.RowShown("who.quietTargets") then fail(scenario, "a profile from before lost a row to the short list unasked") end
-		later.OpenOptions("when")
-		for _, slot in ipairs({ "offer", "try", "dismiss" }) do
-			if not shownRow(LUI.MenuRow(slot)) then fail(scenario, "the offer's " .. slot .. " is not drawn") end
+		local first = UI.Where("who.owed")
+		if note and first and not (note.y < first.e.y) then fail(scenario, "the line is not over the page") end
+		-- The same profile at a later login, from before the view existed, or
+		-- only ever offered it (1.11): the short list too.
+		for _, was in ipairs({ "nil", "offer" }) do
+			Mock.sv.profile.menuView = was ~= "nil" and was or nil
+			local later = load(scenario)
+			if not later then return end
+			drive(scenario, later)
+			later.Prompt:ExitTest()
+			if Mock.sv.profile.menuView ~= "simple" then
+				fail(scenario, ("a profile with the view %s is stamped %s, not the short list"):format(was, tostring(Mock.sv.profile.menuView)))
+			end
 		end
-		local _, note = LUI.MenuRow("offer")
-		local first = LUI.Where("when.rightNow")
-		if note and first and not (note.y < first.e.y) then fail(scenario, "the offer is not over the page") end
-		-- Not now: gone, everything stays, and it does not come back.
-		local dismiss = LUI.MenuRow("dismiss")
-		if dismiss then dismiss.button:GetScript("OnClick")(dismiss.button, "LeftButton") end
-		if Mock.sv.profile.menuView ~= "full" then
-			fail(scenario, "Not now left the view at " .. tostring(Mock.sv.profile.menuView))
-		end
-		if shownRow(LUI.MenuRow("offer")) or shownRow(LUI.MenuRow("try")) then fail(scenario, "the offer is still drawn after Not now") end
-		later.OpenOptions("quiet")
-		if not LUI.RowShown("who.quietTargets") then fail(scenario, "Not now took a row off the page") end
-		later.OpenOptions("when")
-		later.ClampSettings()
-		if Mock.sv.profile.menuView ~= "full" then fail(scenario, "the repair offered the view again") end
-		-- Try the simple view: the short list.
-		Mock.sv.profile.menuView = "offer"
-		later.RefreshOptionsDisplay()
-		local try = LUI.MenuRow("try")
-		if try then try.button:GetScript("OnClick")(try.button, "LeftButton") end
-		if Mock.sv.profile.menuView ~= "simple" then
-			fail(scenario, "Try the simple view left the view at " .. tostring(Mock.sv.profile.menuView))
-		end
-		-- A value no version wrote is everything, with no offer.
+		-- One that chose everything keeps it.
+		Mock.sv.profile.menuView = "full"
+		ns.ClampSettings()
+		if Mock.sv.profile.menuView ~= "full" then fail(scenario, "the repair took the full view away from a player who chose it") end
+		-- A value no version wrote is everything.
 		Mock.sv.profile.menuView = "tiny"
-		later.ClampSettings()
+		ns.ClampSettings()
 		if Mock.sv.profile.menuView ~= "full" then
 			fail(scenario, "a damaged view was left as " .. tostring(Mock.sv.profile.menuView))
 		end
@@ -686,9 +667,9 @@ do
 end
 
 do
-	local scenario = "menu: the simple view draws each page's short list, says what it leaves out, and Show everything brings it back"
+	local scenario = "menu: the simple view draws only the essentials, and a page with none of them leaves the sidebar"
 	for _, class in ipairs({ "PRIEST", "WARRIOR" }) do
-		with(scenario, { page = "when", class = class }, function(ns, UI)
+		with(scenario, { page = "who", class = class }, function(ns, UI)
 			if not (UI.side and UI.side.view) then fail(scenario, "no Simple view switch under the search box") return end
 			-- Under the search box, with the pages under it (y runs up the screen).
 			local _, boxBottom = nil, FT.span(UI.search.box, "y")
@@ -699,78 +680,71 @@ do
 			elseif not (firstTop and firstTop <= low) then
 				fail(scenario, ("the first page starts at %s, over the Simple view switch, which ends at %s"):format(tostring(firstTop), tostring(low)))
 			end
-			local full = {}
+			local full, total = {}, 0
 			for _, group in ipairs(ns.WindowLayout.groups) do
 				for _, id in ipairs(group) do
 					ns.OpenOptions(id)
-					if UI.page == id then full[id] = controlsDrawn(UI) end
+					if UI.page == id then
+						full[id] = controlsDrawn(UI)
+						total = total + full[id]
+					end
 				end
 			end
+			local settings = {}
+			for k, v in pairs(Mock.sv.profile) do settings[k] = v end
 			-- The switch, pressed as a player presses it.
 			local hit = UI.side.view.hit
 			hit:GetScript("OnClick")(hit, "LeftButton")
 			if ns.MenuView() ~= "simple" then fail(scenario, "the switch left the view at " .. ns.MenuView()) return end
-			local whole = { general = true, profiles = true, diagnostics = true }
-			for id, was in pairs(full) do
+			local shown = 0
+			for id in pairs(full) do
+				local listed = UI.PageListed(id)
 				ns.OpenOptions(id)
-				local now = controlsDrawn(UI)
-				local more = shownRow(UI.MenuRow("more"))
-				if whole[id] then
-					if now ~= was then fail(scenario, ("%s: %s draws %d controls in the simple view and %d in the full"):format(class, id, now, was)) end
-					if more then fail(scenario, class .. ": " .. id .. " says it leaves settings out") end
-				else
-					if now > 15 then fail(scenario, ("%s: the short list of %s is %d controls"):format(class, id, now)) end
-					if was > now and now == 0 and not more then
-						fail(scenario, class .. ": " .. id .. " is empty in the simple view and does not say why")
-					end
-					if was > now then
-						if not more then
-							fail(scenario, class .. ": " .. id .. " does not say what its short list leaves out")
-						elseif not (UI.simpleHidden and UI.simpleHidden >= was - now) then
-							fail(scenario, ("%s: %s counts %s left out, %d fewer are drawn"):format(class, id, tostring(UI.simpleHidden), was - now))
-						end
-						if not shownRow(UI.MenuRow("everything")) then fail(scenario, class .. ": no Show everything under " .. id) end
-					end
+				local now = listed and controlsDrawn(UI) or 0
+				shown = shown + now
+				if listed and now == 0 then fail(scenario, ("%s: %s stays in the sidebar with nothing on it"):format(class, id)) end
+				if listed and not shownRow(UI.MenuRow("more")) then
+					fail(scenario, class .. ": " .. id .. " does not say more is in the full view")
 				end
 			end
-			-- What a short list holds, and what it leaves to the full view.
-			ns.OpenOptions("quiet")
-			if not UI.RowShown("when.hideMounted") then fail(scenario, class .. ": Hide the prompt while mounted is off the short list") end
-			if UI.RowShown("who.quietTargets") then
-				fail(scenario, class .. ": the fine print of Quiet times is on its short list")
+			-- About a tenth: a few dozen at most of the several hundred.
+			if shown > 40 or shown * 5 > total then
+				fail(scenario, ("%s: the simple view draws %d of %d controls"):format(class, shown, total))
 			end
-			ns.OpenOptions("when")
-			if UI.RowShown("advanced.reciprocateWindow") then
-				fail(scenario, class .. ": the fine print of When to offer is on its short list")
+			-- The sidebar as drawn: the pages left with nothing are not on it.
+			ns.OpenOptions("who")
+			for _, gone in ipairs({ "when", "fight", "profiles" }) do
+				if UI.PageListed(gone) or (UI.visiblePages or {})[gone] then
+					fail(scenario, class .. ": " .. gone .. " is in the sidebar of the simple view")
+				end
 			end
-			ns.OpenOptions("quiet")
-			local _, note = UI.MenuRow("more")
-			local last = UI.Where("when.hideMounted")
-			if note and last and not (note.y > last.e.y) then fail(scenario, class .. ": what is left out is not said under the page") end
-			local row = UI.MenuRow("more")
-			local said = row and row.text and row.text:GetText() or ""
-			if not said:find(tostring(UI.simpleHidden), 1, true) then
-				fail(scenario, ("%s: the line under the page does not say %s are left out: %s"):format(class, tostring(UI.simpleHidden), said))
+			if not (UI.visiblePages or {}).who then fail(scenario, class .. ": Who to buff is not in the sidebar") end
+			-- What it keeps.
+			for page, paths in pairs({ general = { "general.bindKey" }, who = { "who.owed", "who.group", "who.strangers" },
+				self = { "who.self" }, skip = { "who.neverAdd" }, quiet = { "who.quietInTowns", "who.quietInInstances" },
+				click = { "click.thankEmote", "general.quickVoice" }, appearance = { "appearance.style", "appearance.scale" },
+				diagnostics = { "diagnostics.reportBug" } }) do
+				ns.OpenOptions(page)
+				for _, path in ipairs(paths) do
+					if not UI.RowShown(path) then fail(scenario, class .. ": " .. path .. " is off the simple view") end
+				end
 			end
 			ns.OpenOptions("general")
-			if not UI.RowShown("general.verbose") then fail(scenario, class .. ": Start here lost a row to the simple view") end
-			-- Each buff's own switch and each of the player's own buffs.
-			if class == "PRIEST" then
-				ns.OpenOptions("who")
-				if not UI.RowShown("who.offer_spirit") then fail(scenario, "a priest's Divine Spirit is off the short list") end
-				if UI.RowShown("who.relevantOnly") then fail(scenario, "Only to players with mana is on the short list") end
-				ns.OpenOptions("self")
-				if not UI.RowShown("who.own_food") then fail(scenario, "Well Fed is off the short list") end
+			if UI.RowShown("general.verbose") or UI.RowShown("general.ledgerOpen") then
+				fail(scenario, class .. ": Start here keeps more than its essentials")
 			end
-			-- Show everything.
-			ns.OpenOptions("when")
-			local everything = UI.MenuRow("everything")
-			if everything then everything.button:GetScript("OnClick")(everything.button, "LeftButton") end
-			if ns.MenuView() ~= "full" then fail(scenario, class .. ": Show everything left the view at " .. ns.MenuView()) end
-			if controlsDrawn(UI) ~= full.when then fail(scenario, class .. ": Show everything did not bring When to offer back") end
-			if shownRow(UI.MenuRow("more")) or shownRow(UI.MenuRow("everything")) then
-				fail(scenario, class .. ": the full view still says it leaves settings out")
+			ns.OpenOptions("quiet")
+			if UI.RowShown("when.hideMounted") then fail(scenario, class .. ": Hide the prompt while mounted is on the simple view") end
+			-- Hiding only: not a setting changed.
+			for k, v in pairs(settings) do
+				if k ~= "menuView" and Mock.sv.profile[k] ~= v then fail(scenario, class .. ": the simple view changed " .. k) end
 			end
+			-- Unticked: everything back, and the line gone.
+			hit:GetScript("OnClick")(hit, "LeftButton")
+			if ns.MenuView() ~= "full" then fail(scenario, class .. ": unticking left the view at " .. ns.MenuView()) end
+			ns.OpenOptions("who")
+			if controlsDrawn(UI) ~= full.who then fail(scenario, class .. ": unticking did not bring Who to buff back") end
+			if shownRow(UI.MenuRow("more")) then fail(scenario, class .. ": the full view still says more is in the full view") end
 		end)
 	end
 end
@@ -820,10 +794,9 @@ do
 		if later.MenuView() ~= "simple" then fail(scenario, "a reload read the view as " .. later.MenuView()) end
 		-- The old dialog draws everything: the view's own controls are the window's.
 		local args = later.optionsTable.args.general.args
-		for _, key in ipairs({ "simpleView", "simpleMore", "showEverything", "simpleOffer", "simpleTry", "simpleDismiss" }) do
+		for _, key in ipairs({ "simpleView", "simpleMore" }) do
 			if not args[key] then fail(scenario, "the model has no general." .. key) end
 		end
-		if args.simpleOffer and args.simpleOffer.hidden() ~= true then fail(scenario, "the offer is made to a profile on the short list") end
 	end)
 end
 
@@ -971,14 +944,3 @@ do
 	end)
 end
 
-do
-	local scenario = "menu: Add a spell of my own is on the short list a new profile starts in"
-	with(scenario, { page = "who", newProfile = true }, function(ns, UI)
-		if ns.MenuView() ~= "simple" then fail(scenario, "the view is " .. tostring(ns.MenuView())) return end
-		local paths = { "who.ownSpellNote", "who.ownSpellAdd", "who.ownSpellSaid", "who.ownBriefNote" }
-		for i = 1, 10 do paths[#paths + 1] = "who.ownSpell" .. i end
-		for _, path in ipairs(paths) do
-			if UI.OffShortList(path) then fail(scenario, path .. " is left out of the short list") end
-		end
-	end)
-end

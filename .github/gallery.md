@@ -12,7 +12,7 @@
 | `manners-look-lightbringer.gif` | The Paladin look, as a buff lands | Animated: somebody buffed you, you press, and the sun of the Light flares round your spell. |
 | `manners-moment.png` | Three moments | Film strips of one favour, four frames each: somebody buffs you, your buff lands, the game refuses it. Frames at 0.05, 0.15, 0.30 and 0.60 seconds. |
 | `manners-ledger.png` | The favour ledger | Who buffed you, whether you returned it, and who you buffed without being asked. Open it with /manners ledger. |
-| `manners-options.png` | Set it up in one window | Open it with /manners or the minimap button. Shown on Start here in the Simple view, the short list of every page: two questions, one key, the favour ledger. Untick Simple view for everything; Move the prompt is one click away in the header. |
+| `manners-options.png` | Set it up in one window | Open it with /manners or the minimap button. Shown on Start here in the Simple view, just the essentials: two questions and one key. Untick Simple view for everything; Move the prompt is one click away in the header. |
 | `manners-options-wide.png` | Drag it wide | Drag the corner and a page flows into two columns, three on an ultrawide screen. Shown on Who to buff for a paladin: who is offered, what to cast, the group, Resurrection and cures on one screen. |
 | `manners-languages.png` | In your language | English and eight translations, chosen by your game client. Shown here in German, French and Simplified Chinese. |
 | `manners-palette.png` | A palette for colour blindness | The five reason colours redrawn for red-green colour blindness, one setting away under Look > Style. |

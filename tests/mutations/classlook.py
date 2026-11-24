@@ -152,8 +152,8 @@ mutate(LAYOUT, "\t\t\t\t\t\"appearance.classLook\",\n",
        "classlook: the switch not placed",
        expect="classlook: the switch is over the cards", script=S)
 
-mutate(LAYOUT, "\t\t\t[\"appearance.classLook\"] = true,\n",
-       "",
+mutate(LAYOUT, "[\"appearance.style\"] = true, [\"appearance.classLook\"] = true,\n",
+       "[\"appearance.style\"] = true,\n",
        "classlook: the simple view leaves it out",
        expect="classlook: the switch is over the cards", script=S)
 

@@ -81,13 +81,6 @@ mutate("Options/Window/Window.lua",
        "subpages: the bar empty on a page's first paint",
        expect=P + "a mage's pages list their sub-divisions from the layout", script=S)
 
-# The simple view's count for the whole page, in a sub-division.
-mutate(PAGE,
-       "\t\t\tfor _, e in ipairs(sec.away and NONE or sec.entries) do\n",
-       "\t\t\tfor _, e in ipairs(sec.entries) do\n",
-       "subpages: the simple view counts the whole page in a sub-division",
-       expect=P + "the simple view lists no sub-division with nothing to show", script=S)
-
 # No red dot on the sub-division that holds the warning.
 mutate(CHROME,
        "\t\t\telseif on then\n\t\t\t\tout[w.sec.sub] = true\n",

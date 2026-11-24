@@ -233,15 +233,10 @@ local function SimpleHides(e)
 end
 
 -- ...and by the window's: on the short list while the simple view is on, and
--- not under a switch that is off. `bySimple` says a control the model shows
--- was left out by the view, for the count under the page.
+-- not under a switch that is off.
 local function Shown(e)
-	e.bySimple = false
 	if not ShownByModel(e) then return false end
-	if SimpleHides(e) then
-		e.bySimple = e.isControl
-		return false
-	end
+	if SimpleHides(e) then return false end
 	return UnderOff(e) == nil
 end
 UI.EntryShown = Shown
@@ -269,12 +264,24 @@ function UI.SwitchFor(path)
 	return p and p.item or nil
 end
 
--- A page is in the sidebar while one of its controls is shown. Notes never
--- keep it there, and their rules are never asked for a page not open.
+-- A page is there while one of its controls is shown. Notes never keep it
+-- there, and their rules are never asked for a page not open.
 function UI.PageVisible(id)
 	for _, sec in ipairs(UI.Model(id).sections) do
 		for _, e in ipairs(sec.entries) do
 			if e.isControl and ShownByModel(e) then return true end
+		end
+	end
+	return false
+end
+
+-- ...and in the sidebar while one of them is on the simple view's short list
+-- too: a page it leaves nothing of goes from the sidebar, and search still
+-- finds what is on it.
+function UI.PageListed(id)
+	for _, sec in ipairs(UI.Model(id).sections) do
+		for _, e in ipairs(sec.entries) do
+			if e.isControl and ShownByModel(e) and not SimpleHides(e) then return true end
 		end
 	end
 	return false
@@ -1007,15 +1014,12 @@ local function MenuSections()
 	if menu then return menu end
 	local slots = UI.Layout().menu or {}
 	menu = {
-		offer = MenuSection("menu.offer", { { slots.offer, hint = true, block = true },
-			{ slots.try, buttons = true }, { slots.dismiss, buttons = true } }),
-		more = MenuSection("menu.more", { { slots.more, hint = true }, { slots.everything, buttons = true } }),
+		more = MenuSection("menu.more", { { slots.more, hint = true, block = true } }),
 	}
 	return menu
 end
 
--- The row of one of the view's own controls ("offer", "try", "dismiss",
--- "more", "everything"), for the scenarios; nil until a page has been painted.
+-- The row of one of the view's own controls ("more"), for the scenarios; nil until a page has been painted.
 function UI.MenuRow(slot)
 	local path = (UI.Layout().menu or {})[slot]
 	for _, sec in pairs(menu or {}) do
@@ -1218,8 +1222,8 @@ function UI.PaintPage(mode)
 	y = y + UI.TextHeight(m.title, 18) + 10
 	y = PaintBlurb(m, y)
 	local chrome = MenuSections()
-	-- Over the page: the simple view, offered once.
-	y = PaintChrome(chrome.offer, y, mode)
+	-- Over the page, in the simple view: more is in the full view.
+	y = PaintChrome(chrome.more, y, mode)
 	-- Which sections show, all of them, before any is placed: the sidebar's
 	-- sub-divisions are the ones with a section shown.
 	for _, sec in ipairs(m.sections) do
@@ -1271,18 +1275,6 @@ function UI.PaintPage(mode)
 	end
 	Flush()
 	if flat or not captioned then UI.ShowCaption(m, false) end
-	-- Under the page: what the short list left out of it (of the sub-division
-	-- in view), counted by the judging above, and the way to it.
-	if mode ~= "reflow" then
-		local left = 0
-		for _, sec in ipairs(m.sections) do
-			for _, e in ipairs(sec.away and NONE or sec.entries) do
-				if e.bySimple then left = left + 1 end
-			end
-		end
-		UI.simpleHidden = left
-	end
-	y = PaintChrome(chrome.more, y, mode)
 	UI.SetContentHeight(y + PAD_BOTTOM)
 end
 

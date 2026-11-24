@@ -190,8 +190,7 @@ do
 	local scenario = "menu-review2: a result behind a switch, for a setting off the short list, opens the full view"
 	-- { the class, the page, the setting, its switch, the switch's place in the profile }
 	local cases = {
-		{ nil, "appearance", "appearance.queueRows", "appearance.showQueue" },
-		{ "PRIEST", "click", "who.askChannel", "who.ask" },
+		{ "PRIEST", "click", "click.thankEmoteToken", "click.thankEmote" },
 	}
 	for _, case in ipairs(cases) do
 		local class, page, setting, switch = case[1], case[2], case[3], case[4]
@@ -225,17 +224,6 @@ do
 			end
 		end)
 	end
-	-- A setting on the short list behind its switch: the view is left alone.
-	with(scenario, { page = "appearance" }, function(ns, UI)
-		ns.db.profile.sound.enabled = false
-		ns.SetMenuView("simple")
-		local found = entryFor(UI, "appearance.soundFile")
-		if not (found and found.ref.via) then fail(scenario, "SKIPPED -- Sound is not found behind Play a sound") return end
-		UI.Choose(found.ref)
-		if ns.MenuView() ~= "simple" then
-			fail(scenario, "a result for a setting on the short list left the view " .. ns.MenuView())
-		end
-	end)
 end
 
 do
@@ -268,7 +256,7 @@ do
 end
 
 do
-	local scenario = "menu-review2: the short list has Scrolls, the switch its scrolls stand under"
+	local scenario = "menu-review2: a row of the short list stands under a row of the short list"
 	with(scenario, { page = "who" }, function(ns, UI)
 		-- Every row of the short list that is indented stands under a row of
 		-- the short list: the layout's own word on it, for every page.
@@ -291,18 +279,6 @@ do
 					end
 				end
 			end
-		end
-		-- Scrolls off: the scroll switches are gone, and the one that brings
-		-- them back is on the page.
-		ns.db.profile.sources.self = true
-		ns.db.profile.ownBuffs.scrolls = false
-		ns.RefreshOptionsDisplay()
-		local item = UI.Item("who.ownScrolls")
-		if not item or UI.Hidden(item) then fail(scenario, "SKIPPED -- this client has no Scrolls switch") return end
-		if not UI.Reveal("who.ownScrolls") then fail(scenario, "SKIPPED -- Scrolls is not drawn in the full view") return end
-		ns.SetMenuView("simple")
-		if not UI.RowShown("who.ownScrolls") then
-			fail(scenario, "Scrolls is off, and the simple view does not draw the switch that turns it back on")
 		end
 	end)
 end

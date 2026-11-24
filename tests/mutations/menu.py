@@ -233,52 +233,46 @@ mutate(LAYOUT,
 # ------------------------------------------------ the simple view
 
 mutate("Core.lua",
-       "\t\tprofile.menuView = p.anchorCarried == true and \"offer\" or \"simple\"\n",
-       "\t\tprofile.menuView = \"full\"\n",
-       "menu: a new profile starts with everything, and nobody is offered the short list",
+       "\t\tprofile.menuView = \"simple\"\n\tend\n\toneOf(profile, \"menuView\"",
+       "\t\tprofile.menuView = \"full\"\n\tend\n\toneOf(profile, \"menuView\"",
+       "menu: a new profile starts with everything",
        expect="menu: a new profile starts on the short list", script=S)
 
 mutate("Core.lua",
-       "\t\tprofile.menuView = p.anchorCarried == true and \"offer\" or \"simple\"\n",
-       "\t\tprofile.menuView = \"simple\"\n",
-       "menu: a profile from before is put on the short list unasked",
-       expect="a profile from before is stamped simple", script=S)
+       "\tif profile.menuView == nil or profile.menuView == \"offer\" then\n",
+       "\tif profile.menuView == nil then\n",
+       "menu: a profile only ever offered the short list is left on everything",
+       expect="a profile with the view offer is stamped", script=S)
 
 mutate("Core.lua",
-       "\toneOf(profile, \"menuView\", { simple = true, full = true, offer = true }, \"full\")\n",
+       "\toneOf(profile, \"menuView\", { simple = true, full = true }, \"full\")\n",
        "",
        "menu: a damaged view kept",
        expect="a damaged view was left as tiny", script=S)
 
 mutate("Options/Shared.lua",
-       "\tprofile.menuView = view == \"simple\" and \"simple\" or \"full\"\n",
-       "\tprofile.menuView = view == \"simple\" and \"simple\" or \"offer\"\n",
-       "menu: Not now leaves the offer up",
-       expect="Not now left the view at offer", script=S)
+       "\tif view == \"full\" then return \"full\" end\n",
+       "",
+       "menu: unticking Simple view changes nothing",
+       expect="unticking left the view at simple", script=S)
 
 mutate(PAGE,
        "\tif e.chrome or ns.MenuView() ~= \"simple\" then return false end\n",
        "\tif true then return false end\n",
        "menu: the simple view draws everything",
-       expect="menu: the simple view draws each page's short list", script=S)
+       expect="menu: the simple view draws only the essentials", script=S)
 
 mutate(PAGE,
-       "\tif type(simple) ~= \"table\" or (simple.pages or {})[e.sec.page] then return false end\n",
-       "\tif type(simple) ~= \"table\" then return false end\n",
-       "menu: Start here, Profiles and Diagnostics thinned out too",
-       expect="general draws", script=S)
-
-mutate(PAGE,
-       "\t\t\t\tif e.bySimple then left = left + 1 end\n",
+       "\ty = PaintChrome(chrome.more, y, mode)\n",
        "",
-       "menu: the simple view never says what it leaves out",
-       expect="does not say what its short list leaves out", script=S)
+       "menu: the simple view never says more is in the full view",
+       expect="does not say more is in the full view", script=S)
 
-mutate(PAGE,
-       "\ty = PaintChrome(chrome.offer, y, mode)\n",
-       "",
-       "menu: the offer of the simple view never drawn",
-       expect="the offer's offer is not drawn", script=S)
+mutate("Options/Window/WindowChrome.lua",
+       "\t\t\tif page and UI.PageListed(id) then\n",
+       "\t\t\tif page and UI.PageVisible(id) then\n",
+       "menu: a page with nothing on the short list stays in the sidebar",
+       expect="is in the sidebar of the simple view", script=S)
 
 mutate(PAGE,
        "\tif not UI.RowShown(path) and UI.HiddenBySimple(path) then\n\t\tns.SetMenuView(\"full\")\n\t\tUI.Refresh()\n\tend\n",
@@ -297,12 +291,6 @@ mutate("Options/Window/WindowChrome.lua",
        "\tlocal y, placed = side.top + 4, false\n",
        "menu: the Simple view switch built and never drawn",
        expect="the Simple view switch is not drawn under the search box", script=S)
-
-mutate("Options/Window/Layout.lua",
-       "\t\t\t[\"when.hideMounted\"] = true, [\"when.manaFloor\"] = true,\n",
-       "\t\t\t[\"when.manaFloor\"] = true,\n",
-       "menu: Hide the prompt while mounted off the short list",
-       expect="Hide the prompt while mounted is off the short list", script=S)
 
 mutate("Options/Window/Layout.lua",
        "\t\t\t\t\tkeep[path] = true\n",

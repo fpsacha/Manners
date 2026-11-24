@@ -7,6 +7,9 @@
 ### Highlights
 - **No more achievements.** The milestones, their toasts, the hall of fame and
   the ledger's titles are gone. The favour ledger itself stays.
+- **A truly simple Simple view.** Just the essentials, about a tenth of the
+  options, and on for everybody who never unticked it. Untick *Simple view*
+  under the search box for the rest.
 
 ## 1.12.0
 

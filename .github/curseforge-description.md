@@ -64,7 +64,7 @@ English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian 
 2. On a new profile, answer its two questions (who to buff, and whether your character talks), or press *Not now* to keep the defaults.
 3. Its second step, *Put it on a key*, sets one key. Or *Put Manners on an action bar* puts a macro on your cursor for any slot, showing the spell a press would cast. A controller button works too.
 
-The *Simple view* shows only the ten or so settings your class changes on each page; the search box finds the rest.
+The *Simple view* shows just the essentials, about a tenth of the options; untick it for the rest, and the search box finds any setting.
 
 ### For each class
 

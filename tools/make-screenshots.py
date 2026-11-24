@@ -3143,7 +3143,7 @@ def picture_options(snaps):
     base = top + h + 20
     board.shade(40, base - 8, WIDTH - 40, base + 96, 0.45)
     for i, (word, line) in enumerate((
-            ("Simple view", "The short list of every page. Untick it for everything."),
+            ("Simple view", "Just the essentials. Untick it for everything."),
             ("Move the prompt", "One click in the header, then drag it where you like."))):
         x0 = 100 + i * 610
         board.text((x0, base + 24), str(i + 1), 26, bold=True, fill=(255, 209, 64), anchor="mm")
@@ -3392,11 +3392,11 @@ GALLERY = [
      "The favour ledger: today's count and all-time totals, then rows "
      "of favours still owed, returned and let go, and buffs given to the group and to strangers"),
     ("manners-options.png", "Set it up in one window",
-     "Open it with /manners or the minimap button. Shown on Start here in the Simple view, the short list "
-     "of every page: two questions, one key, the favour ledger. Untick Simple view for everything; Move "
-     "the prompt is one click away in the header.",
-     "The options window on Start here in the Simple view: two questions, a key for the prompt, the favour "
-     "ledger, with the Simple view switch and the Move the prompt button ringed"),
+     "Open it with /manners or the minimap button. Shown on Start here in the Simple view, just the "
+     "essentials: two questions and one key. Untick Simple view for everything; Move the prompt is one "
+     "click away in the header.",
+     "The options window on Start here in the Simple view: two questions and a key for the prompt, "
+     "with the Simple view switch and the Move the prompt button ringed"),
     ("manners-options-wide.png", "Drag it wide",
      "Drag the corner and a page flows into two columns, three on an ultrawide screen. Shown on Who to buff "
      "for a paladin: who is offered, what to cast, the group, Resurrection and cures on one screen.",

@@ -5,15 +5,6 @@
 
 S = "runscenarios.py"
 
-TICK = "day-fixes-review2: the tick the resting line names is on the simple view's My own buffs"
-
-# The simple view draws the tick the line names.
-mutate("Options/Window/Layout.lua",
-       "\t\t\t[\"who.ownCities\"] = true,\n",
-       "",
-       "day-fixes-review2: the short list has no Also in cities and inns",
-       expect=TICK, script=S)
-
 # Switched off, snoozed.
 mutate("Hints.lua",
        "\tif not db.profile.enabled or ns.SnoozeLeft(now) then return false end\n",
