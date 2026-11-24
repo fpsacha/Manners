@@ -135,6 +135,7 @@ local function with(scenario, opts, body)
 		rawset(_G, "IsPlayerSpell", function() return false end)
 		Mock.playerHeld = {}
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		Mock.playerHeld = {}
 		ns.NoteMoving(GetTime(), false)
 		Mock.advance(2)

@@ -17832,8 +17832,28 @@ local function sameArt(one, two)
 	return true
 end
 
+-- The extras on yourself that 1.12 switched off by default (Core.lua: a
+-- weapon's poison, stone, oil or lure, Forever's mage scrolls, tracking, Make a
+-- healthstone), ticked to Automatic as a player would, for a scenario about
+-- one of them. Every such family, or only `keys` when given.
+local function extrasOn(ns, keys)
+	if not ns or not ns.db then return end
+	local pick = ns.db.profile.ownBuffs.pick
+	if keys then
+		for _, k in ipairs(keys) do pick[k] = "auto" end
+		return
+	end
+	for _, families in pairs(ns.OWN_BUFFS or {}) do
+		for _, family in ipairs(families) do
+			if family.enhance or family.isScroll or family.tracking or family.key == "makehealthstone" then
+				pick[family.key] = "auto"
+			end
+		end
+	end
+end
+
 local H = {
-	fail = fail, load = load, drive = drive, sameArt = sameArt,
+	fail = fail, load = load, drive = drive, sameArt = sameArt, extrasOn = extrasOn,
 	optionKeys = optionKeys, walkOptions = walkOptions,
 	inQueue = inQueue, settle = settle, withEmptyPrompt = withEmptyPrompt,
 	firstLogin = firstLogin, strangers = strangers, clearClicks = clearClicks,

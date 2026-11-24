@@ -53,6 +53,7 @@ local function with(scenario, opts, body)
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		Mock.playerHeld = {}
 		body(ns)
 		for _, e in ipairs(ns.errors or {}) do

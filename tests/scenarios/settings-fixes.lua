@@ -286,10 +286,10 @@ end
 -- ------------------------------------------------------------------ other clients
 
 local CASES = {
-	-- Made on Forever by a mage who switched an own buff's reminder off, read on
-	-- Burning Crusade and on retail.
-	{ from = "camelot", class = "MAGE", family = "imbue", value = "off", into = "tbc" },
-	{ from = "camelot", class = "MAGE", family = "familiar", value = "off", into = "mainline" },
+	-- Made on Forever by a mage who switched an own buff's reminder on (off by
+	-- default since 1.12), read on Burning Crusade and on retail.
+	{ from = "camelot", class = "MAGE", family = "imbue", value = "auto", into = "tbc" },
+	{ from = "camelot", class = "MAGE", family = "familiar", value = "auto", into = "mainline" },
 	-- Made on Burning Crusade by a druid who switched Omen of Clarity off, read
 	-- on Forever, which has no Omen family.
 	{ from = "tbc", class = "DRUID", family = "omen", value = "off", into = "camelot" },

@@ -79,6 +79,7 @@ local function with(scenario, opts, body)
 		if not ns then return end
 		ns.KeyNudge = nil
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		local db = ns.db.profile
 		db.prompt.thankEmote = opts.thank ~= false
 		db.prompt.thankWhisper = opts.whisper == true

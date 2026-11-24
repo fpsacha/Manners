@@ -51,6 +51,7 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		H.extrasOn(ns)
 		ns.ForgetTrackingList()
 		local profile = ns.db.profile
 		local function resting(yes) rawset(_G, "IsResting", function() return yes end) end

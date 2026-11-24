@@ -72,6 +72,7 @@ do
 		local ns = load(scenario)
 		if not ns then return end
 		drive(scenario, ns)
+		H.extrasOn(ns)
 		ns.Prompt:ExitTest()
 		ns.db.profile.sources.self = true
 		ns.SetMenuView("simple")
@@ -113,6 +114,7 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		H.extrasOn(ns)
 		ns.ForgetTrackingList()
 		local profile = ns.db.profile
 		profile.sources.self = true
@@ -161,6 +163,7 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		H.extrasOn(ns)
 		ns.ForgetTrackingList()
 		local profile = ns.db.profile
 		profile.sources.self = true
@@ -216,6 +219,7 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		H.extrasOn(ns)
 		ns.ForgetTrackingList()
 		local family
 		for _, each in ipairs(ns.KnownOwnFamilies()) do

@@ -93,6 +93,7 @@ local function tbc(scenario, opts, body)
 		local ns = load(scenario)
 		if not ns then return end
 		drive(scenario, ns)
+		H.extrasOn(ns)
 		ns.Guard("probe", ns.ProbeCapabilities)
 		ns.Prompt:ExitTest()
 		Mock.printed = {}

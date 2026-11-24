@@ -139,6 +139,7 @@ local function with(scenario, opts, body)
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		ns.db.profile.sources.self = true
 		ns.Guard("probe", ns.ProbeCapabilities)
 		body(ns)

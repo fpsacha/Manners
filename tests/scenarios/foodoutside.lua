@@ -80,6 +80,7 @@ local function with(scenario, opts, body)
 		Mock.playerHeld = {}
 		Mock.weaponEnchants = { [0] = {}, [1] = {} }
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		Mock.playerHeld = {}
 		ns.db.profile.sources.self = true
 		ns.db.profile.ownBuffs.inCities = true

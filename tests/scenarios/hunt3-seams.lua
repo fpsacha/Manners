@@ -95,6 +95,7 @@ do
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		local profile = ns.db.profile
 		profile.sources.self = true
 		profile.ownBuffs.pick.pet = "auto"
@@ -215,6 +216,7 @@ end
 -- Only people who ask, and the water switch.
 local function asking(ns, scenario)
 	freshPrompt(ns, scenario)
+	H.extrasOn(ns)
 	local db = ns.db.profile
 	db.sources.asked, db.sources.courtesyRefresh = true, true
 	db.sources.strangers, db.sources.group, db.sources.self = false, false, false
@@ -363,6 +365,7 @@ do
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		local sources = ns.db.profile.sources
 		sources.group, sources.strangers, sources.self, sources.cures = true, false, false, true
 		ns.Guard("probe", ns.ProbeCapabilities)
@@ -417,6 +420,7 @@ do
 		local ns = load(scenario)
 		if not ns then return end
 		drive(scenario, ns)
+		H.extrasOn(ns)
 		ns.ForgetTrackingList()
 		local profile = ns.db.profile
 		profile.sources.self = true
@@ -467,6 +471,7 @@ do
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		local speech = ns.db.profile.speech
 		speech.enabled, speech.onlyWhenReturning, speech.channel = true, false, "SAY"
 		ns.db.profile.verbose = true
@@ -531,6 +536,7 @@ do
 		if not ns then return end
 		for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").ranks) do known[id] = true end
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		local sources = ns.db.profile.sources
 		sources.strangers, sources.self = false, false
 		ns.Guard("probe", ns.ProbeCapabilities)

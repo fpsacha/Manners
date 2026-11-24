@@ -678,6 +678,13 @@ local added = {
 		carrying({ [INSTANT_POISON] = 2 }, { [16] = DAGGER, [17] = DAGGER }, 60)
 		know(ns, "ROGUE", {}, {})
 		boot(ns, {})
+		-- A weapon's poison is off by default since 1.12: ticked to Automatic,
+		-- as the rogue in the picture has.
+		for _, families in pairs(ns.OWN_BUFFS or {}) do
+			for _, family in ipairs(families) do
+				if family.enhance then ns.db.profile.ownBuffs.pick[family.key] = "auto" end
+			end
+		end
 		settle(ns)
 	end },
 	-- A mage who has dropped her own Arcane Intellect: the buff she gives

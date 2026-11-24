@@ -151,6 +151,7 @@ local function with(scenario, opts, body)
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
+		H.extrasOn(ns)
 		Mock.playerHeld = held
 		-- The talent ids, so their reads can be counted from here on.
 		world.talent = {}
