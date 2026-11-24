@@ -329,7 +329,7 @@ end
 
 function Sense.enemy()
 	if plain(UnitExists("target")) ~= true then return "no", "no target" end
-	if plain(UnitCanAttack("player", "target")) ~= true then return "no", "your target is not hostile" end
+	if type(UnitCanAttack) ~= "function" or plain(UnitCanAttack("player", "target")) ~= true then return "no", "your target is not hostile" end
 	if plain(UnitIsDeadOrGhost("target")) == true then return "no", "your target is dead" end
 	return "yes"
 end

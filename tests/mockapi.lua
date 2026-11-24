@@ -1437,6 +1437,16 @@ function UnitIsDeadOrGhost(u)
 	return maybeSecret(false)
 end
 function UnitCanAssist() return maybeSecret(true) end
+-- Whom you could attack, as the macro parser's [harm] judges it: the target
+-- the mock's macros targeted when a scenario marked it hostile
+-- (Mock.runTarget.hostile), the unit under the mouse likewise
+-- (Mock.mouseover.hostile); nobody else, as nobody else is hostile here.
+function UnitCanAttack(_, unit)
+	local t
+	if unit == "target" then t = Mock.runTarget
+	elseif unit == "mouseover" then t = Mock.mouseover end
+	return maybeSecret(type(t) == "table" and t.hostile == true)
+end
 function UnitIsConnected() return maybeSecret(true) end
 -- Who is flagged for PvP (Mock.pvp) and for free-for-all PvP (Mock.pvpFFA),
 -- by unit token, "player" being you. Absent is a definite no.

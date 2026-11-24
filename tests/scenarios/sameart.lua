@@ -14,6 +14,7 @@ local fail = H.fail
 
 do
 	local scenario = "sameart: one step off is the same art, two steps or another size is not"
+	if not H.admit(scenario) then return end
 	local header = string.char(0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 4, 0, 32, 8)
 	local body = {}
 	for i = 1, 64 do body[i] = string.char(100 + (i % 50)) end

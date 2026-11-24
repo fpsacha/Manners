@@ -78,7 +78,7 @@ mutate("Prompt/MomentsSense.lua",
        expect="moments-counterspell: dark: no target", script=S)
 
 mutate("Prompt/MomentsSense.lua",
-       "\tif plain(UnitCanAttack(\"player\", \"target\")) ~= true then return \"no\", \"your target is not hostile\" end\n",
+       "\tif type(UnitCanAttack) ~= \"function\" or plain(UnitCanAttack(\"player\", \"target\")) ~= true then return \"no\", \"your target is not hostile\" end\n",
        "",
        "moments-counterspell: a friendly target is not refused",
        expect="moments-counterspell: dark: a friendly target", script=S)

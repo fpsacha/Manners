@@ -191,10 +191,14 @@ do
 		end
 		if not cast then fail(scenario, "a mage's Who to buff has no What to cast")
 		elseif cast.label ~= ns.L["What to cast"] then fail(scenario, "What to cast reads " .. tostring(cast.label)) end
-		for _, id in ipairs({ "general", "when", "self", "appearance", "click" }) do CheckBar(scenario, ns, UI, id) end
-		-- A page of few sections has no bar, and the page sits under the strip.
-		ns.OpenOptions("fight")
-		if UI.subbar.frame:IsShown() or UI.subbar.height ~= 0 then fail(scenario, "In a fight has a sub-divisions bar") end
+		-- In a fight has the prompt, the buttons for when you need them and the
+		-- buttons for the moment, all three a mage's.
+		for _, id in ipairs({ "general", "when", "self", "appearance", "click", "fight" }) do CheckBar(scenario, ns, UI, id) end
+		-- A page the layout gives no sub-divisions has no bar, and the page sits
+		-- under the strip.
+		ns.OpenOptions("skip")
+		if UI.page ~= "skip" then fail(scenario, "SKIPPED -- Who to skip is not in the sidebar")
+		elseif UI.subbar.frame:IsShown() or UI.subbar.height ~= 0 then fail(scenario, "Who to skip has a sub-divisions bar") end
 	end)
 end
 

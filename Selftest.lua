@@ -1361,7 +1361,8 @@ Check("fight.apis", "fight", L["what the game says in a fight"], function(add)
 		end
 		-- The prompt's hand-back in a fight rests on [help]: the parser's answer
 		-- is held to the game's own, with a target and out of a fight.
-		if not InCombatLockdown() and _G.SecureCmdOptionParse and _G.UnitExists and not Secret(_G.UnitExists("target"))
+		if not InCombatLockdown() and _G.SecureCmdOptionParse and type(_G.UnitCanAttack) == "function"
+			and _G.UnitExists and not Secret(_G.UnitExists("target"))
 			and _G.UnitExists("target") then
 			local help = _G.SecureCmdOptionParse("[help] yes; no")
 			local harm = _G.SecureCmdOptionParse("[harm,nodead] yes; no")

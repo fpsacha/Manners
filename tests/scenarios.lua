@@ -4205,7 +4205,9 @@ if ns then
 	Mock.printed = {}
 	ns.addon:HandleSlash("debug")
 	local said = table.concat(Mock.printed, "\n")
-	if said:find("not believed", 1, true) or said:find("not settled", 1, true) then
+	-- The own-buff lines only: the moment buttons' cast school is "not settled
+	-- yet" too until a first cast, and says nothing about the scanner.
+	if said:find("own buffs: last scan not believed", 1, true) or said:find("own buffs: baseline not settled", 1, true) then
 		fail(scenario, "a scanner that is reading the list fine was reported as broken: " .. said)
 	end
 	if not said:find("own buffs: 2 read, baseline 2", 1, true) then
@@ -18060,6 +18062,18 @@ local H = {
 	knowShout = knowShout, primeAuras = primeAuras, favourFrom = favourFrom,
 	pressAndSend = pressAndSend, findOption = findOption, optionsByKey = optionsByKey, namedSpell = namedSpell,
 	savedProfile = savedProfile, tryAgainst = tryAgainst, optionText = optionText,
+	-- For a scenario that loads no addon (a helper held to its word): whether
+	-- the run asked for it, counted as load() counts what it lets through, so
+	-- a narrowed run of its file alone is not a run that admitted nothing.
+	admit = function(scenario)
+		if run.loaded then run.loaded(scenario, run.file) end
+		if run.admit and not run.admit(scenario, run.file) then
+			run.left[scenario] = true
+			return false
+		end
+		run.ran[scenario] = true
+		return true
+	end,
 	-- Whether the toc loads the options window's layout (Options/Window/
 	-- Layout.lua), so a scenario about where a control is drawn can tell a
 	-- checkout without the window from a layout that failed to load.

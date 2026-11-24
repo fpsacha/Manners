@@ -1277,6 +1277,12 @@ local function install()
 	Mock.auraContainer, Mock.auraBoxes, Mock.hiddenDebuffs, Mock.hiddenFor = nil, nil, nil, nil
 	if installedMenu and rawget(_G, "MenuUtil") == installedMenu then MenuUtil = nil end
 	installedMenu = nil
+	-- UIParent and GameTooltip outlive every reset: the children widen() lists on
+	-- them would keep every frame of every addon the run loaded (a whole-suite
+	-- worker grew past 20 GB), and a dump of UIParent would grow with each reset.
+	for _, root in ipairs({ UIParent, GameTooltip }) do
+		if type(root) == "table" then root._kids = nil end
+	end
 	ColorPickerFrame = newColourPicker()
 end
 

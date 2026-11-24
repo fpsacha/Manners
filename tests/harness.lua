@@ -263,6 +263,7 @@ function UnitIsPlayer() return true end
 function UnitIsUnit(a, b) return a == b end
 function UnitIsDeadOrGhost() return false end
 function UnitCanAssist() return true end
+function UnitCanAttack() return false end
 function UnitIsConnected() return true end
 function UnitIsPVP() return false end
 function UnitIsPVPFreeForAll() return false end
