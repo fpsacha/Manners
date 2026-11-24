@@ -350,6 +350,23 @@ local function AddBuffToggles(args)
 					restyleAndMacro()
 				end,
 			}
+			-- And a third: your target is offered it whatever Offer to says
+			-- (buff.toTarget, asked for on CurseForge: Thorns on whoever you
+			-- pick out, the tank rule kept for the rest).
+			args["toTarget_" .. buff.key] = {
+				type = "toggle",
+				name = function() return L["Also offer %s to my target"]:format(ns.BuffName(buff) or buff.key) end,
+				desc = L["On: the friendly player you have targeted is offered it whatever Offer to says; everybody else is offered it as Offer to says."],
+				order = 4 + index / 10 + 0.065,
+				width = "full",
+				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
+				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
+				get = function() return B().toTarget[buff.key] == true end,
+				set = function(_, value)
+					B().toTarget[buff.key] = value and true or nil
+					restyleAndMacro()
+				end,
+			}
 		end
 	end
 end

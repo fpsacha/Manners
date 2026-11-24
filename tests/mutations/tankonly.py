@@ -79,7 +79,7 @@ mutate("Options/Advanced.lua",
 
 # --- Offer to: Only me (1.11.7) ---
 mutate("Core.lua",
-       "\t\tif opts.meOnly and buff.tankChoice and opts.meOnly[buff.key] then return false end\n",
+       "\t\tif opts.meOnly and buff.tankChoice and opts.meOnly[buff.key] and not freed then return false end\n",
        "",
        "tankonly: Only me holds nothing back",
        expect="tankonly: Only me offers nobody else the buff and still reminds you", script=S)
@@ -146,8 +146,8 @@ mutate("Core.lua", STRICT,
        expect="tankonly: Tanks only offers nobody outside the group Thorns", script=S)
 
 mutate("Core.lua",
-       "\t\t\tand not (opts.tanksOutside and opts.tanksOutside[buff.key]) then\n",
-       "\t\t\tthen\n",
+       "\t\t\tand not (opts.tanksOutside and opts.tanksOutside[buff.key]) and not freed then\n",
+       "\t\t\tand not freed then\n",
        "tankonly: the looser choice holds passers-by back too",
        expect="tankonly: held to tanks, a passer-by outside the group is offered Thorns as ever", script=S)
 

@@ -988,6 +988,7 @@ do
 						elseif name == "buff.skip" or name == "buff.tanksOnly" or name == "buff.meOnly"
 							or name == "buff.tanksOutside" or name == "buff.tanksMe"
 							or name == "buff.notMeInside"
+							or name == "buff.toTarget"
 							or name == "buff.keptBack"
 							or name == "buff.optIn"
 							or name == "filters.skipNearbyClasses"

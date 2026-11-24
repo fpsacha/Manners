@@ -15,6 +15,9 @@
 - **Blessings in a dungeon.** New checks of a paladin's party in a dungeon. If
   somebody is still passed over, a /manners debug from inside helps (thanks
   to KoriKaiMoon).
+- **Thorns on your target.** *Also offer Thorns to my target* (Who to buff,
+  under Offer to) offers it to whoever you target, whatever Offer to says
+  (thanks to tcurse).
 
 ## 1.12.0
 

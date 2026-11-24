@@ -375,6 +375,10 @@ local defaults = {
 			-- dungeon or a raid, whatever Offer to says (asked for on CurseForge
 			-- by a druid who heals there): the same sparse set, absent is as ever.
 			notMeInside = {},
+			-- Of those, the ones offered to your target whatever Offer to says
+			-- (Also offer to my target; asked for on CurseForge): the same
+			-- sparse set, absent is as Offer to says.
+			toTarget = {},
 			-- The buffs kept for a favour and a request by name (Buffs.lua,
 			-- returnOnly: Unending Breath) because the player chose that: a sparse
 			-- set, absent is offered to everybody, as it was before 1.11.19.
@@ -2199,8 +2203,12 @@ do
 		if opts.casterOnly and buff.meleeOnly and not opts.asked then return false end
 		-- Held to the tanks of your group (Who to buff, Offer to): somebody in
 		-- the group who is not one is left alone.
+		-- Your target, for a buff ticked "Also offer it to my target"
+		-- (buff.toTarget; Queue.lua writes the set for the target alone): none of
+		-- Offer to's holds below apply to them.
+		local freed = opts.toTarget and buff.tankChoice and opts.toTarget[buff.key]
 		if opts.tanksOnly and buff.tankChoice and opts.tanksOnly[buff.key] and opts.inGroup
-			and not opts.isTank then
+			and not opts.isTank and not freed then
 			return false
 		end
 		-- And so is everybody outside it, a favour's giver included: a passer-by
@@ -2208,12 +2216,12 @@ do
 		-- Not under "Tanks, and anyone outside my group" (opts.tanksOutside),
 		-- which is what Tanks only did before, kept as a choice of its own.
 		if opts.tanksOnly and buff.tankChoice and opts.tanksOnly[buff.key] and not opts.inGroup
-			and not (opts.tanksOutside and opts.tanksOutside[buff.key]) then
+			and not (opts.tanksOutside and opts.tanksOutside[buff.key]) and not freed then
 			return false
 		end
 		-- Held to yourself (Offer to: Only me): nobody else is offered it. Your own
 		-- is asked with no such field, so it is still reminded of.
-		if opts.meOnly and buff.tankChoice and opts.meOnly[buff.key] then return false end
+		if opts.meOnly and buff.tankChoice and opts.meOnly[buff.key] and not freed then return false end
 		-- Not you, inside a dungeon or a raid (Who to buff, under Offer to:
 		-- buff.notMeInside): SelfBuff hands the set only while you are in one.
 		if opts.notMeInside and buff.tankChoice and opts.notMeInside[buff.key] then return false end
@@ -6204,6 +6212,7 @@ function ns.ClampSettings()
 	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
 	if type(profile.buff.tanksMe) ~= "table" then profile.buff.tanksMe = {} end
 	if type(profile.buff.notMeInside) ~= "table" then profile.buff.notMeInside = {} end
+	if type(profile.buff.toTarget) ~= "table" then profile.buff.toTarget = {} end
 	if type(profile.buff.keptBack) ~= "table" then profile.buff.keptBack = {} end
 	-- A class token to a buff key, and nothing else (PickBuffFor reads it per
 	-- person): a key this client does not know is simply never found.

@@ -479,6 +479,8 @@ function UI.Differs(path, item)
 	if tanks then return (p.buff.tanksOnly or {})[tanks] == true or (p.buff.meOnly or {})[tanks] == true end
 	local inside = path:match("^who%.notMeInside_(.+)$")
 	if inside then return (p.buff.notMeInside or {})[inside] == true end
+	local toTarget = path:match("^who%.toTarget_(.+)$")
+	if toTarget then return (p.buff.toTarget or {})[toTarget] == true end
 	local family = path:match("^who%.own_(.+)$")
 	if family then
 		local pick = (p.ownBuffs.pick or {})[family]

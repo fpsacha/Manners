@@ -12,6 +12,7 @@ ns.WhatsNew = {
 		} },
 		{ title = "Changes", accent = "7cc4ff", entries = {
 			"|cff7cc4ffBlessings in a dungeon.|r New checks of a paladin's party in a dungeon.",
+			"|cff7cc4ffThorns on your target.|r |cffffffffAlso offer Thorns to my target|r (Who to buff, under Offer to) offers it to whoever you target, whatever Offer to says (thanks to tcurse).",
 		} },
 	} },
 	{ version = "1.12.0", date = "24 November 2026", sections = {

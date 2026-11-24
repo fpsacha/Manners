@@ -1044,7 +1044,9 @@ no room for. Defaults are in brackets.
     alone too unless you are the tank; on your own you are reminded as ever.
     *Not on me in a dungeon or raid*, under it (off), stops your own Thorns
     being reminded of inside a dungeon or a raid, whatever *Offer to* says;
-    your group is still offered it.
+    your group is still offered it. *Also offer Thorns to my target* (off)
+    offers it to the friendly player you have targeted, whatever *Offer to*
+    says; everybody else is offered it as *Offer to* says.
   - On WoW Forever, a campsite's Boosted Stamina, Intellect or Spirit is
     left alone when it gives as much as your Fortitude, Arcane Intellect or
     Divine Spirit would. *Don't cast over a campsite's Boosted Stamina,

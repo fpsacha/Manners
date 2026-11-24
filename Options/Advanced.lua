@@ -54,7 +54,7 @@ Page.RESET = {
 		"buff.leaveBlessed",
 		"buff.detectPassers",
 		"buff.skipCasters",
-		"buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe", "buff.notMeInside",
+		"buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe", "buff.notMeInside", "buff.toTarget",
 		"buff.optIn",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()

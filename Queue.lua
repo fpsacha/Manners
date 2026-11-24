@@ -3198,6 +3198,9 @@ function ns.BuildQueue(watch)
 	-- And the ones held to you alone: nobody else is offered them.
 	local meHeld = db.buff.meOnly
 	if meHeld and next(meHeld) == nil then meHeld = nil end
+	-- The buffs your target is offered whatever Offer to says (buff.toTarget).
+	local toTargetHeld = db.buff.toTarget
+	if toTargetHeld and next(toTargetHeld) == nil then toTargetHeld = nil end
 	-- Of the buffs held to tanks, the ones everybody outside the group is still
 	-- offered (Offer to: Tanks, and anyone outside my group). Without it, Tanks
 	-- only holds a buff from everybody outside the group (Core.lua, Castable).
@@ -3252,6 +3255,9 @@ function ns.BuildQueue(watch)
 	-- everybody the walk reaches.
 	-- tanksOutside is the scan's, the same for everybody, so written once here.
 	local opts = { unpaid = UNPAID, tanksOutside = tanksOutside }
+	-- toTargetHeld rides on it too (visit is out of upvalues), copied to
+	-- opts.toTarget for the target alone.
+	opts.toTargetHeld = toTargetHeld
 	-- Cures (Cures.lua): the two switches as this scan has them, or nil with
 	-- none to offer (both off, nothing learned, a fight). The scan's too.
 	opts.cures = ns.CureScanned()
@@ -3588,6 +3594,9 @@ function ns.BuildQueue(watch)
 			if opts.isTank == nil then opts.isTank = tanksHeld and inGroup and ns.IsTankUnit(unit) or nil end
 			opts.meOnly = meHeld
 		end
+		-- Your target, for a buff ticked "Also offer it to my target"
+		-- (buff.toTarget): Offer to does not hold it back from them.
+		opts.toTarget = unit == "target" and opts.toTargetHeld or nil
 		opts.whenBuffed = whenBuffed
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full

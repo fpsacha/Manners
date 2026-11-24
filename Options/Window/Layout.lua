@@ -153,6 +153,8 @@ local function OfferItems(placed)
 				if buff.tankChoice then items[#items + 1] = { "who.tank_" .. tostring(buff.key), indent = true } end
 				-- And its second switch: not on you in a dungeon or a raid (notMeInside).
 				if buff.tankChoice then items[#items + 1] = { "who.notMeInside_" .. tostring(buff.key), indent = true } end
+				-- And its third: your target, whatever Offer to says (toTarget).
+				if buff.tankChoice then items[#items + 1] = { "who.toTarget_" .. tostring(buff.key), indent = true } end
 				-- A buff kept for favours and requests (Buffs.lua, returnOnly), to everybody.
 				if buff.returnOnly then items[#items + 1] = { "who.everyone_" .. tostring(buff.key), indent = true } end
 				-- A buff held to your group by choice (Buffs.lua, membersOnly), to passers-by too.
