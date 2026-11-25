@@ -68,11 +68,18 @@ when off, rewards good manners rather than grinding, never noisy.
   and the next goal per theme; toasts OFF by default (choice: none, a small
   toast, or one chat line; no sound unless picked); titles only inside that
   window; nothing on the minimap or in the ledger itself.
-- Open: (1) reuse the old 13 milestones' names and ideas where they fit, or
-  start fresh; (2) a hall of fame or a "/manners share" text card, or drop it
-  (the old GitHub-issue Gentlefolk list is gone and should stay gone); (3)
-  credit the ledger's last 200 entries on first enable; (4) whether it is a
-  window of its own or a ledger tab.
+- Decided 25 November: (1) reuse the old 13 milestones' names and ideas
+  where they fit, but the owner wants MORE and BETTER ones; (2) a share card is
+  being considered (see below; owner to confirm); (3) credit the ledger's last
+  200 entries on first enable; (4) a tab in the ledger, not a window of its own.
+- Share card idea, shown to the owner: `/manners share` (and a Share button on
+  the tab) opens a copy box with a few plain lines a player can paste in chat,
+  Discord or a comment, e.g.
+  `Mort Defrette's Manners -- Gratitude: gold (1,240 favours returned) |
+  Generosity: silver (318 strangers buffed) | Fellowship: bronze | Courtesy:
+  silver | latest: "Buffed back within 10 seconds"`. Text only, no images, no
+  upload, nothing sent automatically; the player's own name only, nobody
+  else's.
 - The old code (Milestones.lua, Hall.lua, HallProof.lua, HallOfFame.lua, the
   ledger's title band) was removed in 1.12.1 (commit cce1be2e); `git show
   cce1be2e^:Milestones.lua` recovers it for reference. Do not restore it as
