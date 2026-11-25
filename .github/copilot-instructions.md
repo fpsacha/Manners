@@ -1,0 +1,1 @@
+Read `AGENTS.md` at the root of this repository first, then the files it lists (`CLAUDE.md`, `.claude/docs/lessons.md`, `STATUS.md`, `.claude/docs/plan-modules.md`). They are the project guide, the rules and the current hand-off.
