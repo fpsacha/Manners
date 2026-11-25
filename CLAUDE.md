@@ -198,6 +198,9 @@ Under `.claude/docs/`, each standing alone. Open the one your task touches.
   adding or changing a line.
 - `data-sources.md`: the builds per client (the audits read them here), Wowhead,
   Blizzard's UI source, client strings. Before reading or citing client data.
+- `plan-modules.md`: the approved plan to split the extras into optional
+  addon folders that ship disabled (Combat, Achievements, Pets, own buffs,
+  Services), with the open decisions. The next big piece of work.
 - `lessons.md`: what 21 to 24 November taught (the 1.11.41 rollback, what
   Forever hides, releasing fast, agents and budget, answering players, what
   is open). Read it first in a new session.
