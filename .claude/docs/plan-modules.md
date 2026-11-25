@@ -155,6 +155,38 @@ when off, rewards good manners rather than grinding, never noisy.
   button being blind on Forever without the aura-display workaround: the
   Combat module's first job.
 
+## Open bugs (GitHub issues, 25 November)
+
+- **#44, the most reported bug: "the game did not say who" buffed you** (core).
+  Many players on WoW Forever (#44, #53, #54 closed as a duplicate, Lor3_404,
+  ladysteph, thetruekritze on CurseForge), standing next to the buffer with
+  friendly nameplates on. Their check-ups show: the aura's caster is withheld,
+  and the cast watch hears no buff casts (Forever hides other players' spell
+  and cast ids completely: the owner's check-up had 10 casts heard, all
+  withheld). So `Favours.lua` has nothing plain to name them by, files the
+  favour as unnamed and prints the "Somebody just put a buff on you, but the
+  game did not say who" hint (`Hints.lua`, `ns.UnmatchedBuffHint`). Ideas to
+  examine, keeping the one-person rule (naming nobody is fine, naming the wrong
+  player never): (a) when exactly one player who CAN cast that buff (its class,
+  and level for the rank) is in sight at the landing (nameplates, group,
+  target), name them; with two or more, name nobody; (b) whether any plain
+  signal remains on Forever (the aura's `sourceUnit` through a path that is not
+  withheld, the combat text, `UNIT_AURA` update info's `isFromPlayerOrPlayerPet`,
+  the nameplate's aura reads); (c) at the very least make the chat hint
+  quieter: it reads like an error to players ("I'm getting an error"), and
+  1.12.1 already turned the chat commentary off by default. Write scenarios
+  for each with the shapes the check-ups show (`tools/read_report.py` on #53).
+- **#33, Will of the Forsaken never offered:** waiting on the player's game.
+  Now part of Manners: Combat (off by default since 1.12.0).
+- **#21, No buff popup:** waiting on the player's client and log since 21
+  November; likely stale, close if nothing comes.
+- Closed 25 November: #46 (1.11.41's drink icon, gone), #50 (moving the prompt
+  failed in 1.11.41's layout; closed, reopen if it recurs on 1.12.1), #54
+  (duplicate of #44).
+- KoriKaiMoon (CurseForge): party members missing her blessings ignored in
+  dungeons; not reproduced with defaults (`tests/scenarios/dungeon-party.lua`);
+  asked for a `/manners debug` from a dungeon.
+
 ## First steps for the next AI
 
 1. Ask the owner the four achievement details still open (listed under the
