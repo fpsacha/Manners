@@ -219,8 +219,9 @@ when off, rewards good manners rather than grinding, never noisy.
     fight; nothing but the spell id is sent. Combine it with (a): a whispered
     claim is used first, the only-possible-caster rule when there is none. It
     is invisible plumbing for the core feature, but the owner's rule is
-    nothing new ON by default: ask him whether it may ship on (recommended:
-    it reveals nothing beyond what the buff already tells the receiver).
+    nothing new ON by default: the owner approved it ON (25 November): it
+    reveals nothing beyond what the buff already tells the receiver. Build
+    (d) together with (a) and (c).
     Other places checked that give nothing on Forever: other players' casts
     (spell and cast ids withheld), the combat log (absent), buff tooltips (no
     caster line on these clients).
