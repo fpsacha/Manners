@@ -132,6 +132,30 @@ when off, rewards good manners rather than grinding, never noisy.
   options window. Players are answered with the setting's name.
 - Ask players questions in replies, never in release notes.
 
+## Player requests to fold in
+
+- **Which blessing to ask a paladin for (core, the Ask feature).** Two players
+  asked: Rhysicuss (Reddit: "change which buff is asked for ... Blessing of
+  Kings instead of Wisdom") and broodwave (CurseForge, a Feral druid: "it
+  defaults to ask Paladins for Blessing of Wisdom always, and stops after
+  getting it ... as a Feral, Wisdom is the least one I need, and I'd like to
+  ask for more than just that one"). Today `Ask.lua` `Want` uses
+  `ns.CLASS_AUTO` (Buffs.lua: PALADIN mana = wisdom, other = might): anyone
+  with mana is asked for Wisdom, and a class whose buffs replace one another
+  stops after one. Build: a choice under *Ask people for a buff I'm missing*,
+  "Blessing to ask a paladin for" (Automatic / Kings / Might / Wisdom /
+  Salvation... as the client has them), Automatic reading the spec or talents
+  (a Feral or a tank wants Might or Kings, not Wisdom, as `Core.lua`'s
+  talent reading already does for other choices); and, with several paladins
+  in reach, asking a second paladin for a second blessing (in Classic each
+  paladin's blessing on you is separate). Off-by-default rules do not apply:
+  Automatic must keep today's behaviour for everyone who does not choose.
+- **The cure in a fight never shows on Forever** (user_8qf1t3rx4pgp80ez:
+  "it shows cure poison out of a fight, but when I enter, nothing pops up";
+  earlier user_fer3yhwuvuz52jwg, LuckyDan, the owner). This is the cure
+  button being blind on Forever without the aura-display workaround: the
+  Combat module's first job.
+
 ## First steps for the next AI
 
 1. Ask the owner the open decisions: the own-buffs module's name; Services
