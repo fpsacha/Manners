@@ -8,6 +8,7 @@ in one press.**
 [![CI](https://github.com/fpsacha/Manners/actions/workflows/ci.yml/badge.svg)](https://github.com/fpsacha/Manners/actions/workflows/ci.yml)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Manners-f16436)](https://wow.curseforge.com/projects/1705364)
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
+[![Discord](https://img.shields.io/badge/Discord-Manners-5865f2)](https://discord.gg/JHc8YSDvur)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
 <img src=".github/media/manners-prompt.png" alt="Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it" width="640">
@@ -1768,6 +1769,10 @@ By hand it still works: **Run a full check-up** on Diagnostics puts the same
 report in a box; click in it, press Ctrl+A then Ctrl+C, and paste it into a
 comment on CurseForge or an issue from
 [the templates](https://github.com/fpsacha/Manners/issues/new/choose).
+
+Questions, help, or just to see what is new: the
+[Manners Discord](https://discord.gg/JHc8YSDvur). Every release, bug report and
+idea filed on GitHub is posted there as well.
 
 The check-up holds the build and what this client allows, the self-test
 below, what `/manners debug` and `/manners errors` say, your own buffs'

@@ -1,0 +1,74 @@
+# Posts to the Manners Discord: each published release to #releases, each new
+# issue to #bug-reports (or #suggestions when it carries the enhancement label),
+# and an issue labelled enhancement later to #suggestions.
+# The webhook URLs are repository secrets; a missing one skips its post.
+name: Discord
+
+on:
+  release:
+    types: [published]
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch: # posts the latest release again (a test, or a missed post)
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASES: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
+          BUGS: ${{ secrets.DISCORD_BUGS_WEBHOOK }}
+          SUGGESTIONS: ${{ secrets.DISCORD_SUGGESTIONS_WEBHOOK }}
+        run: |
+          set -euo pipefail
+          ev="$GITHUB_EVENT_PATH"
+          url=""
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest" | jq '{release: .}' > latest.json
+            ev="latest.json"; EVENT_NAME="release"
+          fi
+          if [ "$EVENT_NAME" = "release" ]; then
+            url="$RELEASES"
+            payload=$(jq '{
+              username: "Manners", allowed_mentions: {parse: []},
+              embeds: [{
+                title: ("Manners " + (.release.name // .release.tag_name))[0:250],
+                url: .release.html_url,
+                color: 13938487,
+                description: ((.release.body // "") | if length > 3900 then .[0:3900] + "\n..." else . end),
+                footer: {text: "Download: CurseForge, Wago or GitHub"}
+              }]}' "$ev")
+          else
+            action=$(jq -r '.action' "$ev")
+            enh=$(jq -r '[.issue.labels[].name] | index("enhancement") != null' "$ev")
+            if [ "$action" = "labeled" ]; then
+              # Only an idea labelled after the fact; labels set at opening ride on "opened".
+              [ "$(jq -r '.label.name' "$ev")" = "enhancement" ] || exit 0
+              age=$(( $(date +%s) - $(date -d "$(jq -r '.issue.created_at' "$ev")" +%s) ))
+              [ "$age" -gt 120 ] || exit 0
+              url="$SUGGESTIONS"; kind="Suggestion"; color=5793266
+            elif [ "$enh" = "true" ]; then
+              url="$SUGGESTIONS"; kind="Suggestion"; color=5793266
+            else
+              url="$BUGS"; kind="Bug report"; color=15548997
+            fi
+            payload=$(jq --arg kind "$kind" --argjson color "$color" '{
+              username: "Manners", allowed_mentions: {parse: []},
+              embeds: [{
+                title: ("#" + (.issue.number|tostring) + " " + .issue.title)[0:250],
+                url: .issue.html_url,
+                color: $color,
+                author: {name: ($kind + " from " + .issue.user.login)},
+                description: ((.issue.body // "") | if length > 600 then .[0:600] + "\n..." else . end)
+              }]}' "$ev")
+          fi
+          if [ -z "$url" ]; then echo "no webhook set for this post; skipped"; exit 0; fi
+          curl -fsS -H "Content-Type: application/json" -d "$payload" "$url" > /dev/null
+          echo "posted"

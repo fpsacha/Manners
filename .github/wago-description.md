@@ -24,6 +24,6 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 
 Blizzard does not let an addon cast on its own: Manners decides, you press, the game casts. Passers-by are seen through friendly nameplates, which the options can turn on.
 
-> **I read every comment and fix bugs fast**: most of the newest features were asked for by players. **Report a bug, with a log:** `/manners`, **Diagnostics**, **Run a full check-up**, then click in the box, **Ctrl+A**, **Ctrl+C**, and paste it into your comment or [a GitHub issue](https://github.com/fpsacha/Manners/issues/new/choose). Other players are named "Person 1", "Person 2", so it is safe to paste.
+> **I read every comment and fix bugs fast**: most of the newest features were asked for by players. **Report a bug, with a log:** `/manners`, **Diagnostics**, **Run a full check-up**, then click in the box, **Ctrl+A**, **Ctrl+C**, and paste it into your comment or [a GitHub issue](https://github.com/fpsacha/Manners/issues/new/choose). Other players are named "Person 1", "Person 2", so it is safe to paste. Questions, help and every new version: **[join the Manners Discord](https://discord.gg/JHc8YSDvur)**.
 
 `/manners help` lists every command. Free, MIT licensed. Full documentation on [GitHub](https://github.com/fpsacha/Manners). If you would like to say thanks, you can [buy me a coffee on Ko-fi](https://ko-fi.com/fpsacha).
