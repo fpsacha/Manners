@@ -176,6 +176,30 @@ when off, rewards good manners rather than grinding, never noisy.
   quieter: it reads like an error to players ("I'm getting an error"), and
   1.12.1 already turned the chat commentary off by default. Write scenarios
   for each with the shapes the check-ups show (`tools/read_report.py` on #53).
+  The owner wants ALL THREE. Details agreed:
+  - (a) Only when a favour landed unnamed, never per scan. Candidates: players
+    in the group, target, focus, mouseover and friendly nameplates (the tokens
+    the code already walks: Queue.lua IterateUnits, ns.nameplateUnits), not
+    you, alive, connected, of a class that gives that buff (Buffs.lua; a buff
+    several classes give counts them all), whose level allows the rank that
+    landed where the level is plain. Exactly one: name them. Two or more, or
+    any candidate whose class or name is withheld: name nobody. Count it in
+    /manners debug's favour lines. Scenarios: one candidate named, two none,
+    a withheld class none; a mutation per rule.
+  - (b) A short look, not a project: Blizzard's generated API docs on the
+    `forever` branch (which aura and cast fields are SecretWhen...),
+    `UNIT_AURA` updateInfo (addedAuras, isFromPlayerOrPlayerPet),
+    `C_UnitAuras.GetAuraDataByAuraInstanceID` a moment later, the caster's own
+    nameplate auras. Use only a plain, certain signal; write what Forever
+    withholds into STATUS.md either way.
+  - (c) The hint only with `profile.verbose` on, at most once per session,
+    calm words (e.g. "Manners could not tell who buffed you, so there is nobody
+    to return it to"), never for a group member already being offered; new
+    strings in all eight locales, the old ones removed.
+  - A builder started this on 25 November and was stopped before committing:
+    worktree `D:/Projects/WOW_Addons/Manners-wt-44`, branch `fix-44`, may hold
+    unfinished edits (it was working on the cast watch section of
+    Favours.lua). Check `git status` there; reuse or discard.
 - **#33, Will of the Forsaken never offered:** waiting on the player's game.
   Now part of Manners: Combat (off by default since 1.12.0).
 - **#21, No buff popup:** waiting on the player's client and log since 21
