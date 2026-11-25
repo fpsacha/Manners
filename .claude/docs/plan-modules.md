@@ -39,9 +39,9 @@ one enables it once in the game's AddOns list. Manners itself stays small.
 | `Manners` (core) | Returning favours; group and passer-by buffs; top-ups; the prompt and its key; the fight's rota; thanks and the In character lines; the favour ledger list; never-offer list, quiet times, Who to skip; resurrection and out-of-fight cures; asking for a buff; battlegrounds; profiles; Report a bug; **all the looks (owner: looks stay core)** | on |
 | `Manners_Combat` | The cure button in a fight, WITH the aura-display workaround that makes it work on WoW Forever (branch `features-1.11.41`, `Prompt/CureNeed.lua`, plus Shift/Ctrl per cure); Will of the Forsaken button; Mend Pet in a fight. Later, if the owner wants: 1.11.41's "buttons for the moment" (Counterspell, Blink, Ice Block, wards, drink...) and the removed fight key / hide / dim options | disabled |
 | `Manners_Achievements` | The overhauled achievements (plan below) | disabled |
-| `Manners_Pets` | The hunter pet module: Call, Revive, Feed, Mend Pet out of a fight, Bond with my pet, the pet's own lines and moments (`HunterPet.lua`, `HunterPetHints.lua`, `BeastFoods.lua`, the My pet page) | disabled (decide: players like it; hunters have no other buffs) |
-| own buffs module, **name not decided** (the owner rejected "Supplies"; ideas: "Manners: Self", "Manners: My Buffs", "Manners: Self-Care", "Manners: Kit") | Your own class buffs (armor, aura, aspect, forms, shields; "your own buffs come up as You"), consumables (food, flasks, elixirs, scrolls, weapon oils/stones/poisons, the consumables button), fishing lure, Well-Rested, companion pet, tracking, a mage's scrolls, Make a healthstone | disabled |
-| `Manners_Services` (**owner questioned it: name and whether it is its own module; decide first**) | Class services for others: a mage's water, food and portals on request, Offer water and food to my target, a warlock's healthstones and summons, Fire Shield from the imp on the tank (branch `features-1.11.41`) | disabled |
+| `Manners_Pets` | The hunter pet module (and, the owner wants it for warlocks too: a warlock's demon would need its own features designed; today the module is hunter-only): Call, Revive, Feed, Mend Pet out of a fight, Bond with my pet, the pet's own lines and moments (`HunterPet.lua`, `HunterPetHints.lua`, `BeastFoods.lua`, the My pet page) | enabled by default for hunters and warlocks (owner). `DefaultState` is per account, not per class: ship it enabled and have it do nothing (no frames, no events, no options page) for any other class |
+| `Manners_MyBuffs`, titled **Manners: My Buffs** (owner's name) | Your own class buffs (armor, aura, aspect, forms, shields; "your own buffs come up as You"), consumables (food, flasks, elixirs, scrolls, weapon oils/stones/poisons, the consumables button), fishing lure, Well-Rested, companion pet, tracking, a mage's scrolls, Make a healthstone | disabled |
+| `Manners_Services`, titled **Manners: Services** (owner: its own module) | Class services for others: a mage's water, food and portals on request, Offer water and food to my target, a warlock's healthstones and summons, Fire Shield from the imp on the tank (branch `features-1.11.41`) | disabled |
 
 Order of work (owner: "good with me", Services in question): plumbing first,
 then Combat (it brings the cure fix back), then Achievements, then Pets, the
@@ -158,9 +158,9 @@ when off, rewards good manners rather than grinding, never noisy.
 
 ## First steps for the next AI
 
-1. Ask the owner the open decisions: the own-buffs module's name; Services
-   (keep as a module, rename, or fold into another); Pets default; the four
-   achievement details.
+1. Ask the owner the four achievement details still open (listed under the
+   achievements plan). Settled 25 November: My Buffs, Services as its own
+   module, Pets enabled for hunters and warlocks.
 2. Build the plumbing (the public API, packaging of extra folders, toc
    generation, tests loading modules, the Start here line) with no feature
    moved yet; release it once CI is green.
