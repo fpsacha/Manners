@@ -196,6 +196,34 @@ when off, rewards good manners rather than grinding, never noisy.
     calm words (e.g. "Manners could not tell who buffed you, so there is nobody
     to return it to"), never for a group member already being offered; new
     strings in all eight locales, the old ones removed.
+  - (d) THE ALTERNATIVE, researched 25 November: let the caster's Manners tell
+    the receiver's Manners. The game hides the caster from the RECEIVER, but
+    the CASTER's own client knows plainly whom it buffed: Clicks.lua already
+    reads the target of your own cast from UNIT_SPELLCAST_SENT (your own casts
+    are never withheld). So when a Manners user casts a buff on another player
+    out of a fight, it whispers them one addon message on the existing prefix
+    ("Manners", Share.lua: `C_ChatInfo.SendAddonMessage(PREFIX, text,
+    "WHISPER", target)`), e.g. `B1:<spell id>`. The receiver's Manners hears
+    CHAT_MSG_ADDON with the sender's name (plain: it is the whisper's author),
+    matches it to the aura that just landed (same spell family, within a few
+    seconds) and names the giver with certainty. Checked in Blizzard's
+    generated docs on the `forever` branch (ChatInfoDocumentation.lua):
+    `SendAddonMessage` exists with WHISPER and a target, `SecretArguments =
+    "NotAllowed"` (fine: the target name we send is plain). Limits: it only
+    helps when BOTH players run Manners (Manners is widely installed on
+    Forever, so this covers many cases, and it never guesses); addon chat can
+    be restricted in instances and encounters (Favours.lua already reads
+    `C_RestrictedActions.GetAddOnRestrictionState(Enum.AddOnRestrictionType.Chat)`:
+    skip sending while restricted); throttle (one message per cast, a cap per
+    second; Share.lua's comments on AddonMessageThrottle); never send in a
+    fight; nothing but the spell id is sent. Combine it with (a): a whispered
+    claim is used first, the only-possible-caster rule when there is none. It
+    is invisible plumbing for the core feature, but the owner's rule is
+    nothing new ON by default: ask him whether it may ship on (recommended:
+    it reveals nothing beyond what the buff already tells the receiver).
+    Other places checked that give nothing on Forever: other players' casts
+    (spell and cast ids withheld), the combat log (absent), buff tooltips (no
+    caster line on these clients).
   - A builder started this on 25 November and was stopped before committing:
     worktree `D:/Projects/WOW_Addons/Manners-wt-44`, branch `fix-44`, may hold
     unfinished edits (it was working on the cast watch section of
