@@ -113,6 +113,12 @@ function, switch and test named. Change both together.
 
 ## The owner's standing rules for agents
 
+- **Manners stays small.** It returns buffs, buffs your group and passers-by,
+  and says thanks. No new feature is ON by default; anything beyond that core
+  needs the owner's yes and ships off, or belongs in a separate companion
+  addon. 1.11.41 broke this and players revolted: read
+  `.claude/docs/lessons.md` before adding a feature, changing a default,
+  releasing or answering players.
 - Work in a git worktree, never the live tree (`D:/Projects/WOW_Addons/Manners`).
 - Nothing is shown in a fight without a detected need: a button, line or light
   appears only once a read in the fight has found it wanted.
@@ -192,6 +198,9 @@ Under `.claude/docs/`, each standing alone. Open the one your task touches.
   adding or changing a line.
 - `data-sources.md`: the builds per client (the audits read them here), Wowhead,
   Blizzard's UI source, client strings. Before reading or citing client data.
+- `lessons.md`: what 21 to 24 November taught (the 1.11.41 rollback, what
+  Forever hides, releasing fast, agents and budget, answering players, what
+  is open). Read it first in a new session.
 - `status-history.md`: the long notes on every feature up to 1.11.36 and the
   questions only the game can answer. When a player reports something about
   one of them, or a code comment says "(STATUS.md)" about a game-only question.

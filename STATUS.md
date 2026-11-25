@@ -8,56 +8,15 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*22 November 2026. Last release: 1.11.40.*
+*24 November 2026. Last release: 1.12.1 (live everywhere and in the owner's
+game folder). Read `.claude/docs/lessons.md` first: it holds the 1.11.41
+rollback, the scope rule, what Forever hides and what is open.*
 
-- **Released today:** 1.11.38 (controller buttons in key boxes, battlegrounds
-  after a death, mute list, hold food while moving), 1.11.39 (healthstone
-  reminder, Will of the Forsaken on loss of control, /moo, cure button for
-  secret auras and a button per cure, *Food still offered outside dungeons and
-  raids*) and 1.11.40 (own buffs asked again after a death in a battleground:
-  the cast on yourself went unnoticed under Forever's surname spelling, issue
-  38). All issues from 32 to 38 are closed.
-- **In flight:** the Report a bug flow, on branch `report-flow` (worktree
-  `Manners-wt-report`), not yet merged: `Options/BugReport.lua` (window, link,
-  Mark this moment, the hold-back watch, the "Report it" chat link), a fight
-  summary line, the trail at 300, the self-test's *Fight buttons and keys*
-  group, `tools/read_report.py`, the issue form's category and game fields. Its
-  own scenarios: `bugreport.lua`, `trail-mark.lua`, `selftest-fight.lua`.
-  The branch also carries the unreleased r39 fixes (cure button, break free on a
-  second fear, healthstone "()", battleground food after a death, Greater
-  Blessing, slider unit words, own-buff controls, the debug dungeon line).
-  No workflow runs.
-  Old worktrees kept on purpose (uncommitted files or unmerged): `look-fel`,
-  `look-wild`, `relcheck`, `logo`, `ci-diag-generators`.
-- **1.12, just the essentials** (branch `release-1.12`, worktree
-  `Manners-wt-112`), after players found 1.11.41 bloated. Step 1 done: the
-  Will of the Forsaken, Mend Pet and cure buttons off by default; the own-buff
-  extras (weapon poisons, stones, oils and lures, Well-Rested, companion pet,
-  Forever's mage scrolls, tracking, *Make a healthstone*) off by default; the
-  fight key, *Hide the prompt in a fight*, *No flashes in a fight* and *Dim the
-  prompt in combat* removed (ClampSettings lets their saved fields go); the
-  fight's rota kept. Next: water and food for the target back (off, usable
-  from an action bar), a Simple view that really is simple, a bug pass, the
-  release.
-- **Waiting on the owner:** nothing.
-- **Waiting on players:** issue 33 (which game, the Will of the Forsaken
-  button), issue 39 (nonpromqueen: which "special, longer thank-you" option
-  went missing; nothing was found removed), issue 22 (the imp's Fire Shield),
-  issue 21 (no popup: their client and `/manners debug`). The cure button on
-  Forever under secret auras is only proven in the simulator: user_fer3yhwuvuz52jwg
-  and LuckyDan were asked for `/manners debug` if it still does not show.
-- **Next:** (1) rewrite the retail and Mists baselines: `python
-  tests/runscenarios.py --flavour mainline --update-baseline --jobs 4`, then
-  `--flavour mists`, read the diff, commit. (2) Read new CurseForge comments
-  and `gh issue list --label player`; build, whole suite, release, no asking.
-  (3) If nonpromqueen names an option, find where it went.
-- **Watch out:** the nightly pass (11 PM) answers comments and can release on
-  its own: check the page and `git branch --list "feedback-*"` first. All of
-  today's CurseForge replies are posted (201); its `state.json` lists them. I
-  once dropped its `pending` notes by mistake and rewrote them condensed. A
-  reply to a comment never goes up twice (`.claude/snippets/curseforge-reply.js`).
-  Releases go out without asking once the whole suite is green on the exact
-  commit.
+- **In flight:** nothing. 1.11.41's code is kept on branch `features-1.11.41`.
+- **Next, offered to the owner:** bring back only the cure button's
+  aura-display workaround, off by default.
+- **Waiting on players:** KoriKaiMoon (`/manners debug` from a dungeon),
+  user_bbmzm47xiinpl0fq (version), issues 44, 33, 21, 46, 50.
 
 ## State
 
