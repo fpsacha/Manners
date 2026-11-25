@@ -15,6 +15,11 @@ rollback, the scope rule, what Forever hides and what is open.*
 - **In flight:** nothing. 1.11.41's code is kept on branch `features-1.11.41`.
 - **Next, offered to the owner:** bring back only the cure button's
   aura-display workaround, off by default.
+- **Discord (25 November):** the Manners Discord is live,
+  https://discord.gg/JHc8YSDvur. GitHub posts releases and issues into it
+  (`.github/workflows/discord.yml`, `.claude/docs/release.md`); players ask in
+  the #help forum, which the nightly pass reads. Its invite is on CurseForge,
+  README and the issue form; the Wago page still needs the owner's paste.
 - **Waiting on players:** KoriKaiMoon (`/manners debug` from a dungeon),
   user_bbmzm47xiinpl0fq (version), issues 44, 33, 21, 46, 50.
 

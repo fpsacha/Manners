@@ -15,7 +15,11 @@ the session).
    https://www.curseforge.com/wow/addons/manners/comments (signed in as
    fpsacha; the built-in browser can read but not post). Expand *Read more*.
    A top-level comment with no reply by fpsacha is new; so is a reply to one of
-   ours that asks something.
+   ours that asks something. Then the Discord #help forum,
+   https://discord.com/channels/1575227984262988058/1575233510829203619: a
+   post whose newest message is not from fpsacha is new. Answer it in its
+   thread, once; a real bug or idea also gets an issue (step 3) with the thread
+   link, and the issue shows in #bug-reports or #suggestions by itself.
 3. **One issue per report**, so both sessions see it:
    `gh issue create --label player --label <bug|enhancement|question> --title
    "<short>" --body "<the comment verbatim, the author, the date, a link>"`.
