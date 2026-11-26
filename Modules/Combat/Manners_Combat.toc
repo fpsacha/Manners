@@ -7,7 +7,6 @@
 ## DefaultState: disabled
 ## X-License: MIT
 
-Bindings.xml
 Cures.lua
 CureNeed.lua
 BreakFree.lua

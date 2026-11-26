@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+- **Optional-module bindings.** Manners: My Buffs and Manners: Combat no longer
+  load their `Bindings.xml` twice, which caused WoW Forever to report
+  `Unrecognized XML: Binding` when a module was enabled.
+
 ## 1.12.3
 
 *26 November 2026*

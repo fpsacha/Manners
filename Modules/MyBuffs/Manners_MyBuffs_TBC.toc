@@ -9,7 +9,6 @@
 ## DefaultState: disabled
 ## X-License: MIT
 
-Bindings.xml
 Companion.lua
 OwnSpells.lua
 Supplies.lua

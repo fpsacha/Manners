@@ -185,6 +185,25 @@ for f in ["embeds.xml", "Bindings.xml"]:
     except Exception as e:
         print("  XML ERROR %s: %s" % (f, e))
         fail += 1
+for source, _ in maketocs.MODULES:
+    folder = os.path.dirname(source)
+    bindings = os.path.join(ROOT, folder, "Bindings.xml")
+    if not os.path.exists(bindings):
+        continue
+    try:
+        ET.parse(bindings)
+        print("  ok  %s" % os.path.relpath(bindings, ROOT).replace(os.sep, "/"))
+    except Exception as e:
+        print("  XML ERROR %s: %s" % (source, e))
+        fail += 1
+    for toc in [source] + [
+            toc for toc in maketocs.expected()
+            if toc.startswith(folder.replace(os.sep, "/") + "/")
+    ]:
+        lines = [line.strip() for line in open(os.path.join(ROOT, toc), encoding="utf-8")]
+        if "Bindings.xml" in lines:
+            print("  BINDINGS %s: Bindings.xml is auto-loaded and must not be listed in the toc" % toc)
+            fail += 1
 
 # The secure button only acts on a down click, so every advertised route has to
 # deliver one. Neither route can be proven from here -- this only catches the
