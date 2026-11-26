@@ -35,5 +35,14 @@ Looks/Warchief.lua:local:FLOURISH
 Looks/Warchief.lua:function:Still
 Looks/Wild.lua:local:MASK_FILL
 Looks/Wild.lua:local:RING_AT
+Libs/AceAddon-3.0/AceAddon-3.0.lua:local:tconcat
+Libs/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua:local:dummytable
+Libs/AceConsole-3.0/AceConsole-3.0.lua:local:oldminor
+Libs/LibRangeCheck-3.0/LibRangeCheck-3.0/LibRangeCheck-3.0.lua:local:oldminor
+Libs/LibRangeCheck-3.0/LibRangeCheck-3.0/LibRangeCheck-3.0.lua:function:resetRangeCache
+Libs/LibRangeCheck-3.0/LibRangeCheck-3.0/LibRangeCheck-3.0.lua:local:minItemChecker
+Libs/LibRangeCheck-3.0/LibRangeCheck-3.0.lua:local:oldminor
+Libs/LibRangeCheck-3.0/LibRangeCheck-3.0.lua:function:resetRangeCache
+Libs/LibRangeCheck-3.0/LibRangeCheck-3.0.lua:local:minItemChecker
 Options/Window/WindowPage.lua:local:NONE
 SelftestLaunch.lua:local:errR

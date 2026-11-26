@@ -18,7 +18,7 @@ do
 	if not module then return end
 	drive(scenario, ns)
 	if made ~= 0 then fail(scenario, "the disabled class created " .. made .. " pet frames") end
-	local toc = assert(io.open(dir .. "\\Modules\\Pets\\Manners_Pets.toc")):read("*a")
+	local toc = assert(io.open(dir .. "/Modules/Pets/Manners_Pets.toc")):read("*a")
 	if not toc:find("## DefaultState: enabled", 1, true) then fail(scenario, "Pets is not enabled by default") end
 	-- Core and the other loaded modules make frames; hunter files add none while
 	-- this class has no page or pet event frame.
