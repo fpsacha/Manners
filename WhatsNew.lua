@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "25 November 2026", sections = {
+	{ version = "1.12.2", date = "25 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Pick the blessing you ask for.|r |cffffffffBlessing to ask a paladin for|r, under |cffffffffAsk people for a buff I'm missing|r, asks for Might or another blessing instead of Automatic's Wisdom (thanks to broodwave).",
 		} },
