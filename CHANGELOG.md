@@ -5,28 +5,92 @@
 *26 November 2026*
 
 ### Highlights
-- **Optional modules.** Combat, Achievements, Pets, My Buffs and Services live
-  in separate addons in the same download. The core keeps its small,
-  default-on job, and disabled modules do no work.
+- **Optional modules.** Combat, Achievements, Pets, My Buffs and Services now
+  live in separate addons in the same download. The core keeps its original
+  buffing job; Combat, Achievements, My Buffs and Services start off, and Pets
+  starts on only to preserve hunter pet care.
+- **A clearer options window.** Pages are grouped as Buffing, Speech, Prompt,
+  Optional modules and Support, with task-sized subpages and a dedicated
+  Optional modules page. Module pages appear only while their addon is loaded.
 - **A second blessing from a second paladin.** *Blessing to ask a paladin for*
   keeps the 1.12.2 choice, and Automatic can ask another reachable paladin for
   a different missing blessing.
 
 ### Changes
-- **Safer decisions.** Buffs, cures, your own buffs and requested Services use
-  one secret-safe eligibility result, with the last twenty rejections available
-  in `/manners debug`.
-- **Requested Services.** Mage refreshments and portals, Slow Fall, priest
-  Levitate, shaman Water Walking, warlock stones, summons and Soulstones are
-  independently controlled and class/client-gated.
-
+- **Module controls.** Optional modules keep their saved settings when switched
+  off. A loaded module stops its events, scans, queue work and visible frames
+  immediately; *Reload now* finishes enabling or removing the addon folder.
+- **Manners: Combat.** Cure logic, cure settings, Will of the Forsaken, in-fight
+  cures and Mend Pet now belong to one optional module. With Combat off, none
+  of its pages, events, buttons or queue work exist.
+- **Manners: My Buffs.** Your own class buffs, weapon enhancements, food,
+  flasks, elixirs, scrolls, tracking, companion pets and custom own spells now
+  live on the optional My own buffs module page.
+- **Manners: Pets.** Hunter care has its own optional addon and My pet page.
+  It is inert on every other class, including warlocks, and creates no pet
+  frame, option or event work there.
+- **Manners: Achievements.** The ledger can gain an optional Achievements tab
+  with Gratitude, Generosity, Fellowship and Courtesy goals at bronze, silver
+  and gold. Progress is per character and class; its first enable can seed the
+  last 200 ledger rows, and notifications and sound start off.
+- **Manners: Services.** Mage water and food trades, named portals and Slow
+  Fall; priest Levitate; shaman Water Walking; warlock healthstones or
+  Soulwell, summons, Soulstone preparation and an imp's Fire Shield are each
+  controlled separately. Unsupported classes, spells and clients show none,
+  and every action stays on the secure prompt for your press.
+- **Service requests.** Each service can choose group chat, whispers and/or
+  your visible target; hold or ignore a request made in combat; restrict itself
+  to outside instances; and use explicit names or the short, familiar aliases.
+  Portal destinations are selected independently.
+- **Water and food for a target.** A mage can offer level-appropriate
+  refreshments to a friendly target, conjuring missing stacks first and then
+  filling the trade window or putting in one stack, as chosen.
+- **Safer decisions.** Buffs, cures, own buffs/items and Services share one
+  secret-safe decision path that checks the target, class, client, learned
+  rank, level, weapon, item usability, bags, reagents, aura, range, cooldown,
+  combat, instance and request policy before anything is armed.
+- **Decision diagnostics.** `/manners debug` keeps the last twenty rejected
+  decisions, with the reason and cache age, while secret or withheld values
+  stay unreadable and out of the log.
+- **Exact consumables.** Own-item checks now use the active client's own item
+  data and usability answers. A fishing lure, weapon enhancement, scroll,
+  flask, elixir or other consumable is held back when the class, level,
+  profession skill, weapon, cooldown, zone or instance makes it unusable;
+  Forever's Camper's Lure is recognized.
+- **Simple view and module switches.** The Optional modules controls and their
+  explanations remain visible in Simple view, even when the module's detailed
+  pages are absent.
 ### Fixes
 - **Unknown buff casters.** Manners can receive a caster claim from another
   Manners user and, only with one possible caster in sight, safely name that
   player. Its quieter fallback is shown once and only with chat commentary on.
-- **Paladin cures.** Poison and disease cures on WoW Forever now keep the
+- **Ambiguous casters.** Two possible casters, a conflicting claim, an ignored
+  caster, a withheld class or level, or a dead/disconnected player names
+  nobody instead of guessing who gave the buff.
+- **Paladin cures.** Poison and disease cures on WoW Forever now have the
   visible, secure in-fight path and prefer Purify when Cleanse would remove a
-  never-removed debuff.
+  never-removed debuff. The button remains hidden until a real need is read.
+- **Distant buff requests.** A group paladin or other buff-giver far away, or
+  one whose range cannot be confirmed, no longer appears on the ask prompt.
+- **Death and resurrection cover.** A party member who dies while you are dead
+  is offered the missing buff again after both of you return, even with
+  *Group members just revived first* off.
+- **Protected cast events.** A successful cast that arrives without a cast
+  identifier no longer raises a table-index error or sends a duplicate claim.
+- **Private bug reports.** A fight-time report now scrubs a group member's
+  name, full name, surname/realm and the link's words consistently.
+- **Module state after reload.** Enabling or disabling an optional module keeps
+  the saved profile values, removes stale work when off and does not activate
+  an unloaded module before Reload UI.
+- **Cross-client Services.** Fire Shield and every other Service are absent on
+  clients that do not prove the spell and data, rather than leaving a dead
+  control or queue entry.
+- **Options layout.** Wide windows keep their columns aligned, long sections
+  stay within the usual window's three-screen limit and the Paladin and
+  module controls stay reachable without hiding the buff-order list.
+- **In character for every class.** A hunter or another class with nothing to
+  buff others with can still choose the In character thank-you set from Start
+  here; the choice does not change the lines used when casting buffs.
 
 ## 1.12.2
 
