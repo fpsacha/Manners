@@ -149,9 +149,32 @@ function ns.AskClamp(profile)
 	if type(ask) ~= "table" then return end
 	if ask.channel ~= "WHISPER" and ask.channel ~= "SAY" then ask.channel = "WHISPER" end
 	if Ask.LINES[ask.line] == nil and ask.line ~= "own" then ask.line = Ask.LINE_ORDER[1] end
-	local blessings = Ask.PaladinChoices()
-	if blessings[ask.paladin] == nil then ask.paladin = "auto" end
+	-- The development branch called this `paladin`; 1.12.2 shipped
+	-- `blessing`, so retain only the released key and copy that one if present.
+	if ask.blessing == nil and Ask.Blessings()[ask.paladin] ~= nil then ask.blessing = ask.paladin end
+	ask.paladin = nil
 	ask.own = Ask.CleanOwn(ask.own)
+	if ask.blessing ~= "auto" and not Ask.Blessings()[ask.blessing] then ask.blessing = "auto" end
+end
+
+-- The blessings a paladin can be asked for on this client (GitHub issue 57,
+-- broodwave on CurseForge: a feral druid wanted Might, not Wisdom), by key,
+-- with Automatic: the ones Want could ask for at all, named by the spell.
+-- Empty but for Automatic on a client whose paladins have none.
+function Ask.Blessings()
+	local values, order = { auto = L["Automatic"] }, { "auto" }
+	for _, key in ipairs({ "kings", "wisdom", "might", "salvation" }) do
+		local buff = ns.FindBuff("PALADIN", key)
+		if buff and not (buff.optIn or buff.returnOnly or buff.neverAuto or buff.oneTarget
+			or buff.tankChoice or buff.selfCast) then
+			local name = buff.ranks and buff.ranks[1] and ns.SpellNameFor(buff.ranks[1])
+			if type(name) == "string" and name ~= "" then
+				values[buff.key] = name
+				order[#order + 1] = buff.key
+			end
+		end
+	end
+	return values, order
 end
 
 ---------------------------------------------------------------------------
@@ -361,19 +384,6 @@ end
 
 local PALADIN_ORDER = { "kings", "wisdom", "might", "salvation" }
 
-function Ask.PaladinChoices()
-	local values = { auto = L["Automatic"] }
-	local sorting = { "auto" }
-	for _, key in ipairs(PALADIN_ORDER) do
-		local buff = ns.FindBuff("PALADIN", key)
-		if buff then
-			values[key] = ns.BuffName(buff)
-			sorting[#sorting + 1] = key
-		end
-	end
-	return values, sorting
-end
-
 -- Which buff of their class to ask this person for, or nil.
 local function Want(name, class, unit, grouped, level, me, now)
 	local buffs = ns.BUFFS[class]
@@ -383,7 +393,7 @@ local function Want(name, class, unit, grouped, level, me, now)
 		-- the existing role-based choice and, once that choice is accounted
 		-- for by another Paladin, can ask this one for a different blessing.
 		local choice = class == "PALADIN" and Profile() and Profile().ask
-			and Profile().ask.paladin or "auto"
+			and Profile().ask.blessing or "auto"
 		local unknown = false
 		-- An explicit request is a statement of intent: a different blessing
 		-- already on the player does not cancel it. The chosen one itself must

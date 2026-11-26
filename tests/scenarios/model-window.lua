@@ -444,7 +444,7 @@ local EXPECTED = {
 		"speech.onlyWhenReturning", "speech.firstNameOnly", "speech.mixedShare", "prompt.thankWhisper", "prompt.thankDelay",
 			"prompt.thankUnseen", "prompt.thankAsk",
 		-- Asking for a buff moved here from Who to buff: every class asks.
-		"sources.ask", "ask.channel", "ask.line", "ask.paladin", "ask.inTowns", "ask.own" },
+		"sources.ask", "ask.channel", "ask.line", "ask.blessing", "ask.inTowns", "ask.own" },
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",

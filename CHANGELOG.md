@@ -6,10 +6,9 @@
 - **Optional modules.** Combat, Achievements, Pets, My Buffs and Services live
   in separate addons in the same download. The core keeps its small,
   default-on job, and disabled modules do no work.
-- **Ask for the blessing you need.** Under *Ask people for a buff I'm missing*,
-  *Blessing to ask a paladin for* chooses Automatic, Kings, Might, Wisdom or
-  Salvation where that client has it. Automatic can ask a second reachable
-  paladin for another missing blessing.
+- **A second blessing from a second paladin.** *Blessing to ask a paladin for*
+  keeps the 1.12.2 choice, and Automatic can ask another reachable paladin for
+  a different missing blessing.
 
 ### Changes
 - **Safer decisions.** Buffs, cures, your own buffs and requested Services use
@@ -23,11 +22,25 @@
 - **Unknown buff casters.** Manners can receive a caster claim from another
   Manners user and, only with one possible caster in sight, safely name that
   player. Its quieter fallback is shown once and only with chat commentary on.
-- **Death and resurrection.** Find Minerals and other tracking effects are
-  remembered again after a death and resurrection instead of being left stale.
 - **Paladin cures.** Poison and disease cures on WoW Forever now keep the
   visible, secure in-fight path and prefer Purify when Cleanse would remove a
   never-removed debuff.
+
+## 1.12.2
+
+*25 November 2026*
+
+### Highlights
+- **Pick the blessing you ask for.** *Blessing to ask a paladin for*, under
+  *Ask people for a buff I'm missing*, asks for Might or another blessing
+  instead of Automatic's Wisdom (thanks to broodwave).
+
+### Fixes
+- **Tracking after a death.** Find Minerals and the other trackings are
+  reminded again after you die, even when the minimap still shows them on
+  (thanks to aisenfaire).
+- **No imbue for a fishing pole.** A shaman with a fishing pole in the main
+  hand is no longer reminded of a weapon imbue (thanks to LT2138).
 
 ## 1.12.1
 

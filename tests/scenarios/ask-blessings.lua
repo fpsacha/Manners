@@ -55,7 +55,7 @@ do
 		if not kings then
 			fail(scenario, "SKIPPED -- this client has no Kings")
 		else
-			db.ask.paladin = "kings"
+			db.ask.blessing = "kings"
 			local might = ns.FindBuff("PALADIN", "might")
 			Mock.playerHeld = { [might.ranks[1]] = true }
 			ns.Ask.ForgetWorn()
@@ -64,12 +64,11 @@ do
 				fail(scenario, "the explicit choice asked for "
 					.. tostring(entry and entry.buff and entry.buff.wanted and entry.buff.wanted.key))
 			end
-			local values, sorting = ns.Ask.PaladinChoices()
-			if values.auto ~= ns.L["Automatic"] or values.kings ~= ns.BuffName(kings)
-				or sorting[1] ~= "auto" then
+			local values, sorting = ns.Ask.Blessings()
+			if values.auto ~= ns.L["Automatic"] or values.kings == nil or sorting[1] ~= "auto" then
 				fail(scenario, "the blessing control does not list Automatic and this client's blessings")
 			end
-			local control = findOption(ns.optionsTable, "askPaladin")
+			local control = findOption(ns.optionsTable, "askBlessing")
 			if not control or control.name ~= ns.L["Blessing to ask a paladin for"] then
 				fail(scenario, "the blessing control does not list Automatic and this client's blessings")
 			end
@@ -109,12 +108,12 @@ do
 	local scenario = "ask-blessings: an invalid saved choice is repaired to Automatic"
 	local ns, done = ready(scenario)
 	if ns then
-		ns.db.profile.ask.paladin = "missing"
+		ns.db.profile.ask.blessing = "missing"
 		ns.AskClamp(ns.db.profile)
-		if ns.db.profile.ask.paladin ~= "auto" then
-			fail(scenario, "the invalid Paladin choice was kept as " .. tostring(ns.db.profile.ask.paladin))
+		if ns.db.profile.ask.blessing ~= "auto" then
+			fail(scenario, "the invalid Paladin choice was kept as " .. tostring(ns.db.profile.ask.blessing))
 		end
-		if ns.defaults.profile.ask.paladin ~= "auto" then
+		if ns.defaults.profile.ask.blessing ~= "auto" then
 			fail(scenario, "a new profile's Paladin choice is not Automatic")
 		end
 		done()

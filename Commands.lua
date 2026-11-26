@@ -956,7 +956,7 @@ do
 	local SHARE_ASK = {
 		["ask.channel"] = true,
 		["ask.line"] = true,
-		["ask.paladin"] = true,
+		["ask.blessing"] = true,
 		-- My own words: free text, so kept as the player has it too.
 		["ask.own"] = true,
 		["ask.inTowns"] = true,

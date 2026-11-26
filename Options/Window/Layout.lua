@@ -673,7 +673,7 @@ ns.WindowLayout = {
 					"who.ask",
 					{ "who.askChannel", indent = true },
 					{ "who.askLine", indent = true },
-					{ "who.askPaladin", indent = true },
+					{ "who.askBlessing", indent = true },
 					{ "who.askOwn", indent = true },
 					{ "who.askInTowns", indent = true },
 				} },
@@ -1203,7 +1203,7 @@ ns.WindowLayout = {
 		-- How an ask is said, shown only while asking is on.
 		["who.askChannel"] = "who.ask",
 		["who.askLine"] = "who.ask",
-		["who.askPaladin"] = "who.ask",
+		["who.askBlessing"] = "who.ask",
 		["who.askOwn"] = "who.ask",
 		["who.askInTowns"] = "who.ask",
 		-- Share the group with other Manners users, the same.

@@ -8,6 +8,7 @@ in one press.**
 [![CI](https://github.com/fpsacha/Manners/actions/workflows/ci.yml/badge.svg)](https://github.com/fpsacha/Manners/actions/workflows/ci.yml)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Manners-f16436)](https://wow.curseforge.com/projects/1705364)
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
+[![Discord](https://img.shields.io/badge/Discord-Manners-5865f2)](https://discord.gg/JHc8YSDvur)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
 <img src=".github/media/manners-prompt.png" alt="Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it" width="640">
@@ -371,7 +372,8 @@ own. The full list for each class is under *Which buffs each class offers*.
   waits while your group still needs your Mark of the Wild.
 - **Tracking.** Find Herbs, Find Minerals, a hunter's Track Beasts and the
   other tracking skills are one kind, *Tracking*, off until you switch it on,
-  then reminded of when none is on (after you die, say). On WoW Forever a dwarf can keep Find Treasure on
+  then reminded of when none is on (after you die, say, even when the
+  minimap still shows it on). On WoW Forever a dwarf can keep Find Treasure on
   beside a gathering tracking, so there it has a switch of its own, *Find
   Treasure*, reminded of once you have had it on. In a battleground or an
   arena a gathering tracking is not reminded of at all; one to fight with
@@ -430,7 +432,8 @@ own. The full list for each class is under *Which buffs each class offers*.
   of that alone. On retail the main hand and the off hand (Flametongue once a
   weapon is in it, or Thunderstrike Ward once a shield is) each have a switch
   of their own. *Weapon imbues before the shield* (off) brings them up ahead
-  of the shield, for a shaman short of mana.
+  of the shield, for a shaman short of mana. With a fishing pole in your
+  main hand no imbue is asked for.
 - **A Lightsmith paladin's rites** on retail.
 
 **Food, flasks and scrolls.** Each is off until you switch it on, and shown
@@ -1825,6 +1828,10 @@ By hand it still works: **Run a full check-up** on Diagnostics puts the same
 report in a box; click in it, press Ctrl+A then Ctrl+C, and paste it into a
 comment on CurseForge or an issue from
 [the templates](https://github.com/fpsacha/Manners/issues/new/choose).
+
+Questions, help, or just to see what is new: the
+[Manners Discord](https://discord.gg/JHc8YSDvur). Every release, bug report and
+idea filed on GitHub is posted there as well.
 
 The check-up holds the build and what this client allows, the self-test
 below, what `/manners debug` and `/manners errors` say, your own buffs'

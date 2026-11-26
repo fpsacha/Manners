@@ -64,6 +64,7 @@ ignore:
   - tools
   - STATUS.md
   - CLAUDE.md
+  - AGENTS.md
   - RELEASING.md
   - RELEASE-CHECK.md
   - README.md

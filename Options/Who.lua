@@ -490,21 +490,6 @@ function Page.AddAskControls(args)
 			ns.Prompt:InvalidateMacro()
 		end,
 	}
-	args.askPaladin = {
-		type = "select",
-		name = L["Blessing to ask a paladin for"],
-		desc = L["Automatic keeps the blessing chosen for your class and role. Pick one blessing to ask for that one instead. With Automatic, Manners may ask another reachable paladin for a different missing blessing after the first request."],
-		order = 14.72,
-		width = "full",
-		values = function() local values = ns.Ask.PaladinChoices(); return values end,
-		sorting = function() local _, sorting = ns.Ask.PaladinChoices(); return sorting end,
-		hidden = function() return off() or ns.BUFFS.PALADIN == nil end,
-		get = function() return ns.db.profile.ask.paladin or "auto" end,
-		set = function(_, v)
-			ns.db.profile.ask.paladin = v
-			ns.Prompt:InvalidateMacro()
-		end,
-	}
 	-- My own words (Ask.lua, CleanOwn), shown while they are the choice.
 	args.askOwn = {
 		type = "input",
@@ -517,6 +502,29 @@ function Page.AddAskControls(args)
 		set = function(_, v)
 			ns.db.profile.ask.own = ns.Ask.CleanOwn(v)
 			ns.Prompt:InvalidateMacro()
+		end,
+	}
+	-- Which blessing a paladin is asked for (Ask.lua, Ask.Blessings), shown
+	-- while asking is on on a client whose paladins have blessings.
+	args.askBlessing = {
+		type = "select",
+		name = L["Blessing to ask a paladin for"],
+		desc = L["Automatic keeps the blessing chosen for your class and role. Pick one blessing to ask for that one instead. With Automatic, Manners may ask another reachable paladin for a different missing blessing after the first request."],
+		order = 14.72,
+		width = "full",
+		hidden = function()
+			if off() then return true end
+			local _, order = ns.Ask.Blessings()
+			return #order < 2
+		end,
+		values = function() return (ns.Ask.Blessings()) end,
+		sorting = function() local _, order = ns.Ask.Blessings() return order end,
+		get = function() return ns.db.profile.ask.blessing or "auto" end,
+		set = function(_, v)
+			ns.db.profile.ask.blessing = v
+			ns.Prompt:InvalidateMacro()
+			ns.Ask.ForgetWorn()
+			ns.Prompt:Refresh()
 		end,
 	}
 	args.askInTowns = {

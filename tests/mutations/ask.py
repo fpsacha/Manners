@@ -337,7 +337,7 @@ mutate("Options/Who.lua",
        expect=RESET, script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"sources.ask\", \"ask.channel\", \"ask.line\", \"ask.paladin\", \"ask.inTowns\", \"ask.own\",\n",
+       "\t\t\"sources.ask\", \"ask.channel\", \"ask.line\", \"ask.blessing\", \"ask.inTowns\", \"ask.own\",\n",
        "",
        "ask: the page's reset leaves asking as it is",
        expect=RESET, script=S)

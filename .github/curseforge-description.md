@@ -1,3 +1,5 @@
+**Join the Manners Discord: [discord.gg/JHc8YSDvur](https://discord.gg/JHc8YSDvur)** (help, every new version, bug reports and ideas)
+
 **A buff given is a favour owed. Manners repays it in one press.**
 
 A priest buffs you in passing. By the time you find them among a dozen nameplates, they are gone. Manners saw who it was and put them on one button. Press your key: they have your buff, your own target comes straight back, and the favour goes in your ledger.
@@ -34,7 +36,7 @@ Yours to arrange: twenty-nine looks, a blessing for each class for paladins, pro
 - **Your pet, hunters.** Call, Revive and Mend Pet when it needs them, Feed Pet on WoW Forever, Classic Era and Burning Crusade, *Bond with my pet* for a pat or a kind word now and then, and, if you tick it, Mend Pet on a button of its own in a fight.
 - **Your cure, in a fight.** Tick *Show my cure on a button in a fight, only while somebody needs it* and your class's cure gets a button of its own that appears only when somebody near you carries a poison, curse, disease or harmful spell it can remove.
 
-> **I read every comment here and on GitHub.** Most of the list above was asked for in these comments, and a new version comes out most days. Found a bug? Please send a log with it: see **Report a bug** below.
+> **I read every comment here and on GitHub.** Most of the list above was asked for in these comments, and a new version comes out most days. Found a bug? Please send a log with it: see **Report a bug** below. Questions, help and every new version: **[join the Manners Discord](https://discord.gg/JHc8YSDvur)**.
 
 ### Who it offers, in this order
 

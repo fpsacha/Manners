@@ -10,7 +10,8 @@ What changed: `CHANGELOG.md` (written for players). Test internals:
 ## What it is
 
 A World of Warcraft addon (MIT, github.com/fpsacha/Manners, branch `master`,
-CurseForge 1705364, Wago `rNkgzlNa`) that returns buffs. It notices who buffed
+CurseForge 1705364, Wago `rNkgzlNa`, Discord https://discord.gg/JHc8YSDvur fed
+from GitHub, see `.claude/docs/release.md`) that returns buffs. It notices who buffed
 you, works out what you owe, and puts one secure button (the prompt) on screen;
 a press targets them by name, casts, and hands your target back. It also offers
 your group, people who ask in chat, and passers-by missing your buff, reminds

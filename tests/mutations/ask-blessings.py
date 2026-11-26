@@ -3,8 +3,8 @@
 S = "runscenarios.py"
 
 mutate("Core.lua",
-       '\t\t\tpaladin = "auto",\n',
-       '\t\t\tpaladin = "kings",\n',
+       '\t\t\tblessing = "auto",\n',
+       '\t\t\tblessing = "kings",\n',
        "ask-blessings: a new profile pins one Paladin blessing",
        expect="ask-blessings: an invalid saved choice is repaired to Automatic",
        script=S)

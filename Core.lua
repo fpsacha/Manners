@@ -541,13 +541,12 @@ local defaults = {
 		ask = {
 			channel = "WHISPER",
 			line = "moment",
-			-- The Paladin blessing to ask for. Automatic keeps the class's
-			-- existing role-based choice and may use another Paladin for a
-			-- different missing blessing.
-			paladin = "auto",
 			-- My own words (Ask.lua, line "own"): empty until written.
 			own = "",
 			inTowns = false,
+			-- Which blessing a paladin is asked for. Automatic keeps today's
+			-- role-based choice and may rotate to another missing blessing.
+			blessing = "auto",
 		},
 
 		-- A hunter's pet (HunterPet.lua): care, each with its own switch under
@@ -4493,6 +4492,11 @@ do
 		if family.tracking then
 			local list = TrackingList()
 			if not list then return nil end
+			-- A death drops your tracking, but the minimap's list can go on
+			-- saying it is on (GitHub issue 55: Find Minerals not reminded
+			-- after dying). Until the list changes once you are back up, or
+			-- you cast it, it reads as off.
+			if ns.GoneWithDeath("own:" .. family.key, family.throughDeath) then return false end
 			for _, spell in ipairs(family.spells) do
 				if Known(spell) then
 					for _, id in ipairs(spell.ranks) do
@@ -4829,6 +4833,10 @@ do
 		if spell.item then
 			local ready, why = ScrollReady(spell)
 			if not ready then return nil, up, left, why, spell end
+		elseif family.imbue and HandWeapon(family.slot or 16) == 20 then
+			-- A weapon imbue, with a fishing pole (weapon subclass 20) in that
+			-- hand: the game takes none on it (GitHub issue 56).
+			return nil, up, left, "noweapon", spell
 		elseif spell.needsWeapon and HandWeapon(family.slot or 16) == false then
 			-- What goes on a weapon (Buffs.lua, `needsWeapon`), with none in that hand.
 			return nil, up, left, "noweapon", spell
@@ -6905,6 +6913,14 @@ local probeQueued = false
 function addon:MINIMAP_UPDATE_TRACKING()
 	ns.ForgetTrackingList()
 	ns.ownAurasChanged = true
+	-- Changed while you are alive: the list is current again after a death,
+	-- whatever it says (ReadOwnFamily, GitHub issue 55). Not while dead or a
+	-- ghost, when the change may be the death's own.
+	if plain(UnitIsDeadOrGhost("player")) ~= true then
+		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
+			if family.tracking then ns.NoteCastSinceDeath("own:" .. family.key) end
+		end
+	end
 end
 
 -- A mage's scrolls and every class's weapon enhancements (Core.lua's own

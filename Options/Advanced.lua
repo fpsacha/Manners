@@ -142,7 +142,7 @@ Page.RESET = {
 		"prompt.thankAsk",
 		-- Asking for a buff (What I say): every class can ask, so these are
 		-- put back for all of them, a rogue's page included.
-		"sources.ask", "ask.channel", "ask.line", "ask.paladin", "ask.inTowns", "ask.own",
+		"sources.ask", "ask.channel", "ask.line", "ask.blessing", "ask.inTowns", "ask.own",
 		keep = function(path)
 			if path == "sources.ask" or path:find("^ask%.") then return false end
 			return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
