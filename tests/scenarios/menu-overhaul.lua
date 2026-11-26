@@ -71,6 +71,22 @@ do
 end
 
 do
+	local scenario = "menu-overhaul: module reload action comes before the switches"
+	local ns = session(scenario)
+	if ns then
+		local sections = ns.WindowLayout.pages.modules.sections
+		local reload, list
+		for i, section in ipairs(sections) do
+			if section.key == "modules.reload" then reload = i end
+			if section.key == "modules.list" then list = i end
+		end
+		if not (reload and list and reload < list) then
+			fail(scenario, "Reload now is below the module list, out of view after a toggle")
+		end
+	end
+end
+
+do
 	local scenario = "menu-overhaul: the Modules page stays available in Simple view"
 	local ns = session(scenario)
 	if ns then

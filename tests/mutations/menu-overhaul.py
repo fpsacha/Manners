@@ -44,3 +44,12 @@ mutate("Options/Window/Layout.lua",
        '\t\t\t\t\t{ "general.modulesCombatHelp", indent = true },\n',
        "menu-overhaul: a disabled module loses its description",
        expect=N + "disabled modules keep their descriptions visible", script=S)
+
+mutate("Options/Window/Layout.lua",
+       '\t\t\t\t{ key = "modules.reload", title = L["Apply changes"], items = {\n'
+       '\t\t\t\t\t"general.modulesReload",\n'
+       '\t\t\t\t} },\n'
+       '\t\t\t\t{ key = "modules.list", title = L["Available modules"], items = {\n',
+       '\t\t\t\t{ key = "modules.list", title = L["Available modules"], items = {\n',
+       "menu-overhaul: the reload action stays below the switches",
+       expect=N + "module reload action comes before the switches", script=S)
