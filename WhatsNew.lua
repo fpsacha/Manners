@@ -5,6 +5,15 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "25 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Pick the blessing you ask for.|r |cffffffffBlessing to ask a paladin for|r, under |cffffffffAsk people for a buff I'm missing|r, asks for Might or another blessing instead of Automatic's Wisdom (thanks to broodwave).",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Tracking after a death.|r Find Minerals and the other trackings are reminded again after you die, even when the minimap still shows them on (thanks to aisenfaire).",
+			"|cffff9a52No imbue for a fishing pole.|r A shaman with a fishing pole in the main hand is no longer reminded of a weapon imbue (thanks to LT2138).",
+		} },
+	} },
 	{ version = "1.12.1", date = "24 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100No more achievements.|r The milestones, their toasts, the hall of fame and the ledger's titles are gone.",
@@ -39,14 +48,6 @@ ns.WhatsNew = {
 			"|cffff9a52Will of the Forsaken|r stays lit through a second fear; the cure button no longer blinks or says nil.",
 			"|cffff9a52Battlegrounds:|r buffs after a death are read right for you and your team.",
 			"|cffff9a52Healthstones and stones|r whose name ends in a bracket cast again.",
-		} },
-	} },
-	{ version = "1.11.40", date = "22 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Your own buffs in a battleground.|r After a death there, Mark of the Wild and Thorns are no longer asked for while they are on you.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Your own buffs in a battleground.|r After a death there, a buff you cast on yourself again is noticed, so Mark of the Wild or Thorns is no longer asked for while it is on, and your team gets its turn (GitHub issue 38).",
 		} },
 	} },
 }

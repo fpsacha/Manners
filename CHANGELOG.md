@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-### Changes
+*25 November 2026*
+
+### Highlights
 - **Pick the blessing you ask for.** *Blessing to ask a paladin for*, under
   *Ask people for a buff I'm missing*, asks for Might or another blessing
   instead of Automatic's Wisdom (thanks to broodwave).
