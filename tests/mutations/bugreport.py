@@ -182,3 +182,15 @@ mutate("Options/BugReport.lua",
        "bugreport: a fight's link keeps a group member's name",
        expect="bugreport: in a fight a group member's name leaves the link and the summary",
        script=S)
+
+mutate("Options/BugReport.lua",
+       "\t\t\tAdd(ns.UnitFullName(unit), to)\n"
+       "\t\t\tif type(surname) == \"string\" and surname ~= \"\" then\n"
+       "\t\t\t\tAdd(surname, to)\n"
+       "\t\t\t\tAdd(name .. \" \" .. surname, to)\n"
+       "\t\t\t\tAdd(name .. \"-\" .. surname, to)\n"
+       "\t\t\tend\n",
+       "\n",
+       "bugreport: a fight's link keeps a group member's realm",
+       expect="bugreport: in a fight a group member's name leaves the link and the summary",
+       script=S)

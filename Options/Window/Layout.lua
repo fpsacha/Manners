@@ -428,6 +428,8 @@ ns.WindowLayout = {
 					{ composite = "order", ids = {
 						"who.orderNote", "who.orderPick", "who.orderUp", "who.orderDown", "who.orderReset",
 					} },
+				} },
+				{ key = "who.orderClass", title = L["A blessing for each class"], fold = true, items = {
 					-- A blessing for each class, under the order it steps out of.
 					"who.classNote",
 					{ "who.classPick", match = "classBlessing" },
@@ -469,7 +471,7 @@ ns.WindowLayout = {
 			},
 			subpages = {
 				{ "who.sources" },
-				{ "who.cast", "who.order", "who.castFine" },
+				{ "who.cast", "who.order", "who.orderClass", "who.castFine" },
 				{ "who.group" },
 				{ "who.beyond" },
 				{ "who.first" },

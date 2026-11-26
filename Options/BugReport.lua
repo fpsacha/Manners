@@ -607,16 +607,23 @@ end
 -- unit tokens, no queue scan.
 local function FightAliases()
 	local alias, count = {}, 0
-	local function Add(name)
-		if type(name) ~= "string" or name == "" or alias[name] then return end
-		count = count + 1
-		alias[name] = "Person " .. count
+	local function Add(name, to)
+		if type(name) ~= "string" or name == "" then return nil end
+		if alias[name] then return alias[name] end
+		if not to then count = count + 1; to = "Person " .. count end
+		alias[name] = to
+		return to
 	end
 	local function AddUnit(unit)
-		local name = ns.plain((_G.UnitName(unit)))
+		local name, surname = Plain1(_G.UnitName, unit)
 		if type(name) == "string" and name ~= "" then
-			Add(name)
-			Add(ns.UnitFullName(unit))
+			local to = Add(name)
+			Add(ns.UnitFullName(unit), to)
+			if type(surname) == "string" and surname ~= "" then
+				Add(surname, to)
+				Add(name .. " " .. surname, to)
+				Add(name .. "-" .. surname, to)
+			end
 		end
 	end
 	if type(_G.UnitName) == "function" then

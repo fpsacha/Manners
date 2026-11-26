@@ -1169,8 +1169,8 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 		local buff = ns.BUFF_BY_ID[id]
 		-- Only a cast that reached you: one on somebody else leaves your own reading as it was.
 		local guid = plain(castGUID)
-		local to = sentTarget[guid]
-		sentTarget[guid] = nil
+		local to = guid and sentTarget[guid] or nil
+		if guid then sentTarget[guid] = nil end
 		if buff then SendBuffClaim(to, id) end
 		-- A group form reaches you, but one that goes by class only on your own class.
 		local group = buff and IsGroupId(buff, id)

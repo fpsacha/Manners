@@ -66,6 +66,11 @@ do
 	if ns.Courtesy.frame then fail(scenario, "an off Services module created its request-event frame") end
 	local fire = H.findOption(ns.optionsTable, "courtesyFireShield")
 	if ns.FindBuff("WARLOCK", "fireshield") then fail(scenario, "Fire Shield does queue work while off") end
+	local available = ({ camelot = true, vanilla = true, tbc = true })[Mock.flavour] == true
+	if not available then
+		if fire then fail(scenario, "Fire Shield has a Services control on an unsupported client") end
+		return
+	end
 	if not fire then fail(scenario, "Fire Shield has no Services control") end
 	fire.set(nil, true)
 	local buff = ns.FindBuff("WARLOCK", "fireshield")

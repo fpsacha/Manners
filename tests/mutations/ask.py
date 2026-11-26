@@ -359,7 +359,7 @@ mutate("Commands.lua",
 # -------------------------------------------------------------- the group
 
 mutate("Ask.lua",
-       "\t\t\tif plain(checked) == true and plain(near) == false then return nil end\n",
+       "\t\tif plain(checked) ~= true or plain(near) ~= true then return nil end\n",
        "",
        "ask: a party member out of range asked",
        expect=GROUP, script=S)

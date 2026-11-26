@@ -15,13 +15,16 @@ local strangers, freshPrompt, pressButton = H.strangers, H.freshPrompt, H.pressB
 local findOption = H.findOption
 
 local TOUCHED = { "IsResting", "UnitAffectingCombat", "IsInInstance", "UnitIsAFK", "UnitIsDND", "UnitLevel",
-	"C_FriendList", "UnitIsDeadOrGhost", "UnitExists", "UnitInRange", "IsSpellKnown", "IsPlayerSpell" }
+	"C_FriendList", "UnitIsDeadOrGhost", "UnitExists", "UnitInRange", "UnitIsVisible",
+	"IsSpellKnown", "IsPlayerSpell" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
 local QUIET = {
 	IsResting = function() return false end,
 	UnitAffectingCombat = function() return false end,
+	UnitInRange = function() return true, true end,
+	UnitIsVisible = function() return true end,
 }
 
 -- Runs one scenario in the quiet world, with `globals` over it, and puts every
@@ -892,7 +895,9 @@ do
 		-- Out of reach of a cast on you, by the game's own word: left alone.
 		rawset(_G, "UnitInRange", function() return false, true end)
 		if asking(ns) then fail(scenario, "a party member out of range is asked") end
-		rawset(_G, "UnitInRange", original.UnitInRange)
+		rawset(_G, "UnitInRange", function() return true, false end)
+		if asking(ns) then fail(scenario, "a party member with an unchecked range is asked") end
+		rawset(_G, "UnitInRange", QUIET.UnitInRange)
 		ns.Prompt:Refresh()
 		local macro = ns.Prompt:GetButton():GetAttribute("macrotext1")
 		local lines = ns.Prompt:ClickSummary(ns.Prompt:Showing() or entry)

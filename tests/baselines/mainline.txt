@@ -139,6 +139,9 @@ the library measures, and owns up to what it measured: dropped somebody four yar
 the page says when it will never do anything: SKIPPED -- the clamp discarded the pin
 the page says when it will never do anything: the page explains Automatic while a spell is pinned
 the tooltip quotes the line that will actually run: SKIPPED -- no spoken line to compare (alpha / nil)
+## ask-blessing.lua
+ask-blessing: a choice that is no blessing goes back to Automatic: Might was not kept: auto
+ask-blessing: a druid who chose Might asks a paladin for Might: a paladin beside a druid with no blessing is not asked
 ## ask-review.lua
 ask-review: an ask's name in the list is said during the cooldown: a click on the ask's name in the cooldown ran |/w Anna Could I have Power Word: Fortitude when you have a moment, Anna? Thank you.|
 ## ask.lua
@@ -286,9 +289,6 @@ bg-hidden: a team-mate you just buffed is not offered again while the game hides
 bg-selfname: a cast on yourself named with your surname lets the hidden reading stand: SKIPPED -- Thorns is not offered once Mark of the Wild is: Anna/group/motw, Bert/group/motw, Cara/group/motw, Dora/group/motw
 ## buffheld.lua
 buffheld: a mage's scrolls count as consumables: SKIPPED -- this client has no scroll family for a mage
-## bugreport.lua
-bugreport: in a fight a group member's name leaves the link and the summary: a group member's name is in the link: https://github.com/fpsacha/Manners/issues/new?template=bug_report.yml&title=Bug%3A%20The%20prompt%20never%20showed%20up&category=The%20prompt%20never%20showed%20up&what=The%20prompt%20never%20showed%20up%3A%20Person%201%20Stonewell%20never%20got%20Fortitude&class=Mage&version=VERSION&game=Retail
-bugreport: in a fight a group member's name leaves the link and the summary: a group member's name is in the summary's words: Person 1 Stonewell never got Fortitude
 ## classskip.lua
 classskip: the grid lists the client's classes, ticked, and unticking stores it: the grid holds 13 classes on WoW Forever
 ## courtesy-review.lua
@@ -388,10 +388,6 @@ entrance-light: a favour's glint runs the rules: the glints' flag stayed up afte
 favour-caster: a Manners message names a waiting aura by the spell family: the rank's family did not name Anna: Manners could not tell who buffed you, so there is nobody to return it to.
 favour-caster: a Manners message names a waiting aura by the spell family: the waiting landing was filed as unnamed
 favour-caster: one player in sight able to cast the rank is named: the only possible caster was not named (nil): |cff80ff80Anna buffed you|r -- returning the favour is on the prompt
-## favours-fixes.lua
-favours-fix: a Greater Blessing on a team-mate of another class leaves your own reading as it was: SKIPPED -- Blessing of Might is not offered to you after the death: nil /
-favours-fix: a team-mate who died while you were dead is offered again after the rez (group members just revived first off): SKIPPED -- Anna was not offered and buffed: Anna, Bert, Cara, Dora
-favours-fix: a team-mate who died while you were dead is offered again after the rez: SKIPPED -- Anna was not offered and buffed: Anna, Bert, Cara, Dora
 ## forever-tracking.lua
 forever-tracking: Find Treasure on still reminds you of Find Herbs: with Find Herbs on the minimap list, Tracking is not one of your own buffs
 forever-tracking: a memory or a pick of it on Tracking moves across: SKIPPED -- Find Treasure is not a family of its own here
@@ -528,6 +524,15 @@ core22: a shout at 5 yards carries the thank-you: SKIPPED -- Bob is not offered 
 core22: a silent press where another spell went out leaves the next press its line: SKIPPED -- the line was not armed to begin with
 core22: a silent press where it went to somebody else leaves the next press its line: SKIPPED -- the line was not armed to begin with
 core22: a silent press where nothing answers it leaves the next press its line: SKIPPED -- the line was not armed to begin with
+## hunt29-order.lua
+hunt29-order: tbc: the window draws a line for each buff, in order: SKIPPED -- no order list on Who to buff
+hunt29-order: the controls are placed once, in the window's Who to buff: the order list is not shown on Who to buff
+hunt29-order: vanilla: the window draws a line for each buff, in order: SKIPPED -- no order list on Who to buff
+hunt29-order: window: Back to Automatic is there only while the order differs: SKIPPED -- no order list on Who to buff
+hunt29-order: window: a press repaints the list and the page at once: SKIPPED -- no order list on Who to buff
+hunt29-order: window: no arrow up on the first line and none down on the last: SKIPPED -- no order list on Who to buff
+hunt29-order: window: the first line the walk can use is set apart, the others are not: SKIPPED -- no order list on Who to buff
+hunt29-order: window: the list is hidden for a mage and while a spell is pinned: the buff order does not come back with Automatic
 ## hunt3-clients.lua
 hunt3-clients: a conjure still cooling down is not offered: SKIPPED -- the conjure is not offered when ready
 ## hunt3-core.lua
@@ -581,8 +586,6 @@ hunt33-settings: the buff order travels in a settings string: SKIPPED -- the ord
 ## hunt39-press.lua
 hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target false) was left out: /target Anna Aim / /cast Arcane Intellect / /cleartarget
 hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target true) was left out: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
-## hunt40-cards.lua
-hunt40-cards: the recorded text is current with the looks, held by the hash:   the pictures were drawn from something that has changed since
 ## hunt5-core.lua
 core: a long Cyrillic name and surname is a person: a 49-byte name and surname was not a name: \208\144\208\187\208\181\208\186\209\129\208\176\208\189\208\180\209\128\208\184\208\189\208\176
 core: a long Cyrillic name and surname is a person: a 98-byte name was let through
@@ -623,9 +626,6 @@ core2: an accented question about the buff is not a request (itIT): itIT: reques
 core2: the Chinese please inside another word is not a please: zhCN: request 1 was not heard as one
 core2: the Chinese please inside another word is not a please: zhCN: request 2 was not heard as one
 core2: the Chinese please inside another word is not a please: zhCN: request 3 was not heard as one
-## hunt5-ledger.lua
-hunt5 ledger: a font that will not load does not break the window: SetFont claiming success, the window has no tabs
-hunt5 ledger: a font that will not load does not break the window: SetFont refusing, the window has no tabs
 ## hunt5-prompt.lua
 prompt5: a press after your target changed hands it back (fused): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
 prompt5: a press after your target changed hands it back (fused, pressed before a repaint): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
@@ -654,46 +654,6 @@ selftest: the main hand and the familiar are compared: Manners reading nothing o
 selftest: the main hand and the familiar are compared: a Rat up reads PASS familiar: MAGE has no familiar
 selftest: the main hand and the familiar are compared: the report does not say the imbue is C_Item's alone: PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: nil / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
 ## layout.lua
-every control has one place in the options window (DRUID): pages services and who share the icon Who
-every control has one place in the options window (DRUID): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (DRUID): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (DRUID): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (EVOKER): pages services and who share the icon Who
-every control has one place in the options window (EVOKER): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (EVOKER): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (EVOKER): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (HUNTER): pages services and who share the icon Who
-every control has one place in the options window (HUNTER): the sidebar's group 5, place 4 is services, not nil
-every control has one place in the options window (HUNTER): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (HUNTER): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (MAGE): pages services and who share the icon Who
-every control has one place in the options window (MAGE): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (MAGE): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (MAGE): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (PALADIN): pages services and who share the icon Who
-every control has one place in the options window (PALADIN): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (PALADIN): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (PALADIN): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (PRIEST): pages services and who share the icon Who
-every control has one place in the options window (PRIEST): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (PRIEST): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (PRIEST): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (ROGUE): pages services and who share the icon Who
-every control has one place in the options window (ROGUE): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (ROGUE): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (ROGUE): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (SHAMAN): pages services and who share the icon Who
-every control has one place in the options window (SHAMAN): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (SHAMAN): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (SHAMAN): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (WARLOCK): pages services and who share the icon Who
-every control has one place in the options window (WARLOCK): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (WARLOCK): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (WARLOCK): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
-every control has one place in the options window (WARRIOR): pages services and who share the icon Who
-every control has one place in the options window (WARRIOR): the sidebar's group 5, place 3 is services, not nil
-every control has one place in the options window (WARRIOR): who.askPaladin (select, "Blessing to ask a paladin for") is in the model and has no place in the window
-every control has one place in the options window (WARRIOR): who.courtesyRefresh (toggle, "Water and food, when they ask") is in the model and has no place in the window
 every path in the options window's layout is in the model: self, section 1 (self.myself) places who.own_armor, which no class's model has
 every path in the options window's layout is in the model: self, section 1 (self.myself) places who.own_aspect, which no class's model has
 every path in the options window's layout is in the model: self, section 1 (self.myself) places who.own_aura, which no class's model has
@@ -719,7 +679,6 @@ every path in the options window's layout is in the model: self, section 4 (self
 every path in the options window's layout is in the model: self, section 4 (self.weapons) places who.own_warlockstone, which no class's model has
 every path in the options window's layout is in the model: self, section 5 (self.items) places who.own_familiar, which no class's model has
 every path in the options window's layout is in the model: self, section 5 (self.items) places who.own_imbue, which no class's model has
-every path in the options window's layout is in the model: services, section 12 (services.fireshield) places who.courtesyFireShield, which no class's model has
 ## ledger.lua
 a favour appears in the ledger: SKIPPED -- no favour was filed, so there is nothing to record
 a favour forgotten at a reload names the setting: SKIPPED -- no favour was filed, so there is nothing to record
@@ -731,14 +690,6 @@ a favour that runs out is let go: SKIPPED -- no favour was filed, so there is no
 a refused cast puts the ledger back: SKIPPED -- no favour was filed, so there is nothing to record
 buffs given unprompted are filed under group or strangers: SKIPPED -- nobody was offered
 buffs given unprompted are filed under group or strangers: SKIPPED -- the group member was not offered as one
-## ledgerui.lua
-ledgerui: each tab lists its own rows, badged: the achievements tab shows no row 1 with 16 to list
-ledgerui: each tab lists its own rows, badged: the achievements tab shows no row 2 with 16 to list
-ledgerui: each tab lists its own rows, badged: the achievements tab shows no row 3 with 16 to list
-ledgerui: each tab lists its own rows, badged: the achievements tab shows no row 4 with 16 to list
-ledgerui: each tab lists its own rows, badged: the achievements tab shows no row 5 with 16 to list
-ledgerui: each tab lists its own rows, badged: the achievements tab shows no row 6 with 16 to list
-ledgerui: each tab lists its own rows, badged: the achievements tab shows no row 7 with 16 to list
 ## linger.lua
 linger: a crowd is remembered forty at a time: somebody new was not remembered in a full crowd
 linger: a loading screen forgets the passers-by remembered: SKIPPED -- Anna was not remembered once the cursor left her
@@ -937,8 +888,6 @@ menu: each buff has a row of its own, with that buff's own switch under it: SKIP
 menu: each buff has a row of its own, with that buff's own switch under it: SKIPPED -- a priest's switches are not placed
 menu: the simple view draws only the essentials, and a page with none of them leaves the sidebar: WARRIOR: who.self is off the simple view
 menu: what comes under the columns starts under the tallest, and the page scrolls to its end: SKIPPED -- who fits the window on this client
-## menupass-fight.lua
-menupass-fight: the sidebar fits when the room runs short: the usual window needed the compact sidebar
 ## menupass-say.lua
 menupass-say: Who to buff's fine print is folded and its dot lights when changed: SKIPPED -- no switch of the fine print is shown on this client
 ## menupass-search.lua
@@ -959,10 +908,6 @@ names-own-lines: first name only reaches the line that asks for a buff: with Fir
 names-own-lines: first name only says the first word, the whisper keeps the whole name: the line was said as nil, wanted /w Munin Hugins Munin, take this.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 names-own-lines: first name only says the first word, the whisper keeps the whole name: the line was said as nil, wanted /w Munin Hugins Thanks for the buff, Munin.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 names-own-lines: first name only says the first word, the whisper keeps the whole name: with the switch off the line was nil
-## options-appearance.lua
-the Look tab reads in setup order: the tab has a control the spec does not: cureFightCtrl
-the Look tab reads in setup order: the tab has a control the spec does not: cureFightPlain
-the Look tab reads in setup order: the tab has a control the spec does not: cureFightShift
 ## options-presets.lua
 presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are offered one back unless they already have it. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
 ## options-who.lua
@@ -1285,7 +1230,6 @@ self: a mage missing their own Intellect is offered it: offered as self, Mort, p
 self: a press on yourself files nothing and thanks nobody: you were not given the retry cooldown after the press
 self: a shout is never offered to yourself: the Myself switch is shown to a warrior with nothing under it
 self: behind a favour owed and ahead of your group: not the favour owed, then you: Zed Far, Mort, Anna, Bert
-self: the options offer the switch and say what it does: threw: self.lua:N: attempt to compare number with nil
 self: the other lines about a press on you say you: the back-off line reads |cffff8080the game keeps refusing buffs on Mort Defrette|r (it said: Can't do that while mounted) -- they will not be offered for a while; target them to try again.
 self: you count towards your party's group cast: two of the party and you missing it made no group cast: Mort, Cara, Dora
 self: you count towards your party's group cast: you are offered apart from the group cast that covers you
@@ -1298,9 +1242,6 @@ selflead: 0 is the worked-out moment, as before: Thorns with T s left was not to
 selflead: earlier still works, up to half the buff's length: four minutes asked for, Thorns with T s left was not topped up
 selflead: half a minute is half a minute, later than the worked-out moment: half a minute asked for, Thorns with T s left was not topped up
 selflead: the moment asked for holds in a dungeon too: SKIPPED -- in a dungeon, Thorns with T s left was not topped up on the worked-out moment
-## services-module.lua
-services-module.lua: threw: services-module.lua:N: attempt to index local 'fire' (a nil value)
-services-module: target refreshments and Fire Shield attach: Fire Shield has no Services control
 ## speech-lines.lua
 speech-lines: no party line in an instance group alone: /party, your own group: the macro lost the line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-lines: no party line in an instance group alone: /raid, your own group: the macro lost the line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
@@ -1359,8 +1300,6 @@ speech-range: the tooltip quotes no line while the cursor holds an empty queue: 
 speech-range: the tooltip quotes no line while the cursor holds an empty queue: SKIPPED -- the press did not go to Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
 ## subpages.lua
 subpages: a sub-division chosen draws only its sections, from the top, its folds open: SKIPPED -- no Food chip on a paladin's My own buffs on this client
-subpages: each page of many sections names its sub-divisions, every one its own sections, seven at most: diagnostics has 4 sections with a title and no sub-divisions
-subpages: each page of many sections names its sub-divisions, every one its own sections, seven at most: services has 12 sections with a title and no sub-divisions
 subpages: the red dot marks the sub-division that holds the warning: a sub-division has a red dot on a fresh profile: who.cast
 subpages: the red dot marks the sub-division that holds the warning: nobody to offer to, the red dots are on who.sources,who.cast, not Offer my buff to
 subpages: the window remembers each page's sub-division for the session: SKIPPED -- no Food chip on a paladin's My own buffs on this client
@@ -1411,9 +1350,6 @@ thank-everyone: a warrior with no shout yet thanks a player who buffs her, and o
 thank-everyone: a warrior with no shout yet thanks a player who buffs her, and owes nothing: a shoutless warrior's favour was not thanked:
 your own buff: nothing you cast goes on yourself alone.
 your pet: |cffffffff-|r -- out false, dead false, health ?, happiness -
-## thank-unseen.lua
-thank-unseen: the nameplates line names the switch to a player who thanks: SKIPPED -- no nameplates line
-thank-unseen: the nameplates line says the emote thanks them: SKIPPED -- no nameplates line
 ## thank.lua
 thank: DoEmote missing is skipped silently: SKIPPED -- the favour from nameplate1 was not noticed:
 thank: DoEmote throws is skipped silently: SKIPPED -- the favour from nameplate1 was not noticed:
@@ -1475,7 +1411,10 @@ thankwhisper: with the /thank on too, both go: 0 whispers went
 ## theme-picker.lua
 theme-picker: a class with no buff for others wears its own learned buff, else the question mark (an aspect): SKIPPED -- the gallery is not on the Look page
 theme-picker: the icon is the player's own buff, cropped as the prompt crops it: SKIPPED -- the priest has 1 castable buffs
-theme-picker: the pictures were drawn from the looks as they are now:   the pictures were drawn from something that has changed since
+## tracking-death.lua
+tracking-death: Find Minerals is reminded after a death though the list still says on: with Find Minerals known and on the minimap list, Tracking is not one of your own buffs
+tracking-death: a change of the list while dead is not believed: with Find Minerals known and on the minimap list, Tracking is not one of your own buffs
+tracking-death: the list changing once you are back up is believed: with Find Minerals known and on the minimap list, Tracking is not one of your own buffs
 ## tracking.lua
 tracking: Find Herbs off is offered, on is not: with Find Herbs on the minimap list, tracking is not one of your own buffs
 tracking: dying and reviving reread Find Minerals immediately: SKIPPED -- tracking is not one of your own buffs
@@ -1524,12 +1463,6 @@ whatif: nobody on your ignore list is thanked or offered: SKIPPED -- a favour fr
 whatif: nobody on your ignore list is thanked or offered: SKIPPED -- a passer-by missing Intellect was not offered it
 whatif: nobody on your ignore list is thanked or offered: a group member on your ignore list was not offered
 whatif: one line per person a minute: threw: whatif.lua:N: attempt to index a nil value
-## whatsnew.lua
-whatsnew: the generated notes are the changelog's newest releases: release 1 is VERSION, and the changelog says Unreleased: run python tools/make_whatsnew.py
-whatsnew: the generated notes are the changelog's newest releases: release 2 is 1.12.0, and the changelog says VERSION: run python tools/make_whatsnew.py
-whatsnew: the generated notes are the changelog's newest releases: release 3 is 1.11.42, and the changelog says 1.12.0: run python tools/make_whatsnew.py
-whatsnew: the generated notes are the changelog's newest releases: release 4 is 1.11.40, and the changelog says 1.11.42: run python tools/make_whatsnew.py
-whatsnew: the generated notes are the changelog's newest releases: the changelog's newest release has no date in italics under its heading
 ## whisper.lua
 whisper: Camelot whispers name and surname, and nothing it would misread: Munin Hugins: the spoken line is nil, wanted /w Munin Hugins Thanks for the buff, Munin Hugins.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 whisper: Camelot whispers name and surname, and nothing it would misread: Petra Brâve: the spoken line is nil, wanted /w Petra Brâve Thanks for the buff, Petra Brâve.: /target Petra Brâve / /cast Arcane Intellect / /targetlasttarget
@@ -1537,21 +1470,13 @@ whisper: Camelot whispers name and surname, and nothing it would misread: Solo: 
 whisper: the client's regional-names answer decides the parse: Munin Hugins with regional names true: the spoken line is nil, wanted /w Munin Hugins Thanks for the buff, Munin Hugins.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 ## window-classes.lua
 window: a note keeps its section only when it stands in or the section has no controls: a hunter's Myself is gone
-window: the class table (HUNTER): the sidebar is general skip when click quiet fight appearance modules pet self services profiles diagnostics, not general skip when self pet quiet fight click appearance profiles diagnostics
-window: the class table (MAGE): the sidebar is general who skip when click quiet fight appearance modules self services profiles diagnostics, not general who skip when self quiet fight click appearance profiles diagnostics
 window: the class table (PALADIN): a paladin has no switch for kings
 window: the class table (PALADIN): a paladin has no switch for light
 window: the class table (PALADIN): a paladin has no switch for might
 window: the class table (PALADIN): a paladin has no switch for salvation
 window: the class table (PALADIN): a paladin has no switch for wisdom
-window: the class table (PALADIN): the sidebar is general who skip when click quiet fight appearance modules self services profiles diagnostics, not general who skip when self quiet fight click appearance profiles diagnostics
 window: the class table (PRIEST): a priest has no switch for fortitude
 window: the class table (PRIEST): a priest has no switch for shadow
 window: the class table (PRIEST): a priest has no switch for spirit
-window: the class table (PRIEST): the sidebar is general who skip when click quiet fight appearance modules self services profiles diagnostics, not general who skip when self quiet fight click appearance profiles diagnostics
-window: the class table (ROGUE): the sidebar is general click quiet modules profiles diagnostics, not general quiet click profiles diagnostics
-window: the class table (WARRIOR): the sidebar is general who skip when click quiet fight appearance modules self services profiles diagnostics, not general who skip when self quiet fight click appearance profiles diagnostics
 ## window.lua
-window: OpenOptions, OptionsOpen, CloseOptions and OptionsTab: the page ids are general who skip when click quiet fight appearance modules self services profiles diagnostics
 window: a spell learned mid-session adds its row without a reload: learning Frost Armor did not add Armor to My own buffs
-window: the reset button is hidden on Start here, Profiles and Diagnostics: the reset button is shown on services

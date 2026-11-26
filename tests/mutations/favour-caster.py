@@ -7,6 +7,14 @@
 S = "runscenarios.py"
 N = "favour-caster: "
 
+mutate("Clicks.lua",
+       "\t\tlocal to = guid and sentTarget[guid] or nil\n"
+       "\t\tif guid then sentTarget[guid] = nil end\n",
+       "\t\tlocal to = sentTarget[guid]\n"
+       "\t\tsentTarget[guid] = nil\n",
+       "favour-caster: a missing cast guid indexes the target table",
+       expect=N + "a successful cast without a cast guid stays safe", script=S)
+
 mutate("Favours.lua",
        "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n",
        "\t\tif not source and ns.ALL_BUFF_IDS[key] and false\n",

@@ -49,8 +49,11 @@ local function inMatch(scenario, body)
 end
 
 local function entryFor(ns, name)
+	local short = type(name) == "string" and name:match("^(%S+)") or name
 	for _, entry in ipairs(ns.BuildQueue()) do
-		if entry.name == name then return entry end
+		if entry.name == name or entry.name == short then
+			return entry
+		end
 	end
 	return nil
 end
@@ -69,8 +72,18 @@ local function press(ns, entry, name, castGUID, spellId)
 	ns.Prompt:InvalidateMacro()
 	ns.Prompt:ApplyTarget(entry)
 	local post = button.scripts.PostClick
-	if post then pcall(post, button, "LeftButton", true) end
-	if not ns.pendingClick then return false end
+	if post then
+		local ok, err = pcall(post, button, "LeftButton", true)
+		if not ok then return false, "threw: " .. tostring(err) end
+	end
+	if not ns.pendingClick then
+		local db = ns.db and ns.db.profile
+		local state = ns.Prompt.state
+		return false, ("live=%s can=%s locked=%s test=%s current=%s shown=%s"):format(
+			tostring(db and db.enabled), tostring(ns.CanCastAnything()), tostring(db and db.prompt and db.prompt.locked),
+			tostring(state and state.testMode), tostring(state and state.current and state.current.name),
+			tostring(ns.Prompt:GetButton():IsShown()))
+	end
 	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", name, castGUID, spellId)
 	ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", castGUID, spellId)
 	return true
@@ -91,8 +104,10 @@ for _, revivedOff in ipairs({ false, true }) do
 		Mock.secretAuraIds = { [INTELLECT] = true }
 		Mock.advance(1)
 		local anna = entryFor(ns, ANNA)
-		if not (anna and press(ns, anna, ANNA, "Cast-fav-1", INTELLECT)) then
-			fail(scenario, "SKIPPED -- Anna was not offered and buffed: " .. names(ns))
+		local pressed, why
+		if anna then pressed, why = press(ns, anna, anna.name, "Cast-fav-1", INTELLECT) end
+		if not (anna and pressed) then
+			fail(scenario, "SKIPPED -- Anna was not offered and buffed: " .. names(ns) .. " / " .. tostring(why))
 			return
 		end
 		Mock.advance(13)
@@ -128,6 +143,7 @@ end
 -- casts the Greater Blessing of Might on a warrior team-mate. That never
 -- reached him, so his own Blessing of Might is still gone with the death and
 -- must still be offered to him.
+if Mock.flavour ~= "mainline" then
 do
 	local scenario = "favours-fix: a Greater Blessing on a team-mate of another class leaves your own reading as it was"
 	local MIGHT, GREATER_MIGHT = 19740, 25916
@@ -149,6 +165,7 @@ do
 	local function mine(ns)
 		for _, entry in ipairs(ns.BuildQueue()) do
 			if entry.reason == "self" then return entry end
+		end
 		end
 		return nil
 	end

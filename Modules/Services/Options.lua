@@ -289,16 +289,21 @@ local layout = {
 		{ key = "services.slowfall", title = L["Slow Fall"], fold = true, items = Items("slowfall", "courtesySlowFall") },
 		{ key = "services.levitate", title = L["Levitate"], fold = true, items = Items("levitate", "courtesyLevitate") },
 		{ key = "services.waterwalking", title = L["Water Walking"], fold = true, items = Items("waterwalking", "courtesyWaterWalking") },
-		{ key = "services.fireshield", title = L["Fire Shield"], fold = true, items = { "who.courtesyFireShield" } },
 	},
 	subpages = {
 		{ "services.module", "services.water", "services.food" },
 		{ "services.target", "services.portals" },
 		{ "services.healthstone", "services.summon", "services.soulstone" },
 		{ "services.slowfall", "services.levitate", "services.waterwalking" },
-		{ "services.fireshield" },
 	},
 }
+if type(Courtesy.SetFireShield) == "function" then
+	layout.sections[#layout.sections + 1] = {
+		key = "services.fireshield", title = L["Fire Shield"], fold = true,
+		items = { "who.courtesyFireShield" },
+	}
+	layout.subpages[#layout.subpages + 1] = { "services.fireshield" }
+end
 api:RegisterOptionsPage("services", function()
 	return { type = "group", name = L["Services"], args = {} }
 end, layout, "modules")

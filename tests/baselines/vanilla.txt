@@ -40,7 +40,7 @@ another paladin's blessing is not one of yours (an owed paladin with our own Kin
 another paladin's blessing is not one of yours (an owed paladin with our own Kings): read: offered wisdom, expected false
 buffing your own target leaves them targeted: SKIPPED -- Anna was not offered through the target token: /target Anna
 buffing your own target leaves them targeted: a stranger off a nameplate no longer gets your target handed back: /target Bert / /cast Arcane Intellect / /targetlasttarget
-no buff table for this client: said the table was missing without saying on which client: no buff data for this client -- vanilla/classic interface=11509 build=1.15.9 project=2
+no buff table for this client: said the table was missing without saying on which client: no buff data for this client -- vanilla/classic interface=11509 build=CLIENT_BUILD project=2
 right beside me is never looser than nearby: SKIPPED -- "nearby" did not separate the two, so there is no step above to compare with
 the target rule can be switched off: SKIPPED -- the target was not on top to begin with
 ## scenarios.lua 3/8
@@ -94,15 +94,19 @@ buff data: |cffffffffvanilla|r
 build |cffffffffVERSION|r
 combat log favours: armed=true, 0 seen, 0 filed
 combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm
+cure in a fight, last fight: 0 reads, 0 withheld, 0 needing a cure, seen for T s, 0 from the game's list; the game's list of debuffs you can remove: no, asked 0 times, 0 withheld, 0 empty; 0 reads threw
+cure in a fight, the cover: took 0 clicks last fight, let 0 through; let a click through on this account: never
+cure in a fight: switch off; spells none learned; not made; key none; driver none; shown false
+cure need: from the auras; the game's display under: none; two clicks last fight: 0 opened, 0 cast by the second, 0 double clicks swallowed
 cures: nothing learned to cure with yet.
-debug says when favours are not being watched (both on): SKIPPED -- the control favour is not listed: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
+debug says when favours are not being watched (both on): SKIPPED -- the control favour is not listed: client: |cffffffffvanilla/classic interface=11509 build=CLIENT_BUILD project=2|r
 intellect      Arcane Intellect       known=true readable=true
 key: none | reminder: due at a login (said 0 of 3)
-milestones: 0 of 12 earned.
 not listening for requests -- |cffffd100People who ask me in chat|r is switched off.
 owes returning: |cffffffffPetra|r (T s left, buffed you T s ago)
 own buffs: 3 read, baseline 2
 proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet
+rank for low levels: every cast named the rank that lands
 targeting: conditional=true @unit=true /targetexact=true
 thank with an emote: |cffff0000off|r
 the key keeps the realm and the macro drops it: /manners try expands {name}|{aim} to 'Vann|Vann'
@@ -125,13 +129,14 @@ capabilities on Forever: read UnitName's second return as a realm here, where it
 capabilities on Forever: the probe carried vanilla/classic
 combat log favours: armed=true, 0 seen, 0 filed
 combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm
-debug names the client for a class with nothing to cast: never named the flavour: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
-debug names the client for a class with nothing to cast: never named the interface number: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
+debug names the client for a class with nothing to cast: never named the flavour: client: |cffffffffvanilla/classic interface=11509 build=CLIENT_BUILD project=2|r
+debug names the client for a class with nothing to cast: never named the interface number: client: |cffffffffvanilla/classic interface=11509 build=CLIENT_BUILD project=2|r
 key: none | reminder: no prompt for this class (said 0 of 3)
 nobody is measured in a fight: dropped somebody during a fight, on a distance the client will not answer during one
 one landing seen twice, aura scan first: one courtesy was announced 2 times
 one landing seen twice, aura scan first: one person who buffed us was filed as 2 debts
 own buffs: 2 read, baseline 2
+rank for low levels: every cast named the rank that lands
 surnames: built name 'Petra'
 targeting: conditional=true @unit=true /targetexact=true
 thank with an emote: |cffff0000off|r
@@ -258,6 +263,11 @@ battleground: before the gates open the mana floor holds nobody back: under Prep
 battleground: of your own, what you fight with before the long extras, the missing before the low: SKIPPED -- no team-mate is offered ahead of your food
 battleground: once the gates are open nobody else is offered in a fight: SKIPPED -- out in the world a fight leaves no party member in the queue
 battleground: only somebody within reach is offered: SKIPPED -- out in the world, with Only in range off, somebody out of range or with no token is not offered: Zed Far, Anna, Bert, Dora, Cara
+## bg-hidden.lua
+bg-hidden: a late refusal takes the cover back: SKIPPED -- Anna was not offered and buffed
+bg-hidden: a reading the client gives still decides: SKIPPED -- Anna was not offered and buffed
+bg-hidden: a team-mate seen dead since your cast is offered again: SKIPPED -- Anna was not offered and buffed
+bg-hidden: a team-mate you just buffed is not offered again while the game hides their buffs: SKIPPED -- Anna is not offered at all: Anna, Bert, Cara, Dora
 ## courtesy-review.lua
 courtesy-review: a conjure that failed is offered again, not a trade of water they cannot drink: SKIPPED -- somebody of level 30 is not offered a conjure over the level 55 water held
 courtesy-review: a courtesy standing does not stop the walk for a cure: SKIPPED -- the cursed party member is not offered the cure with nobody asking
@@ -294,6 +304,8 @@ courtesy: water asked for is conjured, then traded, and the trade is never accep
 courtesy: water is no buff request, and a buff request no courtesy: buff pls was not offered as a buff (nil)
 courtesy: water is no buff request, and a buff request no courtesy: int pls was not offered as Arcane Intellect (nil)
 courtesy: water is offered with every buff switched off: with no buff to give, the water she asked for is not offered
+## cures-self.lua
+cures-self: a class with a cure and no buff for others has a prompt for it: SKIPPED -- the shaman has a buff for somebody else in hand
 ## cures.lua
 cures: a class with a cure and no buff for others still walks: SKIPPED -- the shaman has a buff for somebody else in hand
 cures: the switches are on Who to buff, for a class with a cure: SKIPPED -- My party and raid is not hidden from a shaman with nothing for others
@@ -311,6 +323,8 @@ data-audit: on Forever a raider flagged in any raid group holds the group cast b
 data-audit: on Forever one group spell covers everybody in the raid: two missing it in each of two raid groups were offered 0 group casts and 4 single ones, where one Arcane Brilliance covers all four on Forever
 data-audit: the group buff settings say what one cast counts (Forever): Forever's Arcane Brilliance is taken to reach only one raid group
 data-audit: the group buff settings say what one cast counts (Forever): the group buff settings do not say they count your party or raid: Cast one Arcane Brilliance when enough of one party need it and you carry the reagent. / How many in one party must be missing it first.
+## downrank-fortitude.lua
+downrank-fort: a passer-by remembered keeps the rank for their level: SKIPPED -- Anna under the cursor was not offered
 ## downrank.lua
 downrank: a change of level rebuilds the macro: SKIPPED -- Anna was not on the prompt
 downrank: a level the client will not say keeps the plain name: SKIPPED -- Anna was not on the prompt
@@ -358,15 +372,6 @@ groupbuffs: the macro follows a party filling up: SKIPPED -- Bram's single cast 
 groupbuffs: the settings: the threshold does not say it counts your party or raid: How many in one party must be missing it first.
 groupbuffs: the tooltip counts the reagent: the tooltip does not say what a right-click does to a group cast: Manners / Your party	Arcane Brilliance / 4 in your party are missing Arcane Intellect. / One cast gives it to everybody in your party. / Uses one Arcane Powder -- you have 20. /   / Targets |cffffffffBram|r, casts |cffffffffArcane Brilliance|r on everybody in your party. / Hands your own target back afterwards. /   / Click to cast. |cffffd100/manners|r for options. / Right-click to skip this group buff for now. / Shift-right-click to put Bram on your never-offer list.
 groupbuffs: under the threshold they are buffed one by one: SKIPPED -- the two missing it are not both offered: 2
-## hall-proof.lua
-hall-proof: the certificate names the character in class colour, the day, the count and the code the fold gives: the line under the name lacks the class or the client: Mage, Classic Era
-## hall.lua
-hall: a client with realms puts the realm in the code, Forever does not: Forever's code carries a realm: Somewhere
-hall: every milestone earned, the code is this character's, dated the last one, in a box that only copies: the code names Mort, not the two words of Mort
-hall: every milestone earned, the code is this character's, dated the last one, in a box that only copies: the code says MAGE on vanilla, realm ''
-hall: the list is newest first in class colours, marks your own name, and says when nobody is listed: somebody listed is still invited
-hall: the list is newest first in class colours, marks your own name, and says when nobody is listed: somebody listed was told the hall is open
-hall: the list is newest first in class colours, marks your own name, and says when nobody is listed: your own name is not marked: |cff40c7ebMort Defrette|r  |cff808080WoW Forever, 2026-12-01|r
 ## hunt13-fix1.lua
 hunt13-fix1: a party member out of sight is not offered though asking: SKIPPED -- the party in sight was not offered, or Cara out of sight was
 hunt13-fix1: a party member out of sight is not offered though owed: SKIPPED -- the party in sight was not offered, or Cara out of sight was
@@ -438,9 +443,17 @@ core22: a shout at 5 yards carries the thank-you: SKIPPED -- Bob is not offered 
 core22: a silent press where another spell went out leaves the next press its line: SKIPPED -- the line was not armed to begin with
 core22: a silent press where it went to somebody else leaves the next press its line: SKIPPED -- the line was not armed to begin with
 core22: a silent press where nothing answers it leaves the next press its line: SKIPPED -- the line was not armed to begin with
+## hunt29-order.lua
+hunt29-order: tbc: the window draws a line for each buff, in order: SKIPPED -- no order list on Who to buff
+hunt29-order: the controls are placed once, in the window's Who to buff: the order list is not shown on Who to buff
+hunt29-order: vanilla: the window draws a line for each buff, in order: SKIPPED -- no order list on Who to buff
+hunt29-order: window: Back to Automatic is there only while the order differs: SKIPPED -- no order list on Who to buff
+hunt29-order: window: a press repaints the list and the page at once: SKIPPED -- no order list on Who to buff
+hunt29-order: window: no arrow up on the first line and none down on the last: SKIPPED -- no order list on Who to buff
+hunt29-order: window: the first line the walk can use is set apart, the others are not: SKIPPED -- no order list on Who to buff
+hunt29-order: window: the list is hidden for a mage and while a spell is pinned: the buff order does not come back with Automatic
 ## hunt3-clients.lua
 hunt3-clients: a conjure still cooling down is not offered: SKIPPED -- the conjure is not offered when ready
-hunt3-clients: the milestones read from the ledger stay for a class with a buff to give: SKIPPED -- Forever's shaman has a buff for others
 ## hunt3-core.lua
 core: a late refusal keeps the newer favour's debt: SKIPPED -- Petra is not owed and offered
 core: the favour line does not promise a prompt that is kept away (mounted): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt once you get off your mount
@@ -455,10 +468,6 @@ hunt3-favours-new: a Chinese thanks beside a one-word name is read: "求水 謝�
 hunt3-favours-new: a Chinese thanks beside a one-word name is read: "求水 谢谢" was not heard as a request for water (nil)
 hunt3-favours-new: a Korean or Chinese please beside a one-word name is read: SKIPPED -- "water pls" is not heard as a request for water
 hunt3-favours-new: somebody who says they drink asks for no water: SKIPPED -- "need water" is not heard as a request for water
-## hunt3-hall-detect.lua
-hunt3-hall-detect: a listed player past the list's cut still finds their own row: SKIPPED -- the player is not read as listed
-hunt3-hall-detect: a namesake of another class is not the listed character: a row with no class no longer matches by name
-hunt3-hall-detect: a namesake of another class is not the listed character: the mage's own row is no longer the mage
 ## hunt3-ledger.lua
 hunt3 ledger: Clear inside a refusal's window keeps the undo: SKIPPED -- no favour was filed, so there is nothing to record
 hunt3 ledger: a refusal after a second buff leaves one owed row: SKIPPED -- no favour was filed, so there is nothing to record
@@ -546,7 +555,7 @@ ids-online: Reagent Economy: an empty bag is not running out: a mage with Reagen
 ids-online: Reagent Economy: an empty bag is not running out: the group cast went with the last Arcane Powder, though the perk needs none
 ids-online: Reagent Economy: the options do not say group buffs are off: Start here tells a mage with Reagent Economy group buffs are off: Offering to: people who buff me, my group, passers-by within about 10 yards, myself (outside cities and inns). Already buffed: skipped. People who buff me are offered one back unless they already have it. Arcane Powder: none in your bags, so group buffs are not offered. Ready checks and the just-revived go first.
 ids-online: Reagent Economy: the options do not say group buffs are off: Who to buff tells a mage with Reagent Economy group buffs are off: |cffff8080Arcane Powder: none in your bags, so group buffs are not offered.|r
-ids-online: Reagent Economy: the options do not say group buffs are off: the bug report does not say the reagent is waived: Manners VERSION / client 1.15.9 (69893), interface 11509 / class MAGE | secrets true | auras secret now false | nameplates true / buff data vanilla /   intellect    known=true readable=true off=false /     group spell 23028, reagent 17020 x0 / enabled=true buff=auto sources owed/group/strangers/self=true/true/true/true pets=false whenBuffed=skip targetFirst=true keepDebts=true thank=false / cures group/passers-by/seconds=false/false/10 / own inCities=false none known / friendsFirst=true restingOnly=false skipPvP=true neverOffered=0 / quietInTowns=false where=both quietInInstances=false quietTargets=false thankWhisper=false thankDelay=false / thankUnseen=false / battle: team=true speak=false thank=true items=false state=nil / groupBuffs=true atLeast=3 / share=true users=0 hellos heard=0 refused=0 own=0 other classes=0 sent=0 failed=0 / manaFloor=0 readyCheckFirst=true revivedFirst=true raidGroupsOff=none / own buffs: 2 read, baseline 2, primed=true, doubt=nil / combat log: armed=true, 0 seen, 0 filed / errors: none this session
+ids-online: Reagent Economy: the options do not say group buffs are off: the bug report does not say the reagent is waived: Manners VERSION / client 1.15.9 (CLIENT_BUILD), interface 11509 / class MAGE | secrets true | auras secret now false | nameplates true / buff data vanilla /   intellect    known=true readable=true off=false /     group spell 23028, reagent 17020 x0 / enabled=true buff=auto sources owed/group/strangers/self=true/true/true/true pets=false whenBuffed=skip targetFirst=true keepDebts=true thank=false / cures group/passers-by/seconds=false/false/10 / own inCities=false none known / own lean school=nil role=caster trees=none / friendsFirst=true restingOnly=false skipPvP=true neverOffered=0 / quietInTowns=false where=both quietInInstances=false quietTargets=false thankWhisper=false thankDelay=false / thankUnseen=false / thankAsk=false thankNotInGroup=false / battle: team=true speak=false thank=true items=false state=nil / groupBuffs=true atLeast=3 / share=true users=0 hellos heard=0 refused=0 own=0 other classes=0 sent=0 failed=0 / manaFloor=0 readyCheckFirst=true revivedFirst=true raidGroupsOff=none / own buffs: 2 read, baseline 2, primed=true, doubt=nil / combat log: armed=true, 0 seen, 0 filed / errors: none this session
 ids-online: Reagent Economy: the tooltip says no reagent is needed: SKIPPED -- no group cast with Reagent Economy
 ## ingame-selftest.lua
 selftest: the button, names, the line rule, repairs and errors: a Camelot surname reads PASS UnitName (surname): "Mort", second nil, read as a realm, full name "Mort"
@@ -556,10 +565,10 @@ selftest: the main hand and the familiar are compared: Manners reading nothing o
 selftest: the main hand and the familiar are compared: a Rat up reads PASS familiar: MAGE has no familiar
 selftest: the main hand and the familiar are compared: the report does not say the imbue is C_Item's alone: PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
 ## layout.lua
-every path in the options window's layout is in the model: who, section 7 (who.myself) places who.own_findtreasure, which no class's model has
-every path in the options window's layout is in the model: who, section 8 (who.myselfWeapons) places who.own_warlockstone, which no class's model has
-every path in the options window's layout is in the model: who, section 9 (who.myselfItems) places who.own_familiar, which no class's model has
-every path in the options window's layout is in the model: who, section 9 (who.myselfItems) places who.own_imbue, which no class's model has
+every path in the options window's layout is in the model: self, section 1 (self.myself) places who.own_findtreasure, which no class's model has
+every path in the options window's layout is in the model: self, section 4 (self.weapons) places who.own_warlockstone, which no class's model has
+every path in the options window's layout is in the model: self, section 5 (self.items) places who.own_familiar, which no class's model has
+every path in the options window's layout is in the model: self, section 5 (self.items) places who.own_imbue, which no class's model has
 ## ledger.lua
 a favour appears in the ledger: SKIPPED -- no favour was filed, so there is nothing to record
 a favour forgotten at a reload names the setting: SKIPPED -- no favour was filed, so there is nothing to record
@@ -760,12 +769,21 @@ mana floor: only favours and requests below it: SKIPPED -- the party and the tar
 manakeeps: a remembered asker waits below the floor too: SKIPPED -- Quinn asking under the cursor was not offered
 manakeeps: only my own buff holds favours and requests back, and the debt stays: the favours, the request and the group did not come back with the mana: Anna, Anna Aim, Bert, Cara, Zed Far, self
 manakeeps: people who buffed me or asked keeps favours, requests and your own buff: below the floor the favours, the request and your own buff were not all offered: Anna Aim, Bert, Zed Far, self
-## milestones.lua
-milestones: a new title is said once in chat, chat lines or not: SKIPPED -- Petra is not owed and offered, so nothing can be repaid
-milestones: a title waits out the refusal of the cast that earned it: SKIPPED -- Petra is not owed and offered, or the press went nowhere
-milestones: hook: a cure nothing refused earns one, and a refused one nothing: SKIPPED -- the press on the poisoned member did not settle as a cure
-milestones: hook: a portal cast and water put in the trade earn one, and neither failing does: SKIPPED -- the party member's portal is not offered
-milestones: hook: a resurrection that was cast earns one, and an interrupted one nothing: SKIPPED -- the press on the dead member was not filed
+## menu.lua
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.asked of who.sources runs from 18 to 762, outside column 1 (18 to 504)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.autoNote of who.cast runs from 790 to 1534, outside column 2 (532 to 1018)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.choice of who.cast runs from 790 to 1534, outside column 2 (532 to 1018)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.group of who.sources runs from 18 to 762, outside column 1 (18 to 504)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.offer_fortitude of who.cast runs from 790 to 1534, outside column 2 (532 to 1018)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.offer_shadow of who.cast runs from 790 to 1534, outside column 2 (532 to 1018)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.offer_spirit of who.cast runs from 790 to 1534, outside column 2 (532 to 1018)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.owed of who.sources runs from 18 to 762, outside column 1 (18 to 504)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.pets of who.sources runs from 34 to 762, outside column 1 (18 to 504)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.proximity of who.sources runs from 34 to 762, outside column 1 (18 to 504)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.relevantOnly of who.cast runs from 806 to 1534, outside column 2 (532 to 1018)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.restingOnly of who.sources runs from 34 to 762, outside column 1 (18 to 504)
+menu: a window dragged wide flows a page's sections into two columns, and three when very wide: 1740 wide: who.strangers of who.sources runs from 18 to 762, outside column 1 (18 to 504)
+menu: what comes under the columns starts under the tallest, and the page scrolls to its end: who: the folds start at 338, over a column or its caption (the columns end at 563 and 489)
 ## names-own-lines.lua
 names-own-lines: a one-word name is said whole, and the whisper guard still refuses a misread: a whisper the chat box would misread went out: /target Solo / /cast Arcane Intellect / /w Solo Thanks for the buff, Solo. / /targetlasttarget
 names-own-lines: after my own line the button names no older In character line: SKIPPED -- the press is not armed with my own line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
@@ -824,7 +842,7 @@ an old reading of somebody's buffs is replaced by a new one: somebody whose buff
 the never-offer list asked between scans reads the list: SKIPPED -- the stranger was not offered to begin with
 the never-offer list edited behind the queue is honoured at once: SKIPPED -- the two strangers were not both offered to begin with
 ## pvp.lua
-pvp: /manners debug and Diagnostics say who is held back: /manners debug does not say who is held back for PvP: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm /   combat log favours: armed=true, 0 seen, 0 filed /   buff data: |cffffffffvanilla|r /   key: none | reminder: due at a login (said 0 of 3) / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- answered for 6 of 6 last scan /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   asking for buffs: off -- |cffffd100Ask people for a buff I'm missing|r is not ticked. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 6 /   |cffffffffFlagA|r: flagged for PvP -- buffing them would flag you /   cures: nothing learned to cure with yet. /   milestones: 0 of 12 earned.
+pvp: /manners debug and Diagnostics say who is held back: /manners debug does not say who is held back for PvP: client: |cffffffffvanilla/classic interface=11509 build=CLIENT_BUILD project=2|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm /   combat log favours: armed=true, 0 seen, 0 filed /   buff data: |cffffffffvanilla|r /   rank for low levels: every cast named the rank that lands /   key: none | reminder: due at a login (said 0 of 3) /   cure in a fight: switch off; spells none learned; not made; key none; driver none; shown false /   cure in a fight, last fight: 0 reads, 0 withheld, 0 needing a cure, seen for T s, 0 from the game's list; the game's list of debuffs you can remove: no, asked 0 times, 0 withheld, 0 empty; 0 reads threw /   cure in a fight, the cover: took 0 clicks last fight, let 0 through; let a click through on this account: never /   cure need: from the auras; the game's display under: none; two clicks last fight: 0 opened, 0 cast by the second, 0 double clicks swallowed / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- answered for 6 of 6 last scan /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   asking for buffs: off -- |cffffd100Ask people for a buff I'm missing|r is not ticked. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 6 /   |cffffffffFlagA|r: flagged for PvP -- buffing them would flag you /   cures: nothing learned to cure with yet.
 pvp: /manners debug and Diagnostics say who is held back: Diagnostics does not say who is held back for PvP
 pvp: /manners debug names only people a source would offer (Passers-by off): SKIPPED -- the flagged passer-by was not named with every source on
 pvp: /manners debug names only people a source would offer (out in the world with passers-by left for cities): SKIPPED -- the flagged passer-by was not named with every source on
@@ -1017,6 +1035,8 @@ speech-range: the press knows him by his surname (Weirbeard Smith on a nameplate
 speech-range: the tooltip quotes no line for the held entry: SKIPPED -- Weirbeard was not armed with the line ahead of Ejp: /target Weirbeard / /cast Arcane Intellect / /say The Light already likes you, Weirbeard. Consider this a second opinion.
 speech-range: the tooltip quotes no line while the cursor holds an empty queue: SKIPPED -- the cursor did not hold Weirbeard on the panel
 speech-range: the tooltip quotes no line while the cursor holds an empty queue: SKIPPED -- the press did not go to Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
+## ux-redesign.lua
+ux-redesign: Kings first sits on top of the Buff order list: Kings first is not drawn for a paladin with Kings
 ## whatif.lua
 whatif: a group member's favour, your blessing on him: SKIPPED -- a party warrior who buffed you, your Might running out, was not offered it
 whatif: a group member's lapsing shout: SKIPPED -- the shouts were never noticed

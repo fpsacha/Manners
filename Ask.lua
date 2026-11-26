@@ -577,13 +577,13 @@ local function Consider(unit, grouped, pointed, taken, db, now)
 	end
 	if grouped then
 		-- In sight, and not measured out of reach of a cast on you.
-		if plain(_G.UnitIsVisible and _G.UnitIsVisible(unit)) == false then return nil end
+		local visible = _G.UnitIsVisible
+		if type(visible) ~= "function" or plain(visible(unit)) ~= true then return nil end
 		local reach = _G.UnitInRange
-		if type(reach) == "function" then
-			local near, checked = reach(unit)
-			if plain(checked) == true and plain(near) == false then return nil end
-		end
-	elseif not pointed and ns.NearEnough(unit, true) == false then
+		if type(reach) ~= "function" then return nil end
+		local near, checked = reach(unit)
+		if plain(checked) ~= true or plain(near) ~= true then return nil end
+	elseif ns.NearEnough(unit, true) ~= true then
 		return nil
 	end
 

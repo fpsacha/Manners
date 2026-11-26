@@ -339,6 +339,13 @@ do
 end
 
 do
+	local scenario = "favour-caster: a successful cast without a cast guid stays safe"
+	with(scenario, {}, function(ns)
+		ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", nil, FORTITUDE)
+	end)
+end
+
+do
 	local scenario = "favour-caster: a successful cast stays quiet while chat is restricted"
 	with(scenario, {}, function(ns)
 		local sent = 0

@@ -51,6 +51,7 @@ local GUILD, REALM = "Silver Hand", "Stormbind"
 local function with(scenario, body, opts)
 	opts = opts or {}
 	Mock.reset()
+	Mock.crossRealm = true
 	local registry = Registry()
 	local realRegistry = rawget(_G, "EventRegistry")
 	local realRealm, realGuild = rawget(_G, "GetRealmName"), rawget(_G, "GetGuildInfo")

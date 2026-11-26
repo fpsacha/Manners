@@ -36,8 +36,9 @@ local function noErrors(scenario, ns)
 end
 
 local function entryFor(ns, name)
+	local short = type(name) == "string" and name:match("^(%S+)") or name
 	for _, entry in ipairs(ns.BuildQueue()) do
-		if entry.name == name then return entry end
+		if entry.name == name or entry.name == short then return entry end
 	end
 	return nil
 end
@@ -243,7 +244,9 @@ scene("water-target: a mana user you target is offered water then food at their 
 	end
 	ns.Prompt:Refresh()
 	ran = pressButton(ns)
-	if not (ran and ran:find("^/target Tess Target\n/trade")) then fail(scenario, "the trade press ran " .. flat(ran)) end
+	if not (ran and ran:find("^/target " .. tess.name .. "\n/trade")) then
+		fail(scenario, "the trade press ran " .. flat(ran))
+	end
 	openTrade(ns, w, names)
 	if w.trade[1] ~= WATER_25 or w.trade[2] ~= 1487 then
 		fail(scenario, "water and food are not in the window: " .. tradeText(w))
