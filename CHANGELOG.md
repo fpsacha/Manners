@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.12.3
 
 ### Highlights
 - **Optional modules.** Combat, Achievements, Pets, My Buffs and Services live

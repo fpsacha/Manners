@@ -5,6 +5,20 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "1.12.3", date = nil, sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Optional modules.|r Combat, Achievements, Pets, My Buffs and Services live in separate addons in the same download.",
+			"|cffffd100A second blessing from a second paladin.|r |cffffffffBlessing to ask a paladin for|r keeps the 1.12.2 choice, and Automatic can ask another reachable paladin for a different missing blessing.",
+		} },
+		{ title = "Changes", accent = "7cc4ff", entries = {
+			"|cff7cc4ffSafer decisions.|r Buffs, cures, your own buffs and requested Services use one secret-safe eligibility result, with the last twenty rejections available in /manners debug.",
+			"|cff7cc4ffRequested Services.|r Mage refreshments and portals, Slow Fall, priest Levitate, shaman Water Walking, warlock stones, summons and Soulstones are independently controlled and class/client-gated.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Unknown buff casters.|r Manners can receive a caster claim from another Manners user and, only with one possible caster in sight, safely name that player.",
+			"|cffff9a52Paladin cures.|r Poison and disease cures on WoW Forever now keep the visible, secure in-fight path and prefer Purify when Cleanse would remove a never-removed debuff.",
+		} },
+	} },
 	{ version = "1.12.2", date = "25 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Pick the blessing you ask for.|r |cffffffffBlessing to ask a paladin for|r, under |cffffffffAsk people for a buff I'm missing|r, asks for Might or another blessing instead of Automatic's Wisdom (thanks to broodwave).",
@@ -33,21 +47,6 @@ ns.WhatsNew = {
 		{ title = "Changes", accent = "7cc4ff", entries = {
 			"|cff7cc4ffRemoved:|r |cffffffffIn a fight, my key casts|r, |cffffffffHide the prompt in a fight|r, |cffffffffNo flashes in a fight|r and |cffffffffDim the prompt in combat|r.",
 			"|cff7cc4ffRighteous Fury alone.|r On Automatic, a Protection paladin playing alone is reminded of it, by talents (thanks to molnare).",
-		} },
-	} },
-	{ version = "1.11.42", date = "24 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Back to what Manners is for.|r 1.11.41's extras are gone: the buttons for the moment (Counterspell, Blink, the drink and the rest), the falling and low-mana prompts, Report a bug, Mark this moment, water and food for your target, Fire Shield and the...",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Thank-you after a pause.|r With |cffffffffWait a moment before thanking|r on, the thank-you no longer gets lost when the giver's nameplate changes hands.",
-			"|cffff9a52In character for every class.|r A hunter or a rogue can pick |cffffffffIn character|r again for the thank-you (|cffffffffWhen someone buffs me|r, on |cffffffffWhat I say|r).",
-			"|cffff9a52Key boxes take keyboard keys.|r Click a key box, then press the key.",
-			"|cffff9a52Fortitude's rank for low-level players.|r The prompt casts the best rank they can take, as the action bar does.",
-			"|cffff9a52Options in Chinese, Korean and German.|r A time slider's box no longer changes its setting when you click in and out of it.",
-			"|cffff9a52Will of the Forsaken|r stays lit through a second fear; the cure button no longer blinks or says nil.",
-			"|cffff9a52Battlegrounds:|r buffs after a death are read right for you and your team.",
-			"|cffff9a52Healthstones and stones|r whose name ends in a bracket cast again.",
 		} },
 	} },
 }
