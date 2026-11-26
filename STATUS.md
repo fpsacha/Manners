@@ -8,46 +8,27 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*26 November 2026. Last release: 1.12.3 (GitHub, CurseForge, Wago and installed
-in WoW Forever). The six-folder ZIP SHA-256 is
-`a9871c6427a134cdf3f9d0106ea18d40c94eefaeb0a881d42050d40fa5ab922b`.*
+*26 November 2026. Last release: 1.12.3, published everywhere and installed in
+WoW Forever. ZIP SHA-256: `a9871c6427a134cdf3f9d0106ea18d40c94eefaeb0a881d42050d40fa5ab922b`.*
 
-- **In flight:** `fix-44` / `Manners-wt-44` is merged through 25ab5ffe;
-  later release/CI metadata commits are on `master`. The exact released commit
-  has GitHub Selftest running at
-  `https://github.com/fpsacha/Manners/actions/runs/45894521559`; the local
-  machine is not waiting on it. Historical merged worktrees are `features-1.11.41`,
-  `look-fel`, `look-wild`, `feedback-20261125`, `r112-paladin`, `release-1.12.1`,
-  `rollback-1.11.42`, `relcheck`, `ci-112`; older unmerged experiments remain in
-  `ci-diag-generators`, `logo`, `r112-achieve`, `r112-simple`, `r112-water`,
-  `release-1.12`, and the detached `wt112-head` check.
-- **Validated:** the complete Forever suite passes, all cross-client baselines
-  and 120 fuzz runs pass, and CI passed the released commit. #44, #53 and #58
-  are closed for 1.12.3. CurseForge replies for Mr_Bowman, the in-fight cure
-  report and broodwave's second-paladin request are visible on the page.
-- **Waiting on the owner:** nothing for this pass.
-- **Waiting on players:** #21 needs the player's game/client log; #33 needs the
-  client and settings; Kinnaj has not supplied `/manners debug` for the chat
-  report. Leave #21 and #33 open.
-- **Next:** read the completed Selftest result; then keep the nightly client/
-  workflow results on the next checklist. The release ZIP is already verified
-  and installed, so no local copy step remains.
-- **Watch out:** do not use old 1.12 worktrees as active branches. `Libs` is
-  ignored but present in the live checkout; `tools/unused_lua_known.txt` now
-  records the pinned vendored declarations so a live release validates cleanly.
-  and release checks, and nightly runs strict client-build, Services and ID
-  audits. New shipped Lua locals fail `lint.py` unless deliberately listed in
-  the reviewed historical baseline.
-- **Presentation and install current:** the prompt, cure, Services, My Buffs,
-  options and listing screenshots were redrawn with every optional module
-  attached. The verified six-folder build is installed in WoW Forever by the
-  package installer, with `Libs` preserved. The complete Forever suite is green,
-  the reviewed retail baseline is current, and the final quick gate is 8/8.
-- No release, push or commit was made.
-- **Waiting on player evidence, not code:** KoriKaiMoon (`/manners debug` from a
-  dungeon), issues 33 and 21 (client/settings/report), and issue 28's first-press
-  error text or `/manners clicks`. Issue 44 is implemented; issue 55 is fixed
-  locally and stays open until release.
+- **In flight:** `fix-44` is merged through 25ab5ffe; later CI/release commits
+  are on `master`. The released commit is running GitHub Selftest at
+  [run 45894521559](https://github.com/fpsacha/Manners/actions/runs/45894521559).
+  Merged old worktrees: `features-1.11.41`, `look-fel`, `look-wild`,
+  `feedback-20261125`, `r112-paladin`, `release-1.12.1`, `rollback-1.11.42`,
+  `relcheck`, `ci-112`. Unmerged historical experiments: `ci-diag-generators`,
+  `logo`, `r112-achieve`, `r112-simple`, `r112-water`, `release-1.12`, and
+  detached `wt112-head`; none feeds this release.
+- **Validated:** Forever's full suite, four client baselines, 120 fuzz runs,
+  CI and package verification pass. #44, #53 and #58 are closed for 1.12.3.
+  Mr_Bowman, the cure report and broodwave were answered on CurseForge.
+- **Waiting on the owner:** nothing.
+- **Waiting on players:** #21 needs a client/log; #33 needs client/settings;
+  Kinnaj still owes `/manners debug`. Leave #21 and #33 open.
+- **Next:** read the Selftest result, then keep only nightly failures that
+  remain; the released package is already verified and installed.
+- **Watch out:** old 1.12 worktrees are historical. The live checkout has
+  ignored `Libs`, now covered by the pinned vendored-unused baseline.
 
 ## State
 
