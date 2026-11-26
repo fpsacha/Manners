@@ -13,6 +13,11 @@ game folder). Read `.claude/docs/lessons.md` first: it holds the 1.11.41
 rollback, the scope rule, what Forever hides and what is open.*
 
 - **In flight:** nothing. 1.11.41's code is kept on branch `features-1.11.41`.
+- **Nightly 25 November:** issue 55 (tracking after a death), 56 (no imbue
+  for a fishing pole) and 57 (*Blessing to ask a paladin for*, ask.blessing)
+  built on `feedback-20261125`. Issue 58 (cure button blind in a fight on
+  Forever, user_8qf1t3rx4pgp80ez) waits on the owner's yes to bring back the
+  aura-display workaround.
 - **Next, offered to the owner:** bring back only the cure button's
   aura-display workaround, off by default.
 - **Discord (25 November):** the Manners Discord is live,

@@ -540,6 +540,9 @@ local defaults = {
 			-- My own words (Ask.lua, line "own"): empty until written.
 			own = "",
 			inTowns = false,
+			-- Which blessing a paladin is asked for (Ask.lua, Want; GitHub
+			-- issue 57): "auto" asks Wisdom with mana and Might without.
+			blessing = "auto",
 		},
 
 		-- A hunter's pet (HunterPet.lua): care, each with its own switch under

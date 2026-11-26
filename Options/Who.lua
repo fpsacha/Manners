@@ -875,6 +875,27 @@ function Page.AddAskControls(args)
 			ns.Prompt:InvalidateMacro()
 		end,
 	}
+	-- Which blessing a paladin is asked for (Ask.lua, Ask.Blessings), shown
+	-- while asking is on on a client whose paladins have blessings.
+	args.askBlessing = {
+		type = "select",
+		name = L["Blessing to ask a paladin for"],
+		desc = L["Automatic asks for Wisdom if you use mana, and Might if you do not."],
+		order = 14.78,
+		hidden = function()
+			if off() then return true end
+			local _, order = ns.Ask.Blessings()
+			return #order < 2
+		end,
+		values = function() return (ns.Ask.Blessings()) end,
+		sorting = function() local _, order = ns.Ask.Blessings() return order end,
+		get = function() return ns.db.profile.ask.blessing or "auto" end,
+		set = function(_, v)
+			ns.db.profile.ask.blessing = v
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:Refresh()
+		end,
+	}
 	args.askInTowns = {
 		type = "toggle",
 		name = L["Ask in cities and inns too"],

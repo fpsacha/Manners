@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+- **Pick the blessing you ask for.** *Blessing to ask a paladin for*, under
+  *Ask people for a buff I'm missing*, asks for Might or another blessing
+  instead of Automatic's Wisdom (thanks to broodwave).
+
+### Fixes
+- **Tracking after a death.** Find Minerals and the other trackings are
+  reminded again after you die, even when the minimap still shows them on
+  (thanks to aisenfaire).
+- **No imbue for a fishing pole.** A shaman with a fishing pole in the main
+  hand is no longer reminded of a weapon imbue (thanks to LT2138).
+
 ## 1.12.1
 
 *24 November 2026*

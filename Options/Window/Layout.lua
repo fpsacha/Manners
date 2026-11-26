@@ -842,6 +842,7 @@ ns.WindowLayout = {
 					{ "who.askChannel", indent = true },
 					{ "who.askLine", indent = true },
 					{ "who.askOwn", indent = true },
+					{ "who.askBlessing", indent = true },
 					{ "who.askInTowns", indent = true },
 				} },
 			},
@@ -1370,6 +1371,7 @@ ns.WindowLayout = {
 		["who.askLine"] = "who.ask",
 		["who.askOwn"] = "who.ask",
 		["who.askInTowns"] = "who.ask",
+		["who.askBlessing"] = "who.ask",
 		-- Share the group with other Manners users, the same.
 		["who.share"] = "who.group",
 		-- Detect Invisibility to passers-by too, shown only once the buff is ticked.

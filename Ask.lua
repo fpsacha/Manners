@@ -150,6 +150,27 @@ function ns.AskClamp(profile)
 	if ask.channel ~= "WHISPER" and ask.channel ~= "SAY" then ask.channel = "WHISPER" end
 	if Ask.LINES[ask.line] == nil and ask.line ~= "own" then ask.line = Ask.LINE_ORDER[1] end
 	ask.own = Ask.CleanOwn(ask.own)
+	if ask.blessing ~= "auto" and not Ask.Blessings()[ask.blessing] then ask.blessing = "auto" end
+end
+
+-- The blessings a paladin can be asked for on this client (GitHub issue 57,
+-- broodwave on CurseForge: a feral druid wanted Might, not Wisdom), by key,
+-- with Automatic: the ones Want could ask for at all, named by the spell.
+-- Empty but for Automatic on a client whose paladins have none.
+function Ask.Blessings()
+	local values, order = { auto = L["Automatic"] }, { "auto" }
+	local list = ns.EXCLUSIVE_BUFFS and ns.EXCLUSIVE_BUFFS.PALADIN and ns.BUFFS and ns.BUFFS.PALADIN
+	for _, buff in ipairs(type(list) == "table" and list or {}) do
+		if not (buff.talent or buff.optIn or buff.returnOnly or buff.neverAuto or buff.oneTarget
+			or buff.tankChoice or buff.selfCast) then
+			local name = buff.ranks and buff.ranks[1] and ns.SpellNameFor(buff.ranks[1])
+			if type(name) == "string" and name ~= "" then
+				values[buff.key] = name
+				order[#order + 1] = buff.key
+			end
+		end
+	end
+	return values, order
 end
 
 ---------------------------------------------------------------------------
@@ -359,6 +380,10 @@ local function Want(name, class, unit, grouped, level, me, now)
 		end
 		local auto = ns.CLASS_AUTO[class]
 		local key = auto and (me.hasMana and auto.mana or auto.other)
+		-- The blessing chosen under the ask (ask.blessing), ahead of Automatic's.
+		local db = Profile()
+		local pick = class == "PALADIN" and db and type(db.ask) == "table" and db.ask.blessing
+		if type(pick) == "string" and pick ~= "auto" and ns.FindBuff(class, pick) then key = pick end
 		local first = key and ns.FindBuff(class, key)
 		if first and Suits(first, me, unit, grouped, level) and Wearing(first, now) == false then
 			if AskedLately(name, class, first, now) then return nil end

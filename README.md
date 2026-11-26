@@ -354,7 +354,8 @@ own. The full list for each class is under *Which buffs each class offers*.
   waits while your group still needs your Mark of the Wild.
 - **Tracking.** Find Herbs, Find Minerals, a hunter's Track Beasts and the
   other tracking skills are one kind, *Tracking*, off until you switch it on,
-  then reminded of when none is on (after you die, say). On WoW Forever a dwarf can keep Find Treasure on
+  then reminded of when none is on (after you die, say, even when the
+  minimap still shows it on). On WoW Forever a dwarf can keep Find Treasure on
   beside a gathering tracking, so there it has a switch of its own, *Find
   Treasure*, reminded of once you have had it on. In a battleground or an
   arena a gathering tracking is not reminded of at all; one to fight with
@@ -413,7 +414,8 @@ own. The full list for each class is under *Which buffs each class offers*.
   of that alone. On retail the main hand and the off hand (Flametongue once a
   weapon is in it, or Thunderstrike Ward once a shield is) each have a switch
   of their own. *Weapon imbues before the shield* (off) brings them up ahead
-  of the shield, for a shaman short of mana.
+  of the shield, for a shaman short of mana. With a fishing pole in your
+  main hand no imbue is asked for.
 - **A Lightsmith paladin's rites** on retail.
 
 **Food, flasks and scrolls.** Each is off until you switch it on, and shown
@@ -713,8 +715,9 @@ two; never in a fight, a battleground or an arena; nobody on your never-offer
 or `/ignore` list, nobody dead, fighting, away or busy. *Ask in* chooses a
 whisper (the default) or `/say`, *What the ask says* one of three lines or
 *My own words*, a line you write in the box under it (`{name}` their name,
-`{buff}` the spell, either left out; said even with In character on), and
-*Ask in cities and inns too* is off. The Manners macro on an action bar does
+`{buff}` the spell, either left out; said even with In character on),
+*Blessing to ask a paladin for* picks the blessing (Automatic asks Wisdom if
+you use mana, Might if not), and *Ask in cities and inns too* is off. The Manners macro on an action bar does
 not carry an ask.
 
 ## Battlegrounds and arenas
