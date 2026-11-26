@@ -75,9 +75,9 @@ mutate("Options/Diagnostics.lua",
 
 # ------------------------------------------------------------ the walk
 # A pet turned away for not being a player, as everybody's was before.
-mutate("Core.lua",
-       "\tif pet then\n\t\tif isPlayer == true then return false end\n\telseif isPlayer ~= true then\n",
-       "\tif isPlayer ~= true then\n",
+mutate("Context.lua",
+       "\tif pet then\n\t\tif player == true then\n",
+       "\tif player ~= true then\n",
        "grouppets: a pet is turned away as no player",
        expect="grouppets: a party pet missing your buff is offered, targeted by its name", script=S)
 
@@ -117,7 +117,7 @@ mutate("Queue.lua",
        expect="grouppets: a raid pet in a raid group you do not buff is skipped", script=S)
 
 # Your own pet offered as one of the raid's.
-mutate("Core.lua",
+mutate("Context.lua",
        "UnitIsUnit(unit, pet and \"pet\" or \"player\")",
        "UnitIsUnit(unit, \"player\")",
        "grouppets: your own pet is one of the raid's",

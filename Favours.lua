@@ -30,7 +30,8 @@ local walkAfterFight = false
 -- below, after ClaimFavour): `armed` where it listens at all, `seen` casts kept,
 -- `named` landings named from a cast, `late` of them after the window, `several`
 -- landings with two or more casters, `none` with nobody to name.
-ns.castWatch = { armed = false, seen = 0, named = 0, late = 0, several = 0, none = 0 }
+ns.castWatch = { armed = false, seen = 0, named = 0, late = 0, several = 0, none = 0,
+	messages = 0, possible = 0 }
 
 ---------------------------------------------------------------------------
 -- thanking them with an emote
@@ -251,7 +252,16 @@ do
 			if now - at >= PER_MEMBER then thankedAt[who] = nil end
 		end
 		thankedAt[name] = now
-		if not ok then return end
+		local function CountThank()
+			local modules = _G.MannersAPI
+			if modules and type(modules.Fire) == "function" then
+				ns.Guard("module thank", modules.Fire, modules, "Thanked", name, now)
+			end
+		end
+		if not ok then
+			if whispered then CountThank() end
+			return
+		end
 		-- Read the way Blizzard's chat box reads it: true means the emote was
 		-- restricted and did not go. The API docs name the same value
 		-- "success", so the raw answer goes to /manners debug to settle it.
@@ -259,10 +269,11 @@ do
 		if answer == true then
 			Skip(name, now, L["the game said it was restricted"])
 			-- The whisper went: something of the thanks reached them.
-			if whispered then return nil end
+			if whispered then CountThank(); return nil end
 			return L["the game said it was restricted"]
 		end
 		ns.thankLog.thanked = { name = name, at = now, answer = tostring(answer) }
+		CountThank()
 	end
 
 	-- Wait a moment before thanking (prompt.thankDelay, off; asked for on
@@ -682,7 +693,7 @@ do
 	end
 
 	-- Defined after ClaimFavour, with the rest of the cast watch.
-	local NameFromCast, AwaitCaster, HeardIgnored
+	local NameFromCast, AwaitCaster, HeardIgnored, NameFromMessage
 
 	-- Reads who `source` is into the sighting `seen`: name, GUID, class and the rest, while
 	-- the token still means them. Sight reads the aura's own source with it, and the cast
@@ -756,11 +767,18 @@ do
 			and plain(aura.isFromPlayerOrPlayerPet) == true then
 			seen.unseen = true
 		end
+		-- A Manners on the caster's client can name a landing with certainty. Try
+		-- that first, including a message that arrived just before the aura.
+		-- A cast or the one possible player in sight is only a fallback.
+		if not source and ns.ALL_BUFF_IDS[key]
+			and plain(aura.isFromPlayerOrPlayerPet) ~= false then
+			NameFromMessage(seen, aura)
+		end
 		-- The game names nobody (nothing, or a withheld source): the cast it saw at that
 		-- moment may name them (NameFromCast). Only where the combat log is not the
 		-- source of record, and not for an aura plainly an NPC's.
-		if not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed
-			and plain(aura.isFromPlayerOrPlayerPet) ~= false then
+		if not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.claimIgnored
+			and not seen.name and plain(aura.isFromPlayerOrPlayerPet) ~= false then
 			NameFromCast(seen, aura)
 		end
 		-- A class buff with no caster to read: a stranger the game gave no
@@ -769,11 +787,14 @@ do
 		-- (Hints.lua, which says it only when the nameplates are the reason). Not for a
 		-- landing waiting on its window: the cast watch says it from Unmatched, so it is
 		-- said only when nobody was named.
-		if not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast then Unnamed(key, seen.unseen) end
+		if not source and ns.ALL_BUFF_IDS[key] and not seen.claimIgnored and not seen.awaitCast then
+			Unnamed(key, seen.unseen)
+		end
 		-- For /manners debug: a landing nobody could be named for (one waiting on its
 		-- window files its own fate, Unmatched; an NPC's is no favour; and where the
 		-- combat log is the source of record nothing is known to be unnamed here).
-		if not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast
+		if not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed
+			and not seen.claimIgnored and not seen.awaitCast
 			and plain(aura.isFromPlayerOrPlayerPet) ~= false then
 			Remember(seen, "unnamed", "none")
 			ns.lastFavour.platesOff = ns.FriendlyPlatesOff() or nil
@@ -1198,7 +1219,9 @@ do
 		local db = addon.db and addon.db.profile
 		if not db then return end
 		ns.Trail("favour", ("buffed you (spell %s, %s, %s)"):format(tostring(seen.key),
-			seen.fromCast and "named from their cast" or seen.unit and "read off the auras" or "read off the combat log",
+			seen.fromMessage and "named by the caster's Manners" or seen.fromCast and "named from their cast"
+				or seen.fromCandidate and "the only possible caster in sight" or seen.unit and "read off the auras"
+				or "read off the combat log",
 			seen.inGroup and "in your group" or "not in your group"), seen.name)
 
 		-- With the addon off nothing is noticed at all; the scan checks too, but
@@ -1306,12 +1329,16 @@ do
 		local CAST_SAME = 0.5       -- two sightings of one cast, by one person
 		local CAST_KEEP = 6         -- how long a cast stays in the ring
 		local CAST_RING_MAX = 32
+		local CLAIM_KEEP = 4
+		local CLAIM_TAG = "B1:"
 		local AWAIT_MAX = 8         -- landings waiting for their window to close (a
 		                            -- buff round lands several in one second)
 		local LANDED_OLDEST = 4     -- the oldest landing a cast can explain; with the
 		                            -- window and a tick it stays inside CAST_KEEP
 		local COPIED = { "name", "guid", "class", "level", "sameParty", "inGroup",
 			"tank", "hasMana", "pvp", "unit" }
+		local claims = {}
+		local Forget
 
 		-- Why a landing was left with nobody named, for the trail.
 		local UNMATCHED_WHY = {
@@ -1335,6 +1362,26 @@ do
 
 		local function SameBuff(a, b)
 			return a == b or (ns.BUFF_BY_ID[a] ~= nil and ns.BUFF_BY_ID[a] == ns.BUFF_BY_ID[b])
+		end
+
+		local function SpellHasClass(class, id)
+			local buff = ns.FindBuff(class, ns.BUFF_BY_ID[id] and ns.BUFF_BY_ID[id].key or nil)
+			if not buff then return false end
+			for i = 1, #buff.auraIds do
+				if buff.auraIds[i] == id then return true end
+			end
+			return false
+		end
+
+		local function OnlyClassFor(id)
+			local found
+			for class in pairs(ns.BUFFS) do
+				if SpellHasClass(class, id) then
+					if found then return nil end
+					found = class
+				end
+			end
+			return found
 		end
 
 		-- Whether two ring entries are one person. A caster who cannot be identified
@@ -1363,6 +1410,61 @@ do
 			for i = 1, #COPIED do dst[COPIED[i]] = src[COPIED[i]] end
 		end
 
+		-- At the landing, not at the delayed decision: one player in sight whose
+		-- class can cast this rank. A token that moves in the meantime must never
+		-- change who is named.
+		local function OnlyPossibleCaster(seen)
+			local candidates, byName = {}, {}
+			local ambiguous, count = false, 0
+			local rankLevel = ns.RankLevel(seen.key)
+			ns.IterateUnits(function(unit)
+				if plain(UnitExists(unit)) ~= true then return end
+				if plain(UnitIsUnit(unit, "player")) == true then return end
+				local isPlayer = plain(UnitIsPlayer(unit))
+				if isPlayer == false then return end
+				local class = plain(select(2, UnitClass(unit)))
+				-- Withheld class: this player might be one who gives the buff.
+				if type(class) ~= "string" then
+					ambiguous = true
+					return
+				end
+				if not SpellHasClass(class, seen.key) then return end
+				local dead = plain(UnitIsDeadOrGhost(unit))
+				local connected = plain(UnitIsConnected(unit))
+				if dead == true or connected == false then return end
+				local name = ns.UnitFullName(unit)
+				if type(name) ~= "string" or name == "" or dead == nil or connected == nil
+					or isPlayer == nil then
+					ambiguous = true
+					return
+				end
+				local level = plain(UnitLevel(unit))
+				if type(rankLevel) == "number" then
+					if type(level) ~= "number" or level < 1 then
+						ambiguous = true
+						return
+					end
+					if level < rankLevel then return end
+				end
+				local guid = plain(UnitGUID(unit))
+				local identity = type(guid) == "string" and guid or name
+				if candidates[identity] then return end
+				local rec = {}
+				local ignored = ns.Ignored(unit, guid)
+				ReadCaster(unit, rec, true, type(guid) == "string" and guid or nil, name)
+				if not rec.name then return end
+				rec.ignored = ignored or nil
+				candidates[identity] = rec
+				byName[name] = true
+				count = count + 1
+			end)
+			seen.candidates = candidates
+			seen.candidateNames = byName
+			seen.candidateAmbiguous = ambiguous or nil
+			seen.candidateCount = count
+			seen.possibleCaster = next(candidates) and candidates[next(candidates)] or nil
+		end
+
 		-- When the aura landed, on GetTime's clock, and how late the reading may be:
 		-- from the aura's own timer where it gives both end and length; else the time
 		-- of the reading, which a walk can make up to one tick after the event.
@@ -1377,6 +1479,97 @@ do
 			end
 			local db = addon.db and addon.db.profile
 			return now, db and db.timing and db.timing.scanInterval or 0.4
+		end
+
+		local function ClaimFor(seen, landed)
+			local now, found = GetTime(), nil
+			for i = #claims, 1, -1 do
+				local claim = claims[i]
+				if now - claim.at > CLAIM_KEEP then
+					table.remove(claims, i)
+				elseif not claim.used and SameBuff(claim.spell, seen.key)
+					and math.abs(claim.at - landed) <= CLAIM_KEEP then
+					if found and found.sender ~= claim.sender then return "ambiguous" end
+					found = claim
+				end
+			end
+			return found
+		end
+
+		local function UseClaim(seen, claim, namedNow)
+			if not claim or claim.used then return false end
+			claim.used = true
+			seen.name = claim.sender
+			seen.guid = nil
+			seen.class = OnlyClassFor(seen.key)
+			local unit = ns.UnitFor(seen.name)
+			if unit and ReadCaster(unit, seen) then
+				claim.sender = seen.name
+			end
+			seen.sameParty = SameParty(seen.name)
+			seen.inGroup = InGroup(seen.name)
+			seen.fromMessage = true
+			ns.castWatch.messages = ns.castWatch.messages + 1
+			ns.Trail("favour", ("named by the caster's Manners (spell %s)"):format(tostring(seen.key)),
+				seen.name)
+			if ns.Ignored(seen.name, seen.guid) then
+				seen.claimIgnored, seen.ignoredCaster = true, true
+				seen.name = nil
+				seen.decided, seen.filed = true, true
+				Forget(seen)
+				Remember({ key = seen.key }, "ignored")
+				return true
+			end
+			if not namedNow then
+				seen.decided = true
+				Forget(seen)
+				if seen.nobodyWaiting then
+					seen.nobodyCancelled = true
+					seen.thankedNobody = nil
+				end
+				seen.noThank = seen.thankedNobody
+				seen.filed = true
+				ns.Guard("favour", NoteFavour, seen, ClaimFavour(seen.name, seen.key))
+			end
+			return true
+		end
+
+		NameFromMessage = function(seen, aura)
+			local landed = LandedAt(aura, GetTime())
+			if landed == nil then return end
+			seen.landedAt = landed
+			local claim = ClaimFor(seen, landed)
+			if claim == "ambiguous" then
+				seen.claimAmbiguous = true
+			elseif claim then
+				UseClaim(seen, claim, true)
+			end
+		end
+
+		-- A caster's client says whom its successful class-buff cast reached. The
+		-- sender name comes from the whisper event, not the message body; only the
+		-- spell id crosses the addon channel.
+		function ns.BuffClaimHeard(text, channel, sender)
+			text, channel, sender = plain(text), plain(channel), plain(sender)
+			if type(text) ~= "string" or text:sub(1, #CLAIM_TAG) ~= CLAIM_TAG then return false end
+			if #text > 24 or channel ~= "WHISPER" or type(sender) ~= "string"
+				or sender == "" or #sender > 100 then return true end
+			local spell = tonumber(text:sub(#CLAIM_TAG + 1))
+			if not spell or text ~= CLAIM_TAG .. tostring(spell) or not ns.ALL_BUFF_IDS[spell]
+				or spell ~= math.floor(spell) then return true end
+			local now = GetTime()
+			local claim = { spell = spell, sender = sender, at = now }
+			claims[#claims + 1] = claim
+			if #claims > 24 then table.remove(claims, 1) end
+			for i = 1, #cw.waiting do
+				local seen = cw.waiting[i]
+				if not seen.decided and math.abs(now - seen.landedAt) <= CLAIM_KEEP
+					and SameBuff(seen.key, spell) then
+					UseClaim(seen, claim, false)
+					break
+				end
+			end
+			return true
 		end
 
 		-- Who cast `key` between `low` and `high`: the one-person rule. Returns the
@@ -1452,7 +1645,7 @@ do
 			return false
 		end
 
-		local function Forget(seen)
+		Forget = function(seen)
 			local waiting = cw.waiting
 			for i = 1, #waiting do
 				if waiting[i] == seen then table.remove(waiting, i) break end
@@ -1463,8 +1656,11 @@ do
 		-- on): counted, written down, and said once if the nameplates are on.
 		local function Unmatched(seen, why)
 			local stat = ns.castWatch
-			if why == "several" then stat.several = stat.several + 1 else stat.none = stat.none + 1 end
-			if why == "several" then
+			local several = why == "several" or why == "severalPossible"
+			if several then stat.several = stat.several + 1 else stat.none = stat.none + 1 end
+			if why == "severalPossible" then
+				ns.Trail("favour", ("buffed you (spell %s): two or more players in sight could cast that rank, so nobody is named"):format(tostring(seen.key)))
+			elseif why == "several" then
 				ns.Trail("favour", ("buffed you (spell %s): two or more players in sight cast it then, so nobody is named"):format(tostring(seen.key)))
 			else
 				ns.Trail("favour", ("buffed you (spell %s): the game did not say who cast it, and %s"):format(
@@ -1475,7 +1671,7 @@ do
 			-- Nobody was named, so now the trail's line and the nameplates hint (Sight
 			-- leaves both to here for a landing that waited on its window).
 			Unnamed(seen.key, seen.unseen)
-			if ns.UnmatchedBuffHint then ns.UnmatchedBuffHint(why) end
+			if ns.UnmatchedBuffHint then ns.UnmatchedBuffHint(why, seen) end
 		end
 
 		-- The window has closed: one decision, seeing every cast in it.
@@ -1483,6 +1679,11 @@ do
 			if seen.decided then return end
 			seen.decided = true
 			Forget(seen)
+			if seen.claimIgnored then return end
+			if seen.claimAmbiguous then
+				Unmatched(seen, "several")
+				return
+			end
 			local hit, why = Judge(seen.key, seen.low, seen.high)
 			-- A cast not aimed at you may name its caster only while the friendly
 			-- nameplates are plainly on (off, a stranger out of sight may have cast
@@ -1512,8 +1713,27 @@ do
 				Remember({ name = why.seen and why.seen.name, key = seen.key }, "ignored")
 				return
 			end
+			-- No cast message or cast event named them. If exactly one visible,
+			-- living, connected player of a class that can cast this rank was
+			-- present at the landing, that is the only possible caster.
+			if hit == nil and why == "none" then
+				if seen.candidateAmbiguous then
+					why = "unreadableCandidate"
+				elseif (seen.candidateCount or 0) > 1 then
+					why = "severalPossible"
+				elseif seen.candidateCount == 1 then
+					hit = seen.possibleCaster
+					why = hit and "possible" or why
+				end
+			end
 			if type(hit) == "table" then
-				CopyCaster(hit.seen, seen)
+				local caster = hit.seen or hit
+				if caster.ignored then
+					seen.ignoredCaster = true
+					Remember({ name = caster.name, key = seen.key }, "ignored")
+					return
+				end
+				CopyCaster(caster, seen)
 				hit.used = true
 				-- The same cast heard under another token (one person, one buff, the same
 				-- moment) is spent with it, even with every id withheld: one cast names one
@@ -1526,7 +1746,8 @@ do
 						e.used = true
 					end
 				end
-				seen.fromCast = true
+				seen.fromCast = why ~= "possible"
+				seen.fromCandidate = why == "possible" or nil
 				seen.filed = true
 				-- A thank to nobody still waiting is let go for the name (the pause ends,
 				-- PausedUnseen drops it, and the named thank behind it goes).
@@ -1538,8 +1759,14 @@ do
 				local stat = ns.castWatch
 				stat.named = stat.named + 1
 				stat.late = stat.late + 1
-				ns.Trail("favour", ("named from their cast, %.1fs after the buff landed (spell %s)"):format(
-					GetTime() - seen.landedAt, tostring(seen.key)), seen.name)
+				if seen.fromCandidate then
+					stat.possible = stat.possible + 1
+					ns.Trail("favour", ("the only player in sight able to cast the rank was %.1fs old at the decision (spell %s)"):format(
+						GetTime() - seen.landedAt, tostring(seen.key)), seen.name)
+				else
+					ns.Trail("favour", ("named from their cast, %.1fs after the buff landed (spell %s)"):format(
+						GetTime() - seen.landedAt, tostring(seen.key)), seen.name)
+				end
 				-- Replayed as it was the moment it landed.
 				local was = walkAfterFight
 				walkAfterFight = seen.afterFight or was
@@ -1572,6 +1799,7 @@ do
 			seen.low, seen.high = landed - CAST_WINDOW - lag, landed + CAST_WINDOW
 			seen.landedAt = landed
 			seen.awaitCast = true
+			OnlyPossibleCaster(seen)
 			return true
 		end
 
@@ -2261,7 +2489,9 @@ function addon:UNIT_AURA(_, unit, info)
 	-- Keyed by GUID, never the unit token: nameplate tokens are recycled.
 	ForgetUnitAuras(plain(UnitGUID(unit)))
 	-- And what was read of their debuffs, once anything has been (Cures.lua).
-	if ns.cureReads then ns.ForgetCureRead(unit) end
+	if ns.cureReads and ns.ModuleActive and ns.ModuleActive("combat") then
+		ns.ForgetCureRead(unit)
+	end
 	-- And a refusal remembered on them, while one is (Queue.lua, AuraChangedOn):
 	-- a buff added to them or taken off is something changed.
 	if ns.refusalWatch then ns.AuraChangedOn(unit, info) end

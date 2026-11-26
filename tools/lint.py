@@ -17,6 +17,8 @@ What it checks, one line per problem as "file:line: what":
            newer Python
   tocs     every file the toc names exists, and the five generated tocs are what
            tools/maketocs.py would write (its own `expected()`, imported)
+  unused   shipped Lua locals that are never mentioned again; historical
+           findings are listed in tools/unused_lua_known.txt and reviewed there
 
 It does not repeat what tests/validate.py counts (upvalues, locals, references,
 translations, versions): that script is not importable and takes four seconds.
@@ -81,6 +83,22 @@ def check_python(path):
             if issubclass(w.category, SyntaxWarning)]
 
 
+def check_unused(path):
+    from pathlib import Path
+    import unused_lua
+    full = Path(path).resolve()
+    try:
+        relative = full.relative_to(Path(ROOT)).as_posix()
+    except ValueError:
+        return []
+    if relative.split("/", 1)[0] in {".claude", ".github", "tests", "tools"}:
+        return []
+    known = unused_lua.known_unused()
+    return ["%s:%d: unused local %s %s" % (rel(path), line, kind, name)
+            for name, line, kind in unused_lua.audit(full)
+            if "%s:%s:%s" % (relative, kind, name) not in known]
+
+
 def rel(path):
     path = os.path.abspath(path)
     try:
@@ -96,28 +114,33 @@ def toc_files():
     The same reading as tests/addonfiles.lua: embeds.xml skipped, any other xml
     expanded through its <Script file> lines."""
     files, problems = [], []
-    with open(os.path.join(ROOT, "Manners.toc"), encoding="utf-8") as toc:
-        lines = toc.read().splitlines()
-    for n, raw in enumerate(lines, 1):
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        path = line.replace("\\", "/")
-        if path.lower() == "embeds.xml":
-            continue
-        full = os.path.join(ROOT, path)
-        if not os.path.exists(full):
-            problems.append("Manners.toc:%d: %s is listed and missing" % (n, path))
-        elif path.lower().endswith(".xml"):
-            folder = os.path.dirname(path)
-            for script in SCRIPT.findall(open(full, encoding="utf-8").read()):
-                inner = (folder + "/" if folder else "") + script.replace("\\", "/")
-                if os.path.exists(os.path.join(ROOT, inner)):
-                    files.append(inner)
-                else:
-                    problems.append("%s: %s is listed and missing" % (path, inner))
-        elif path.lower().endswith(".lua"):
-            files.append(path)
+    import maketocs
+    sources = [maketocs.SOURCE] + [source for source, _ in maketocs.MODULES]
+    for source in sources:
+        base = os.path.dirname(source).replace(os.sep, "/")
+        with open(os.path.join(ROOT, source), encoding="utf-8") as toc:
+            lines = toc.read().splitlines()
+        for n, raw in enumerate(lines, 1):
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            own = line.replace("\\", "/")
+            path = (base + "/" + own) if base else own
+            if own.lower() == "embeds.xml":
+                continue
+            full = os.path.join(ROOT, path)
+            if not os.path.exists(full):
+                problems.append("%s:%d: %s is listed and missing" % (source, n, path))
+            elif path.lower().endswith(".xml"):
+                folder = os.path.dirname(path)
+                for script in SCRIPT.findall(open(full, encoding="utf-8").read()):
+                    inner = (folder + "/" if folder else "") + script.replace("\\", "/")
+                    if os.path.exists(os.path.join(ROOT, inner)):
+                        files.append(inner)
+                    else:
+                        problems.append("%s: %s is listed and missing" % (path, inner))
+            elif path.lower().endswith(".lua"):
+                files.append(path)
     return files, problems
 
 
@@ -203,6 +226,7 @@ def main(argv=None):
         tocs = True
     for path in lua:
         problems.extend(check_lua(path))
+        problems.extend(check_unused(path))
     for path in py:
         problems.extend(check_python(path))
     if tocs:

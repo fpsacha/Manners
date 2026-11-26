@@ -39,6 +39,30 @@ local function RefreshBroker()
 	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
 end
 
+local RESET_MODULE_PATH = {
+	["beast.fightMend"] = "combat",
+	["sources.cures"] = "combat",
+	["sources.curesStrangers"] = "combat",
+	["sources.curesSelf"] = "combat",
+	["filters.cureSeconds"] = "combat",
+	["prompt.breakFree"] = "combat",
+	["prompt.cureFight"] = "combat",
+	["prompt.cureFightEach"] = "combat",
+	["prompt.cureFightMods"] = "combat",
+	["prompt.fightButtons"] = "combat",
+	["supplies.size"] = "mybuffs",
+}
+
+local function ModuleActive(id)
+	local api = _G.MannersAPI
+	return api and api:ModuleActive(id) == true
+end
+
+local function ModuleKeeps(path)
+	local id = RESET_MODULE_PATH[path]
+	return id ~= nil and not ModuleActive(id)
+end
+
 -- By page id, each field as "section.field" in the profile, and `after`, the
 -- hooks. Pages without a list (Start here, Profiles, Diagnostics) have no
 -- reset button.
@@ -47,7 +71,6 @@ Page.RESET = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
 		"buff.tanksOutside", "buff.keptBack", "buff.forClass",
 		"sources.owed", "sources.group", "sources.pets", "sources.share", "sources.strangers", "sources.asked",
-		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
 		"sources.res", "sources.resStrangers",
 		"sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight", "prompt.cureFightEach",
 		"filters.proximity", "filters.restingOnly", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
@@ -57,13 +80,18 @@ Page.RESET = {
 		"buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe", "buff.notMeInside", "buff.toTarget",
 		"buff.optIn",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
+		keep = ModuleKeeps,
 		after = function()
 			restyleAndMacro()
 			-- The fight buttons the page draws, as their own switches refresh them.
-			if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
-			if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+			if ModuleActive("combat") and ns.CureFight then
+				ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight)
+			end
+			if ModuleActive("combat") and ns.MendPet then
+				ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet)
+			end
 			-- The bags counted again for what is switched on now (Scrolls, the picks).
-			if ns.ForgetScrolls then ns.ForgetScrolls() end
+			if ModuleActive("mybuffs") and ns.ForgetScrolls then ns.ForgetScrolls() end
 			-- An own buff's pick shows at once, as its own control does it.
 			ns.Prompt:Refresh()
 			-- The favour count follows People who buff me.
@@ -114,7 +142,7 @@ Page.RESET = {
 		"prompt.thankAsk",
 		-- Asking for a buff (What I say): every class can ask, so these are
 		-- put back for all of them, a rogue's page included.
-		"sources.ask", "ask.channel", "ask.line", "ask.inTowns", "ask.own",
+		"sources.ask", "ask.channel", "ask.line", "ask.paladin", "ask.inTowns", "ask.own",
 		keep = function(path)
 			if path == "sources.ask" or path:find("^ask%.") then return false end
 			return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
@@ -145,6 +173,7 @@ Page.RESET = {
 		"supplies.size",
 		-- Use my class's look on each character, and each class's pick.
 		"prompt.classLook", "prompt.classStyles",
+		keep = ModuleKeeps,
 		after = function()
 			-- The profile's own look kept while the switch was on goes too, or
 			-- the repair would put it back over Glass (Looks.RepairClassLook).
@@ -166,7 +195,9 @@ Page.RESET.self = {
 	"filters.selfTopUp", "filters.selfLead",
 	-- Which pet, drawn on this page (Layout.lua).
 	"ownBuffs.petChoice",
+	keep = function() return not ModuleActive("mybuffs") end,
 	after = function()
+		if not ModuleActive("mybuffs") then return end
 		rescan()
 		restyleAndMacro()
 		-- The bags counted again for what is switched on now (Scrolls, the picks).
@@ -184,9 +215,15 @@ Page.RESET.self = {
 Page.RESET.pet = {
 	"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
 	"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
+	keep = function(path)
+		return not ModuleActive("pets") or ModuleKeeps(path)
+	end,
 	after = function()
+		if not ModuleActive("pets") then return end
 		restyleAndMacro()
-		if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+		if ModuleActive("combat") and ns.MendPet then
+			ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet)
+		end
 		ns.Prompt:Refresh()
 	end,
 }
@@ -208,17 +245,45 @@ Page.RESET.quiet = {
 	end,
 }
 
+-- Services owns its legacy source fields and the module-only policy table.
+Page.RESET.services = {
+	"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
+	"sources.courtesyTarget", "sources.courtesyAmount",
+	keep = function() return not ModuleActive("services") end,
+	after = function()
+		if not ModuleActive("services") then return end
+		local profile = ns.db and ns.db.profile
+		if type(profile and profile.services) == "table" then wipe(profile.services) end
+		if profile and profile.buff and type(profile.buff.optIn) == "table" then
+			profile.buff.optIn.fireshield = nil
+		end
+		if ns.Courtesy then
+			ns.Guard("reset Services", ns.Courtesy.Forget)
+			ns.Guard("reset Services hooks", ns.Courtesy.Sync)
+		end
+		ns.Prompt:Refresh()
+	end,
+}
+
 -- In a fight: the prompt's fight behaviour and the buttons made for a fight.
 -- The cure in a fight is also on Who to buff's list (the same field, drawn
 -- twice on purpose), so that page's reset puts it back too.
 Page.RESET.fight = {
 	"prompt.fightRota",
-	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
+	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach",
+	"prompt.cureFightMods", "prompt.fightButtons",
+	keep = ModuleKeeps,
 	after = function()
 		restyleAndMacro()
-		if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end
-		if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
-		if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+		if ModuleActive("combat") and ns.BreakFree then
+			ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree)
+		end
+		if ModuleActive("combat") and ns.MendPet then
+			ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet)
+		end
+		if ModuleActive("combat") and ns.CureFight then
+			ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight)
+		end
 		ns.Prompt:Refresh()
 	end,
 }
@@ -261,12 +326,15 @@ local function ResetField(path)
 	local default = ns.defaults.profile[section][name]
 	local into = ns.db.profile[section]
 	local current = into[name]
+	local serviceFireShield = path == "buff.optIn" and type(current) == "table"
+		and current.fireshield == true or nil
 	if type(default) == "table" and type(current) == "table" and default[1] == nil then
 		wipe(current)
 		for k, v in pairs(default) do current[k] = Copy(v) end
 	else
 		into[name] = Copy(default)
 	end
+	if serviceFireShield and type(into[name]) == "table" then into[name].fireshield = true end
 end
 
 -- Put page `pageId` back to its defaults, with no question asked (the button's

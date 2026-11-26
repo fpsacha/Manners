@@ -1,0 +1,7 @@
+<Bindings>
+	<!-- Optional in-fight controls from Manners: Combat. -->
+	<Binding name="CLICK MannersBreakFree:LeftButton" category="Manners: Combat"/>
+	<Binding name="CLICK MannersMendPet:LeftButton" category="Manners: Combat"/>
+	<Binding name="CLICK MannersCureFight:LeftButton" category="Manners: Combat"/>
+	<Binding name="CLICK MannersCureFight2:LeftButton" category="Manners: Combat"/>
+</Bindings>

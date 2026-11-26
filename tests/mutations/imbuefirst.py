@@ -27,13 +27,13 @@ mutate("Core.lua",
        "imbuefirst: on by default",
        expect="a new profile's switch is", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.imbueFirst = value == true\n",
        "\t\t\t\t\tns.db.profile.ownBuffs.imbueFirst = true\n",
        "imbuefirst: the switch cannot be turned off",
        expect="turning it off wrote nothing", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.ownImbueFirst\", indent = 2 },\n",
        "",
        "imbuefirst: the switch not placed",

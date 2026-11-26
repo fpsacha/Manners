@@ -37,6 +37,13 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = "Manners.toc"
+MODULES = [
+    ("Modules/Combat/Manners_Combat.toc", "Manners_Combat"),
+    ("Modules/Achievements/Manners_Achievements.toc", "Manners_Achievements"),
+    ("Modules/Pets/Manners_Pets.toc", "Manners_Pets"),
+    ("Modules/MyBuffs/Manners_MyBuffs.toc", "Manners_MyBuffs"),
+    ("Modules/Services/Manners_Services.toc", "Manners_Services"),
+]
 
 # suffix -> the interface number that client reports, September 2026.
 #
@@ -75,9 +82,9 @@ def body(template):
     return "".join(l for l in lines[start:] if not l.startswith("## Interface:"))
 
 
-def render(template, suffix, interface):
+def render(template, suffix, interface, source=SOURCE):
     return "%s## Interface: %d\n%s" % (
-        BANNER % (SOURCE, suffix, SOURCE), interface, body(template))
+        BANNER % (source, suffix, source), interface, body(template))
 
 
 def expected():
@@ -89,6 +96,12 @@ def expected():
     template = open(os.path.join(ROOT, SOURCE), encoding="utf-8").read()
     out = {"Manners_%s.toc" % suffix: render(template, suffix, interface)
            for suffix, interface in FLAVOURS}
+    for source, name in MODULES:
+        module = open(os.path.join(ROOT, source), encoding="utf-8").read()
+        folder = os.path.dirname(source)
+        for suffix, interface in FLAVOURS:
+            out["%s/%s_%s.toc" % (folder, name, suffix)] = render(
+                module, suffix, interface, source)
     staged = STAGED_DIR.replace(os.sep, "/")
     for suffix, interface in STAGED:
         out["%s/Manners_%s.toc" % (staged, suffix)] = render(template, suffix, interface)

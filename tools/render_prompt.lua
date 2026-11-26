@@ -50,6 +50,13 @@ local R = {}
 -- What the drawn build's own toc loads, so an older checkout is drawn with its
 -- own file list and today's picks up the ledger and the locales.
 local FILES = dofile(dir .. "/tests/addonfiles.lua")(addonDir)
+local MODULE_TOCS = {
+	"Modules/Combat/Manners_Combat.toc",
+	"Modules/Achievements/Manners_Achievements.toc",
+	"Modules/Pets/Manners_Pets.toc",
+	"Modules/MyBuffs/Manners_MyBuffs.toc",
+	"Modules/Services/Manners_Services.toc",
+}
 
 -- Only the units a state names exist; everybody else is nobody. The mock's
 -- default answers yes for every token, which would put the same person on the
@@ -84,6 +91,15 @@ local function load()
 		local chunk, err = loadfile(addonDir .. "/" .. file)
 		if not chunk then error("load " .. file .. ": " .. tostring(err)) end
 		chunk("Manners", ns)
+	end
+	local addonFiles = dofile(dir .. "/tests/addonfiles.lua")
+	for _, toc in ipairs(MODULE_TOCS) do
+		local module = {}
+		for _, file in ipairs(addonFiles(addonDir, toc)) do
+			local chunk, err = loadfile(addonDir .. "/" .. file)
+			if not chunk then error("load " .. file .. ": " .. tostring(err)) end
+			chunk("Manners module", module)
+		end
 	end
 	if style and ns.defaults then ns.defaults.profile.prompt.style = style end
 	return ns

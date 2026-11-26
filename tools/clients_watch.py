@@ -1,6 +1,7 @@
 """Have the five clients moved on from the interface numbers in the tocs?
 
     python tools/clients_watch.py
+    python tools/clients_watch.py --strict-builds
 
 A client patched to a new interface number shows Manners as out of date to
 every player on it, until the toc says the new number. This compares what the
@@ -35,6 +36,8 @@ tools/maketocs.py FLAVOURS and Manners.toc's Interface line, then
 `python tools/maketocs.py`. Exit 0 when no client has drifted, 1 when one has or
 when the repository disagrees with itself about a client's number (the "repo
 disagrees" note), 2 when upstream could not be read or `gh` is not installed.
+--strict-builds also exits 1 for a newer exact-data build even when the
+interface itself has not changed.
 """
 import concurrent.futures
 import os
@@ -154,7 +157,9 @@ def build_number(version):
 
 
 def main(argv=None):
-    if len(sys.argv[1:] if argv is None else argv):
+    given = sys.argv[1:] if argv is None else argv
+    strict = given == ["--strict-builds"]
+    if given and not strict:
         print(__doc__.split("\n\n")[0])
         return 64
     sources, repo_builds = repo_side()
@@ -175,7 +180,7 @@ def main(argv=None):
             jobs[("ketho", branch)] = "%s/contents/README.md?ref=%s" % (KETHO, branch)
     got = fetch(jobs)
 
-    drifted, unread, disagreed = [], [], []
+    drifted, unread, disagreed, stale = [], [], [], []
     print("%-16s %-9s %7s  %-13s  %-13s %-19s %7s %7s  %s" % (
         "client", "toc", "repo", "repo build", "upstream", "branch", "iface", "Ketho", "status"))
     for key, name, suffix, branch, _word in CLIENTS:
@@ -201,6 +206,8 @@ def main(argv=None):
             notes.append("DRIFT: toc says %d, upstream is %d" % (want, implied))
         if repo_builds[key] and repo_builds[key].split(".")[:3] == up.split(".")[:3] \
                 and build_number(up) != build_number(repo_builds[key]):
+            if build_number(up) > build_number(repo_builds[key]):
+                stale.append(name)
             notes.append("%s build (%+d)" % ("newer" if build_number(up) > build_number(repo_builds[key])
                                                else "older", build_number(up) - build_number(repo_builds[key])))
         if ketho is not None and ketho != implied:
@@ -252,9 +259,12 @@ def main(argv=None):
               " disagrees notes above): tools/maketocs.py FLAVOURS, Manners.toc, the generated"
               " tocs and tests/mockapi.lua must carry one interface per client"
               % ", ".join(disagreed))
+    if strict and stale:
+        print("clients_watch: exact-data builds are stale for %s -- audit and cite the newer"
+              " builds in .claude/docs/data-sources.md" % ", ".join(stale))
     if unread:
         return 2
-    if drifted or disagreed:
+    if drifted or disagreed or (strict and stale):
         return 1
     print("clients_watch: no drift, all five tocs carry their client's current interface")
     return 0

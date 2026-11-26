@@ -14,7 +14,7 @@ local function changelog()
 	for line in file:lines() do
 		line = line:gsub("\r$", "")
 		local version = line:match("^## (%S+)%s*$")
-		if version then
+		if version and version ~= "Unreleased" then
 			release = { version = version, sections = {} }
 			releases[#releases + 1] = release
 			section = nil

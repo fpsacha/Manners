@@ -233,49 +233,49 @@ mutate(C,
        "self-buffs: the off hand's imbue not named for its hand",
        expect="self-buffs: mainline: the page names each hand", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\tif family.slot == 17 then\n",
        "\t\t\t\t\t\tif false then\n",
        "self-buffs: the off hand's row speaks of the main hand",
        expect="self-buffs: mainline: the page names each hand", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\telseif family.key ~= \"shamanimbue\" then\n",
        "\t\t\t\t\t\telseif false then\n",
        "self-buffs: the paladin's row speaks of Windfury",
        expect="self-buffs: mainline: the page names each hand", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tor family.form\n\t\t\t\t\tand L[\"Reminds you when you are not in it, and never while you are in another form.\"]\n",
        "",
        "self-buffs: the Moonkin switch says nothing of forms",
        expect="self-buffs: mainline: the page names each hand", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_shadowform\", indent = true },\n",
        "",
        "self-buffs: Shadowform not placed on the page",
        expect="every control has one place in the options window", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_moonkinform\", indent = true },\n",
        "",
        "self-buffs: Moonkin Form not placed on the page",
        expect="every control has one place in the options window", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_shamanimbueoff\",\n",
        "",
        "self-buffs: the off hand's imbue not placed on the page",
        expect="self-buffs: mainline: the page names each hand", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_rite\",\n",
        "",
        "self-buffs: the rites not placed on the page",
        expect="self-buffs: mainline: the page names each hand", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_grimoireofsacrifice\", indent = true },\n",
        "",
        "self-buffs: Grimoire of Sacrifice not placed on the page",

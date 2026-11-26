@@ -460,7 +460,10 @@ Quick.THANKS = {
 }
 if ns.InCharacter then
 	Quick.THANKS[#Quick.THANKS + 1] = { key = "incharacter", name = L["In character (fits your race and class)"],
-		lines = "incharacter", set = { ["prompt.thankWhisper"] = true }, applyOnly = {} }
+		lines = "incharacter", set = { ["prompt.thankWhisper"] = true },
+		-- The whisper switch can be turned off after the roleplay choice:
+		-- it is an independent thanks setting, not whether In character stays chosen.
+		applyOnly = { ["prompt.thankWhisper"] = true } }
 end
 
 -- The voice list this character chooses from.
@@ -486,6 +489,18 @@ end
 -- with lines, that the set is chosen and its lines are unedited. Its applyOnly
 -- fields are not asked.
 function Quick.Matches(list, entry)
+	if list == Quick.THANKS then
+		-- A thank-only class can keep the shared line set in character while
+		-- its whispered-thank switch is turned off. Remember the quick choice
+		-- separately, so the dropdown stays on the choice it was given.
+		local quickChoice = SP().quickChoice
+		if quickChoice then
+			if quickChoice ~= entry.key then return false end
+			if entry.lines == "incharacter" then
+				return ns.InCharacter ~= nil and ns.InCharacter.Active(SP()) == true
+			end
+		end
+	end
 	local loose = entry.applyOnly or {}
 	for path, value in pairs(entry.set) do
 		if not loose[path] and not Quick.Ignored(list, path) and Quick.Get(path) ~= value then return false end
@@ -538,6 +553,11 @@ function Quick.Apply(list, key)
 	return ns.Guard("quick setup", function()
 		local entry = Quick.Find(list, key)
 		if entry then
+			if list == Quick.THANKS then
+				SP().quickChoice = entry.key
+			elseif list == Quick.VOICE then
+				SP().quickChoice = nil
+			end
 			for path, value in pairs(entry.set) do Quick.Set(path, value) end
 			if entry.lines then
 				local sp = SP()
@@ -1479,6 +1499,77 @@ function Page.BuildStartTab()
 				-- The options stay open: both windows are HIGH and toplevel,
 				-- and Show raises the ledger above this one.
 				func = function() ns.Ledger.Show() end,
+			},
+			modules = {
+				type = "description",
+				name = function()
+					local api = _G.MannersAPI
+					return L["Turn optional modules on or off here. Their changes take effect after Reload UI."]
+				end,
+				order = 68,
+			},
+			modulesCombat = {
+				type = "toggle", name = L["Manners: Combat"], order = 68.2, width = "full",
+				desc = L["Cure, break-free and Mend Pet buttons in a fight."],
+				disabled = function() return InCombatLockdown() end,
+				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("combat") == true end,
+				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("combat", value == true) end end,
+			},
+			modulesCombatHelp = {
+				type = "description", name = L["Cure, break-free and Mend Pet buttons in a fight."],
+				order = 68.21,
+			},
+			modulesAchievements = {
+				type = "toggle", name = L["Manners: Achievements"], order = 68.3, width = "full",
+				desc = L["Manners achievements in a tab of the favour ledger."],
+				disabled = function() return InCombatLockdown() end,
+				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("achievements") == true end,
+				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("achievements", value == true) end end,
+			},
+			modulesAchievementsHelp = {
+				type = "description", name = L["Manners achievements in a tab of the favour ledger."],
+				order = 68.31,
+			},
+			modulesPets = {
+				type = "toggle", name = L["Manners: Pets"], order = 68.4, width = "full",
+				desc = L["Hunter pet care and moments."],
+				disabled = function() return InCombatLockdown() end,
+				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("pets") == true end,
+				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("pets", value == true) end end,
+			},
+			modulesPetsHelp = {
+				type = "description", name = L["Hunter pet care and moments."], order = 68.41,
+			},
+			modulesMyBuffs = {
+				type = "toggle", name = L["Manners: My Buffs"], order = 68.5, width = "full",
+				desc = L["Own buffs, consumables and companion-pet reminders."],
+				disabled = function() return InCombatLockdown() end,
+				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("mybuffs") == true end,
+				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("mybuffs", value == true) end end,
+			},
+			modulesMyBuffsHelp = {
+				type = "description", name = L["Own buffs, consumables and companion-pet reminders."],
+				order = 68.51,
+			},
+			modulesServices = {
+				type = "toggle", name = L["Manners: Services"], order = 68.6, width = "full",
+				desc = L["Mage, priest, shaman and warlock services on explicit request."],
+				disabled = function() return InCombatLockdown() end,
+				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("services") == true end,
+				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("services", value == true) end end,
+			},
+			modulesServicesHelp = {
+				type = "description", name = L["Mage, priest, shaman and warlock services on explicit request."],
+				order = 68.61,
+			},
+			modulesReload = {
+				type = "execute", name = L["Reload now"], order = 68.7, width = "full",
+				desc = L["Load or unload the optional modules after they are changed above."],
+				hidden = function() local api = _G.MannersAPI return not (api and api:ModuleReloadPending()) end,
+				disabled = function() return InCombatLockdown() end,
+				func = function()
+					if not InCombatLockdown() and type(ReloadUI) == "function" then ReloadUI() end
+				end,
 			},
 			-- Last, under a header of its own: where the way back in lives,
 			-- and the chat lines people reach for when they want quiet.

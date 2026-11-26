@@ -21,7 +21,7 @@ mutate("Core.lua",
        "movehold: the hold is off by default",
        expect=ON, script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.holdMoving = value == true\n",
        "\t\t\t\t\tns.db.profile.ownBuffs.holdMoving = true\n",
        "movehold: the switch cannot be turned off",
@@ -33,7 +33,7 @@ mutate("Options/Who.lua",
        "movehold: a hunter never sees the switch",
        expect=SITS, script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.ownHoldMoving\",\n",
        "",
        "movehold: the switch is not in the layout",

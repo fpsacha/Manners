@@ -19,6 +19,41 @@ They live in the repository rather than on somebody's desktop so the listing can
 be rebuilt when the addon changes. The first versions were one-off scripts, which
 meant the published images could only ever drift away from the addon.
 
+`install_package.py` is the safe handoff from a checkout or release zip into
+the game's `Interface/AddOns` folder. It stages all six addon folders, refuses
+an archive with missing libraries or unsafe paths, preserves an installed
+`Libs/` when the source is a checkout, verifies every copied file with SHA-256,
+and restores the previous folders if installation fails. Use `--dry-run` to
+verify without changing the game.
+
+`tools/maketocs.py` owns the core toc plus the five generated flavour tocs of
+every optional module. `make_beastfoods.py` writes
+`Modules/Pets/BeastFoods.lua`, not a root file. Packaging reads `.pkgmeta`'s
+`move-folders`, while the test addon loader can read any module toc directly.
+
+## install_package.py
+
+```
+python tools/install_package.py --source . "D:\wow\World of Warcraft\_forever_\Interface\AddOns" --dry-run
+python tools/install_package.py --source . "D:\wow\World of Warcraft\_forever_\Interface\AddOns"
+python tools/install_package.py --zip Manners-X.Y.Z.zip "<Interface/AddOns>"
+python tools/install_package.py --selftest
+```
+
+The destination must be the `Interface/AddOns` folder, not an addon folder.
+Zip mode verifies that all 14 declared libraries are present before replacing
+anything. Source mode carries over the installed `Manners/Libs` verbatim
+because that folder is intentionally absent from git.
+
+## unused_lua.py
+
+`lint.py` and `tests/validate.py` reject a newly unreferenced local in shipped
+Lua. The conservative scan never follows macros or attempts scope analysis: if
+a name occurs only at its declaration, it is unused. Historical findings that
+pre-date the gate are recorded in `tools/unused_lua_known.txt`; remove an entry
+when the declaration is removed or used again. `--selftest` proves the scanner
+finds an unused function without counting strings or comments as uses.
+
 ## check.py
 
 The suites in one command, one line each.
@@ -254,6 +289,7 @@ Have the five clients moved on from the interface numbers in the tocs?
 
 ```
 python tools/clients_watch.py
+python tools/clients_watch.py --strict-builds
 ```
 
 A client patched to a new interface number shows the addon as out of date to
@@ -280,14 +316,15 @@ every player on it until its toc says the new number. This reads, with `gh api`
 ```
 client           toc          repo  repo build     upstream      branch                iface   Ketho  status
 WoW Forever      Camelot     16001  1.60.1.70532   1.60.1.70532  forever               16001   16001  ok
-Classic Era      Vanilla     11509  1.15.9.70003   1.15.9.70003  classic_era           11509   11509  ok
+Classic Era      Vanilla     11509  1.15.9.70576   1.15.9.70576  classic_era           11509   11509  ok
 ...
   ptr2               12.1.5.70077   interface 120105  Ketho 120105  NEWER than Manners_Mainline.toc (120100)
 ```
 
-`ok` means the interface agrees. `newer build (+N)` means upstream is a later
+`ok` means the interface and exact-data build agree. `newer build (+N)` means upstream is a later
 build of the same version: the spell data in `Buffs.lua` was read from the older
-one, which is not a toc matter. `DRIFT` means the number differs: change
+one, which is not a toc matter. `--strict-builds` turns that into a failed
+check so the nightly audit cannot silently keep old data. `DRIFT` means the number differs: change
 `tools/maketocs.py` `FLAVOURS` and `Manners.toc`'s Interface line, run
 `python tools/maketocs.py`, and put the new number in `RELEASING.md`'s table, the
 mock and `CLAUDE.md`'s client table. Exit 0 when no client has drifted, 1 when one
@@ -584,11 +621,13 @@ is named by `ns.BUILD` when the fold is drawn. Standard library only.
 
 ## maketocs.py
 
-Writes one `Manners_<Flavour>.toc` from `Manners.toc` for each entry in its
-`FLAVOURS` table. Every live client ships since 1.7.0, so that is five files:
+Writes one flavour toc from each source in `MANNERS.toc` and `MODULES` for
+every entry in `FLAVOURS`. The core makes five `Manners_<Flavour>.toc` files:
 `Manners_Camelot.toc` (WoW Forever), `Manners_Vanilla.toc` (Classic Era),
 `Manners_TBC.toc` (Burning Crusade Anniversary), `Manners_Mists.toc` (Mists
-Classic) and `Manners_Mainline.toc` (retail).
+Classic) and `Manners_Mainline.toc` (retail). Each optional folder gets the
+same five beside its own source toc; `Modules/Combat/Manners_Combat.toc`, for
+example, writes `Manners_Combat_Camelot.toc` through `..._Mainline.toc`.
 
 Its `STAGED` table is the step before shipping, empty while every client
 ships: a flavour listed there is written to `tools/tocs/`, kept current and
@@ -608,9 +647,10 @@ python tools/maketocs.py --check   # say whether they are up to date
 
 Needs nothing but the standard library, unlike the image tools below.
 
-`Manners.toc` is the only one anybody edits, and it stays in the tree as the
-fallback for a client that does not honour a suffixed name. The generated
-copies differ from it in exactly one line — the interface number — which is why
+Each source toc is the only one anybody edits, and the core source stays in
+the tree as the fallback for a client that does not honour a suffixed name.
+The generated copies differ from their source in exactly one line — the
+interface number — which is why
 they are generated: hand-maintained copies of the same file list drift, and a
 toc that has lost a line from its file list produces an addon that loads four
 files instead of five, defines nothing, says nothing, and looks precisely like
@@ -618,8 +658,8 @@ not having been installed.
 
 `tests/validate.py` re-runs the render in memory and fails if what is on disk
 differs, so a hand edit to a generated file cannot survive a test run unnoticed.
-`tests/setversion.py` writes the version into `Manners.toc` and then re-runs
-this, which is what keeps them all agreeing.
+`tests/setversion.py` writes the version into every source toc and then
+re-runs this, which is what keeps them all agreeing.
 
 ## Running the image tools
 
@@ -1786,6 +1826,23 @@ It holds the weapon enhancement items (poisons, stones, oils, lures) on the four
 It also holds Buffs.lua's table of how long each id lasts (`ns.SPELL_SECONDS`, in seconds, which a top-up's lead is worked out from) to the client's SpellMisc.DurationIndex and SpellDuration.Duration (a cast that only triggers its aura is the aura's; a weapon enhancement or scroll is its use spell's, else SpellItemEnchantment.Duration on Forever, else the length its tooltip names, since the Classic builds' enchantment table has no duration column, and for a spell with no SpellDuration row the `$<id>d` its tooltip cites): a FINDING for a number that differs, an id with no entry, an entry for an id the set does not hold, and ranks of one spell that differ. An id the client gives no length has no entry.
 
 `python tools/audit_ids.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## audit_services.py
+
+The optional Services module, held to each client's exact DB2 build without
+enabling any service. The module's own Lua definitions are the source of the
+spell IDs. The audit verifies spell/class ownership, spell targets, reagents,
+created and used items, Soulstone shapes, portals and Fire Shield's client
+support, then prints the support matrix.
+
+```
+python tools/audit_services.py
+python tools/audit_services.py --client camelot
+python tools/audit_services.py --build camelot=1.60.1.71091
+```
+
+It is not part of `tools/check.py`; it downloads the same cached data as
+`audit_ids.py`.
 
 ## audit_groups.py
 

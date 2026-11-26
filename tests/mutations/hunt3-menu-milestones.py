@@ -24,9 +24,9 @@ mutate("Options/Window/WindowSearch.lua",
        "hunt3-menu-milestones: search offers another class's courtesy behind a switch",
        expect=P + "search offers a courtesy only to the class that has it", script=S)
 
-mutate("Options/Window/Layout.lua",
-       "\t\t[\"who.courtesyPortals\"] = function() return ns.Courtesy.Has(\"courtesyPortals\") end,\n",
-       "",
+mutate("Modules/Services/Options.lua",
+       "return not (profile and profile.sources.asked and Courtesy.Has(key))",
+       "return not (profile and profile.sources.asked)",
        "hunt3-menu-milestones: the portals are anybody's to search for",
        expect=P + "search offers a courtesy only to the class that has it", script=S)
 

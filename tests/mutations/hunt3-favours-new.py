@@ -67,7 +67,7 @@ mutate("Requests.lua",
        expect="hunt3-favours-new: a Chinese thanks beside a one-word name is read", script=S)
 
 # "drink" is a name for water again.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\"water\", \"waters\", \"mage water\", \"wasser\"",
        "\"water\", \"waters\", \"mage water\", \"drink\", \"drinks\", \"wasser\"",
        "hunt3-favours-new: somebody who says they drink is offered water",

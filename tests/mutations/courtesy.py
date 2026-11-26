@@ -24,20 +24,20 @@ TOWN = "courtesy: Offer nothing in cities and inns holds a courtesy too"
 # ------------------------------------------------------------ the reader
 # The reader is never handed the courtesies' names: "water pls" asks for nothing.
 mutate("Requests.lua",
-       "\t\tif ns.Courtesy then ns.Courtesy.Named(words, lowered, found, covered, strict, Mark, Words) end\n",
-       "",
+       "\t\t\tns.Courtesy.Named(words, lowered, found, covered, strict, Mark, Words)\n",
+       "\t\t\tlocal ignored = ns.Courtesy.Named\n",
        "courtesy: the reader is not told the courtesies' names",
        expect=WORDS, script=S)
 
 # A city on its own is a portal asked for: "org pls", "uc?".
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\t\tif (named and portalAt) or inside then\n",
        "\t\t\tif named or inside then\n",
        "courtesy: a city's name alone asks for a portal",
        expect=WORDS, script=S)
 
 # "water and food pls": the "and" between two is a word of its own again.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\t\tif asks.joiners[word] then covered[i] = true end\n",
        "",
        "courtesy: two asked for at once are not read",
@@ -66,23 +66,24 @@ mutate("Core.lua",
        expect=SWITCH, script=S)
 
 # Every courtesy answered once People who ask me in chat is on, ticked or not.
-mutate("Courtesy.lua",
-       "\treturn db ~= nil and db.sources.asked == true and db.sources[SETTING[name]] == true\n",
-       "\treturn db ~= nil and db.sources.asked == true\n",
+mutate("Modules/Services/Courtesy.lua",
+       "\treturn ModuleOn() and db ~= nil and db.sources.asked == true and ServiceOn(name)\n",
+       "\treturn ModuleOn() and db ~= nil and db.sources.asked == true\n",
        "courtesy: answered with its own switch off",
        expect=SWITCH, script=S)
 
 # The page's reset leaves the four switches as they are.
 mutate("Options/Advanced.lua",
-       "\t\t\"sources.courtesyRefresh\", \"sources.courtesyPortals\", \"sources.courtesyHealthstones\", \"sources.courtesySummons\",\n",
-       "",
+       "Page.RESET.services = {\n"
+       "\t\"sources.courtesyRefresh\", \"sources.courtesyPortals\", \"sources.courtesyHealthstones\", \"sources.courtesySummons\",\n",
+       "Page.RESET.services = {\n",
        "courtesy: the page's reset leaves the switches",
        expect=SWITCH, script=S)
 
 # A mage is shown the warlock's switch.
-mutate("Options/Who.lua",
-       "\t\t\t\thidden = function() return not (S().asked and ns.Courtesy.Has(\"courtesySummons\")) end,\n",
-       "\t\t\t\thidden = function() return not S().asked end,\n",
+mutate("Modules/Services/Options.lua",
+       "return not (profile and profile.sources.asked and Courtesy.Has(key))",
+       "return not (profile and profile.sources.asked)",
        "courtesy: the summons switch shown to every class",
        expect=SWITCH, script=S)
 
@@ -96,41 +97,41 @@ mutate("Queue.lua",
 
 # With no buff to give, the queue leaves before a courtesy is looked at.
 mutate("Queue.lua",
-       "\tif #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= \"fight\" and not ns.CureScanned() and ns.Courtesy and ns.Courtesy.Standing(now) then\n",
+       "\tif #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= \"fight\" and not curesScanned and ns.Courtesy and ns.Courtesy.Standing(now) then\n",
        "\tif false then\n",
        "courtesy: nothing offered with no buff to give",
        expect=ALONE, script=S)
 
 # Offered in a fight.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tlocal held = (InCombatLockdown() or (ns.Prompt and ns.Prompt.armedForFight == true)) and \"fight\"\n",
        "\tlocal held = (ns.Prompt and ns.Prompt.armedForFight == true) and \"fight\"\n",
        "courtesy: offered in a fight",
        expect=FIGHT, script=S)
 
 # The pull's own repaint arms it, and the fight freezes it on the button.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tlocal held = (InCombatLockdown() or (ns.Prompt and ns.Prompt.armedForFight == true)) and \"fight\"\n",
        "\tlocal held = InCombatLockdown() and \"fight\"\n",
        "courtesy: the pull leaves a courtesy armed for the fight",
        expect=FIGHT, script=S)
 
 # The city rule does not hold a courtesy.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\telseif inTown and not (st.pointed and db.filters.quietTargets ~= true) then\n",
        "\t\telseif false then\n",
        "courtesy: offered in a city with Offer nothing in cities and inns on",
        expect=TOWN, script=S)
 
 # A favour owed is pushed out by the water they asked for.
-mutate("Courtesy.lua",
-       "\t\t\t\t\t\t\twaits = entry.groupCast ~= nil or (entry.priority or 9) <= asked\n",
-       "\t\t\t\t\t\t\twaits = false\n",
+mutate("Modules/Services/Courtesy.lua",
+       "waits = entry.groupCast ~= nil or st.targeted == true or (entry.priority or 9) <= asked",
+       "waits = false",
        "courtesy: a courtesy takes a favour's place",
        expect=FAVOUR, script=S)
 
 # Two entries for one person: the buff nobody asked for, and the courtesy.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\t\t\t\t\tif at then table.remove(queue, at) end\n",
        "",
        "courtesy: somebody who asked is in the queue twice",
@@ -138,63 +139,66 @@ mutate("Courtesy.lua",
 
 # ------------------------------------------------------------ who and what
 # A portal for a passer-by.
-mutate("Courtesy.lua",
-       "\t\tif not spell or not Known(spell) then return nil, \"off\" end\n\t\tif not inGroup then return nil, \"group\" end\n",
-       "\t\tif not spell or not Known(spell) then return nil, \"off\" end\n",
+mutate("Modules/Services/Courtesy.lua",
+       "\t\tif not spell or not Known(spell) then return nil, \"off\" end\n"
+       "\t\tif not Courtesy.Destination(spell) then return nil, \"destination\" end\n"
+       "\t\tif not inGroup then return nil, \"group\" end\n",
+       "\t\tif not spell or not Known(spell) then return nil, \"off\" end\n"
+       "\t\tif not Courtesy.Destination(spell) then return nil, \"destination\" end\n",
        "courtesy: a portal for somebody outside the group",
        expect=PORTAL, script=S)
 
 # A summon for a passer-by.
-mutate("Courtesy.lua",
-       "\t\tif not Known(kind.spell) then return nil, \"off\" end\n\t\tif not inGroup then return nil, \"group\" end\n",
-       "\t\tif not Known(kind.spell) then return nil, \"off\" end\n",
+mutate("Modules/Services/Courtesy.lua",
+       "\t\telseif not inGroup then\n\t\t\treturn nil, \"group\"\n\t\tend\n",
+       "\t\telseif false then\n\t\t\treturn nil, \"group\"\n\t\tend\n",
        "courtesy: a summon for somebody outside the group",
        expect=SUMMON, script=S)
 
 # The rune and the shard are never looked for.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tif have ~= 0 then return false end\n",
        "\tif true then return false end\n",
        "courtesy: offered with no reagent in the bags",
        expect=PORTAL, script=S)
 
 # Another spell's cast answers a request for a portal.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tif plain(spellId) ~= press.spell then return end\n",
        "",
        "courtesy: any cast answers the portal asked for",
        expect=PORTAL, script=S)
 
 # Whatever the bags hold goes to anybody, whatever their level.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tlocal function suits(row) return not (level and row.level) or row.level <= level end\n",
        "\tlocal function suits(row) return true end\n",
        "courtesy: water too high for whoever asked",
        expect=LEVEL, script=S)
 
 # The conjure names no rank: the game casts the best one.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\t\tif type(rank) == \"string\" and rank ~= \"\" then return name .. \"(\" .. rank .. \")\" end\n",
        "",
        "courtesy: the conjure for a low level names no rank",
        expect=LEVEL, script=S)
 
 # "Create Healthstone (Major)" without the empty bracket: read as a rank.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tif name:sub(-1) == \")\" then return name .. \"()\" end\n",
        "",
        "courtesy: a name ending in a bracket is cast as a rank",
        expect=STONE, script=S)
 
 # The stone Improved Healthstone makes is not known for one.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t{ spell = 11730, level = 48, items = { 9421, 19012, 19013 } },\n",
        "\t{ spell = 11730, level = 48, items = { 9421 } },\n",
        "courtesy: the improved healthstone is not counted",
        expect=STONE, script=S)
 
 # Mists' healthstone traded, as Classic's is.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\t-- the Soulwell.\n\t\thealthstone = { cast = 29893 },\n",
        "\t\t-- the Soulwell.\n\t\thealthstone = { rows = VANILLA_STONES, reagent = SOUL_SHARD },\n",
        "courtesy: mists: a healthstone traded rather than a Soulwell cast",
@@ -202,14 +206,14 @@ mutate("Courtesy.lua",
 
 # ------------------------------------------------------------ the press
 # A trade press casts at them instead.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\tlines[2] = \"/trade\"\n",
        "\t\tlines[2] = \"/cast \" .. text\n",
        "courtesy: the trade press opens no trade",
        expect=WATER, script=S)
 
 # A summon hands the target back, and the portal's click summons nobody.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\tlocal lines, _, record = target(entry, text)\n\t\treturn lines, false, record\n",
        "\t\tlocal lines, restore, record = target(entry, text)\n\t\treturn lines, restore, record\n",
        "courtesy: a summon hands the target back",
@@ -252,22 +256,22 @@ mutate("Prompt/Macro.lua",
 
 # ------------------------------------------------------------ the trade
 # The item goes into a trade with anybody.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tif press and GetTime() - press.at <= 20 and Matches(press.request, \"NPC\") then\n",
        "\tif press and GetTime() - press.at <= 20 then\n",
        "courtesy: the item goes into a trade with somebody else",
        expect=STONE, script=S)
 
 # What the cursor held is put in the trade in its place.
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tif type(_G.GetCursorInfo) == \"function\" and _G.GetCursorInfo() ~= nil then return false end\n",
        "",
        "courtesy: the cursor's own item is taken for the trade",
        expect=STONE, script=S)
 
 # The request still stands once the trade has opened.
-mutate("Courtesy.lua",
-       "\tServe(request, key)\n\tlocal placed = Place(item)\n",
-       "\tlocal placed = Place(item)\n",
+mutate("Modules/Services/Courtesy.lua",
+       "\t\tServe(request, key)\n\t\tif Place(item) then count = 1 end\n",
+       "\t\tif Place(item) then count = 1 end\n",
        "courtesy: the trade opening does not answer the request",
        expect=WATER, script=S)

@@ -1257,6 +1257,7 @@ Check("fight.cure", "fight", L["cure in a fight"], function(add)
 	end
 	One(1, CF.COMMAND, "cure")
 	if CureEach(db) then One(2, CF.COMMAND2, "second cure") end
+	add(PASS, "cure need: " .. (ns.CureNeed and ns.CureNeed.Words() or "from the auras"))
 end)
 
 Check("fight.apis", "fight", L["what the game says in a fight"], function(add)

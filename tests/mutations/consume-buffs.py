@@ -68,25 +68,25 @@ mutate("Core.lua",
        "consume-buffs: on by default",
        expect="consume-buffs: off by default", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tif family.consumable then return pick() == \"off\" and not Consumable.Held(family) end\n",
        "",
        "consume-buffs: the switch hidden until switched on",
        expect="consume-buffs: off by default", script=S)
 
-mutate("Options/Who.lua",
-       "\t\tif type(n) == \"number\" and n > 0 then return true end\n\tend\n\treturn false\nend\n",
-       "\t\tif type(n) == \"number\" and n > 0 then return false end\n\tend\n\treturn false\nend\n",
+mutate("Modules/MyBuffs/Options.lua",
+       "if type(n) == \"number\" and n > 0 then return true end",
+       "if type(n) == \"number\" and n > 0 then return false end",
        "consume-buffs: the switch hidden with one in the bags",
        expect="consume-buffs: off by default", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_flask\",\n",
        "",
        "consume-buffs: the flask switch not placed on the page",
        expect="own_flask", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\tname = L[\"Consumables only in dungeons and raids\"],\n\t\t\t\tdesc = L[\"On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back.\"],\n",
        "\t\t\t\tname = L[\"Oils, stones and food only in dungeons and raids\"],\n\t\t\t\tdesc = L[\"On: the reminder for an oil or a stone for your weapon, and for food, comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back.\"],\n",
        "consume-buffs: the dungeon switch's words left as they were",
@@ -137,6 +137,24 @@ mutate("Core.lua",
        "",
        "consume-buffs: not held to dungeons",
        expect="consume-buffs: held to dungeons and raids with the switch", script=S)
+
+mutate("Core.lua",
+       "\t\tif type(usable) == \"function\" and plain(usable(item)) ~= true then\n",
+       "\t\tif false and type(usable) == \"function\" and plain(usable(item)) ~= true then\n",
+       "consume-buffs: an item the game refuses is still offered",
+       expect="consume-buffs: unusable and cooling bag items are passed over", script=S)
+
+mutate("Core.lua",
+       "\t\t\tand start + duration - GetTime() > 0 then\n",
+       "\t\t\tand start + duration - GetTime() < 0 then\n",
+       "consume-buffs: an item on cooldown is offered",
+       expect="consume-buffs: unusable and cooling bag items are passed over", script=S)
+
+mutate("Core.lua",
+       "\t\tif type(usable) == \"function\" and plain(usable(item)) ~= true then\n",
+       "\t\tif type(usable) == \"function\" and plain(usable(item)) == false then\n",
+       "consume-buffs: a secret item answer is offered",
+       expect="consume-buffs: unusable and cooling bag items are passed over", script=S)
 
 # --- the press ---
 

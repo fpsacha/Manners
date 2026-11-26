@@ -88,9 +88,10 @@ local ROTA_MAX = 12
 Prompt.ROTA_MAX = ROTA_MAX
 
 -- The queue the pull's own repaint arms the fight from (Refresh.lua, the pass
--- PLAYER_REGEN_DISABLED makes before the lockdown), less every passer-by it
--- holds from memory alone (Queue.lua, OfferPassersBy: no token reached them
--- this scan, `remembered`). The memory keeps an offer up for the few seconds
+-- PLAYER_REGEN_DISABLED makes before the lockdown), less anything marked out
+-- of combat and every passer-by it holds from memory alone (Queue.lua,
+-- OfferPassersBy: no token reached them this scan, `remembered`). The memory
+-- keeps an offer up for the few seconds
 -- it takes to reach the prompt after the cursor or a nameplate left them; at
 -- the pull it would freeze somebody who walked off on the button for the
 -- whole fight, and make the rota of people who have left. Somebody who asked
@@ -99,7 +100,8 @@ Prompt.ROTA_MAX = ROTA_MAX
 local function ForFight(queue)
 	local kept
 	for i, entry in ipairs(queue) do
-		if entry.remembered and entry.reason == "nearby" then
+		local outOnly = entry.buff and entry.buff.neverInCombat == true
+		if outOnly or (entry.remembered and entry.reason == "nearby") then
 			if not kept then
 				kept = {}
 				for j = 1, i - 1 do kept[j] = queue[j] end

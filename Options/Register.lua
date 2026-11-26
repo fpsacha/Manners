@@ -22,7 +22,7 @@ local AceConfigRegistry = LibStub("AceConfigRegistry-3.0", true)
 -- prompt on a key, and every other tab is for fine-tuning, in the order a
 -- player thinks about it. Profiles is added last by SetupOptions.
 local function BuildOptions()
-	return {
+	local options = {
 		type = "group",
 		name = "Manners",
 		childGroups = "tab",
@@ -36,6 +36,27 @@ local function BuildOptions()
 			diagnostics = Page.BuildDiagnosticsTab(),
 		},
 	}
+	local modules = _G.MannersAPI
+	if modules and type(modules.OptionsPages) == "function" then
+		for id, page in pairs(modules:OptionsPages()) do
+			local built
+			ns.Guard("module options " .. id, function() built = page.build(modules) end)
+			if type(built) == "table" then options.args[id] = built end
+		end
+	end
+	if modules and type(modules.OptionsExtensions) == "function" then
+		for tab, node in pairs(options.args) do
+			if tab ~= "who" then
+				local args = type(node) == "table" and node.args
+				for _, build in ipairs(modules:OptionsExtensions(tab)) do
+					if type(args) == "table" then
+						ns.Guard("module options extension " .. tab, build, modules, args)
+					end
+				end
+			end
+		end
+	end
+	return options
 end
 
 -- For the fallback dialog only; the window measures its own rows.
@@ -220,7 +241,7 @@ local function BuildCanvas()
 	blizCategoryID = category and (category.GetID and category:GetID() or category.ID) or nil
 end
 
-function ns.SetupOptions()
+local function InstallOptions()
 	local options = BuildOptions()
 	options.args.profiles = Page.BuildProfilesTab()
 	-- Sized for the fallback dialog, so it is right should it ever be needed;
@@ -232,9 +253,19 @@ function ns.SetupOptions()
 
 	-- Still registered, for the fallback dialog and its validator.
 	AceConfig:RegisterOptionsTable(ADDON, options)
+end
+
+function ns.SetupOptions()
+	InstallOptions()
 	ns.Guard("options in Settings", BuildCanvas)
 
 	Page.RegisterLauncher()
+end
+
+function ns.RefreshModuleOptions()
+	if not ns.optionsTable then return end
+	InstallOptions()
+	ns.Guard("module options repaint", ns.RefreshOptionsDisplay)
 end
 
 -- Repaint whatever is on screen from the values as they stand now: the

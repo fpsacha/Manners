@@ -21,7 +21,7 @@ mutate("Favours.lua",
 
 # Fix 2: a landing is named at the moment it lands, on the casts the ring holds then.
 mutate("Favours.lua",
-       "\t\t\tseen.awaitCast = true\n\t\t\treturn true\n",
+       "\t\t\tseen.awaitCast = true\n\t\t\tOnlyPossibleCaster(seen)\n\t\t\treturn true\n",
        "\t\t\tseen.awaitCast = true\n\t\t\tlocal hit = Judge(seen.key, seen.low, GetTime())\n"
        "\t\t\tif type(hit) == \"table\" and hit.aim == \"you\" then\n"
        "\t\t\t\tCopyCaster(hit.seen, seen) hit.used = true seen.fromCast = true seen.awaitCast = nil\n"
@@ -78,14 +78,18 @@ mutate("Favours.lua",
 
 # Fixes 7 and 8: what the check-up and the hint say, and when.
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast\n",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n"
+       "\t\t\tand not seen.claimIgnored and not seen.awaitCast\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key]\n"
+       "\t\t\tand not seen.claimIgnored and not seen.awaitCast\n",
        "favour-caster: the cast watch files unnamed landings where the combat log does",
        expect=N + "classic: a landing is not called unnamed where the combat log names the caster", script=S)
 
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast\n",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n"
+       "\t\t\tand not seen.claimIgnored and not seen.awaitCast\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n"
+       "\t\t\tand not seen.claimIgnored\n",
        "favour-caster: a landing waiting for its window is called unnamed",
        expect=N + "a landing waiting for its window is not yet called unnamed", script=S)
 
@@ -96,8 +100,10 @@ mutate("Favours.lua",
        expect=N + "a landing that is plainly an NPC's is not called unnamed", script=S)
 
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast then Unnamed(key, seen.unseen) end\n",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.claimIgnored and not seen.awaitCast then\n"
+       "\t\t\tUnnamed(key, seen.unseen)\n\t\tend\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.claimIgnored then\n"
+       "\t\t\tUnnamed(key, seen.unseen)\n\t\tend\n",
        "favour-caster: the nameplates line is said while the landing waits",
        expect=N + "plates off: the nameplates line waits for the decision and is not said for a named caster", script=S)
 
@@ -255,10 +261,17 @@ mutate("Commands.lua",
        expect=N + "debug: a favour that ran out is not 'nobody has buffed you'", script=S)
 
 mutate("Favours.lua",
-       "if ns.UnmatchedBuffHint then ns.UnmatchedBuffHint(why) end",
+       "if ns.UnmatchedBuffHint then ns.UnmatchedBuffHint(why, seen) end",
        "",
        "favour-caster: the hint is never said",
        expect=N + "plates on: a buff with nobody to name says so once", script=S)
+
+mutate("Hints.lua",
+       "if InCombatLockdown() or db.profile.silentChat == true or db.profile.verbose ~= true then return false end\n",
+       "if InCombatLockdown() or db.profile.silentChat == true then return false end\n",
+       "favour-caster: the nameplates hint ignores chat commentary",
+       expect=N + "the nameplates line is quiet when chat commentary is off",
+       script=S)
 
 mutate("Hints.lua",
        "\tunmatchedSaid = true\n",
@@ -267,10 +280,10 @@ mutate("Hints.lua",
        expect=N + "plates on: a buff with nobody to name says so once", script=S)
 
 mutate("Hints.lua",
-       "if not (v == \"1\" or v == 1 or v == true) then return false end",
-       "if false then return false end",
-       "favour-caster: the hint is said with the nameplates off",
-       expect=N + "plates off: the new line stays quiet", script=S)
+       "\t\tor db.profile.verbose ~= true or CandidateAlreadyOffered(seen) then return false end\n",
+       "\t\tor false then return false end\n",
+       "favour-caster: the hint ignores chat commentary and the offered caster",
+       expect=N + "the unnamed line is quiet when chat commentary is off", script=S)
 
 mutate("Favours.lua",
        "elseif watching and spellId and classOnly then\n\t\t\t\t\t\t\tNotClassBuff(spellId, aura)",
@@ -296,14 +309,16 @@ mutate("Options/Diagnostics.lua",
 # spell or token on a cast is no error" still pins the plain() path in the mock.
 
 mutate("Favours.lua",
-       "\t\t\treturn false\n\t\tend\n\n\t\tlocal function Forget(seen)\n",
-       "\t\t\treturn true\n\t\tend\n\n\t\tlocal function Forget(seen)\n",
+       "\t\t\treturn false\n\t\tend\n\n\t\tForget = function(seen)\n",
+       "\t\t\treturn true\n\t\tend\n\n\t\tForget = function(seen)\n",
        "favour-caster: a caster wearing none of the buff is taken for a self-cast",
        expect=N + "another class's buff with no target names the stranger once the moment has passed", script=S)
 
 mutate("Favours.lua",
-       "\t\t\t\tif seen.nobodyWaiting then\n",
-       "\t\t\t\tif false then\n",
+       "\t\t\t\tseen.filed = true\n\t\t\t\t-- A thank to nobody still waiting is let go for the name (the pause ends,\n"
+       "\t\t\t\t-- PausedUnseen drops it, and the named thank behind it goes).\n\t\t\t\tif seen.nobodyWaiting then\n",
+       "\t\t\t\tseen.filed = true\n\t\t\t\t-- A thank to nobody still waiting is let go for the name (the pause ends,\n"
+       "\t\t\t\t-- PausedUnseen drops it, and the named thank behind it goes).\n\t\t\t\tif false then\n",
        "favour-caster: a thank to nobody that was queued and then held keeps its mark",
        expect=N + "a queued thank to nobody that is held then does not stop the caster being thanked", script=S)
 
@@ -314,16 +329,17 @@ mutate("Favours.lua",
        expect=N + "a thank to nobody that never went does not stop the caster being thanked", script=S)
 
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n"
+       "\t\t\tand not seen.claimIgnored and not seen.awaitCast\n",
        "\t\tif false\n",
        "favour-caster: a landing given up on at once is left out of the check-up",
        expect=N + "a buff that landed too long ago to match a cast is in /manners debug", script=S)
 
 mutate("Hints.lua",
-       "\telseif why ~= nil and why ~= \"none\" and why ~= \"else\" then\n",
-       "\telseif false then\n",
-       "favour-caster: the hint says no cast was seen when one was",
-       expect=N + "a cast by somebody who now wears a fresh one of it names nobody", script=S)
+       "\tif unmatchedSaid then return false end\n",
+       "\tif false then return false end\n",
+       "favour-caster: the unnamed hint can be repeated in one session",
+       expect=N + "plates on: a buff with nobody to name says so once", script=S)
 
 mutate("Commands.lua",
        "\t\telseif last.why ~= nil and last.why ~= \"none\" and last.why ~= \"else\" then\n",
@@ -331,20 +347,21 @@ mutate("Commands.lua",
        "favour-caster: the check-up says no cast was seen when one was",
        expect=N + "a cast by somebody who now wears a fresh one of it names nobody", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "and pcall(frame.RegisterUnitEvent, frame, event, \"player\") then",
        "and false then",
        "favour-caster: the pet's frame hears every cast in sight",
        expect=N + "a cast by somebody else costs the pet's listener no protected call", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "if event == \"UNIT_SPELLCAST_SUCCEEDED\" and plain(unit) ~= \"player\" then return end\n",
        "",
        "favour-caster: the pet's listener guards a stranger's cast",
        expect=N + "a cast by somebody else costs the pet's listener no protected call", script=S)
 
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast then Unnamed(key, seen.unseen) end\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.claimIgnored and not seen.awaitCast then\n"
+       "\t\t\tUnnamed(key, seen.unseen)\n\t\tend\n",
        "",
        "favour-caster: a landing too old to match a cast never says the nameplates line",
        expect=N + "plates off: a landing too old to match a cast says the nameplates line at once", script=S)
@@ -394,3 +411,138 @@ mutate("Favours.lua",
        "\t\t\t\t\t\tand math.abs(e.at - hit.at) <= CAST_SAME then\n",
        "favour-caster: the other hearings of a cast are not spent with it",
        expect=N + "one cast under two tokens with every id withheld names one landing", script=S)
+
+# Issue 44: the caster's Manners is the certain witness, before or after the aura.
+mutate("Favours.lua",
+       "\t\t\tNameFromMessage(seen, aura)\n",
+       "",
+       "favour-caster: the receiver never asks the caster's Manners",
+       expect=N + "a Manners message names the caster before the aura", script=S)
+
+mutate("Clicks.lua",
+       "\t\tif buff then SendBuffClaim(to, id) end\n",
+       "",
+       "favour-caster: a successful caster never sends its certain message",
+       expect=N + "a successful cast whispers one certain message", script=S)
+
+mutate("Clicks.lua",
+       "if not (db and db.enabled) or InCombatLockdown() then return end\n",
+       "if not (db and db.enabled) then return end\n",
+       "favour-caster: a successful cast sends an addon message in a fight",
+       expect=N + "a successful cast stays quiet in a fight", script=S)
+
+mutate("Clicks.lua",
+       "if buffClaimCount >= BUFF_CLAIM_LIMIT then return end\n",
+       "if false then return end\n",
+       "favour-caster: a cast burst spends the client's whole addon-message allowance",
+       expect=N + "successful casts share an eight-message-per-second cap", script=S)
+
+mutate("Clicks.lua",
+       "\t\tif ns.plain(prefix) == PREFIX and ns.BuffClaimHeard\n"
+       "\t\t\tand ns.BuffClaimHeard(text, channel, sender) then return end\n",
+       "\t\tif false then return end\n",
+       "favour-caster: the addon-message handler drops caster claims",
+       expect=N + "a Manners message names a waiting aura by the spell family", script=S)
+
+mutate("Favours.lua",
+       "if #text > 24 or channel ~= \"WHISPER\" or type(sender) ~= \"string\"\n",
+       "if #text > 24 or false or type(sender) ~= \"string\"\n",
+       "favour-caster: a group message can claim a caster",
+       expect=N + "a Manners message is not taken from another channel", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tseen.claimIgnored, seen.ignoredCaster = true, true\n"
+       "\t\t\t\tseen.name = nil\n"
+       "\t\t\t\tseen.decided, seen.filed = true, true\n"
+       "\t\t\t\tForget(seen)\n"
+       "\t\t\t\tRemember({ key = seen.key }, \"ignored\")\n"
+       "\t\t\t\treturn true\n",
+       "\t\t\t\tseen.ignoredCaster = true\n"
+       "\t\t\t\tseen.name = nil\n"
+       "\t\t\t\tRemember({ key = seen.key }, \"ignored\")\n"
+       "\t\t\t\treturn true\n",
+       "favour-caster: an ignored Manners claim stays active for an unseen thank",
+       expect=N + "an ignored Manners claim cannot fall through to another caster",
+       script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\t\tif found and found.sender ~= claim.sender then return \"ambiguous\" end\n",
+       "\t\t\t\t\tif found and found.sender ~= claim.sender then return nil end\n",
+       "favour-caster: conflicting Manners claims fall through to the visible candidates",
+       expect=N + "conflicting Manners claims cannot fall through to a visible caster",
+       script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tif type(rankLevel) == \"number\" then\n"
+       "\t\t\t\t\tif type(level) ~= \"number\" or level < 1 then\n"
+       "\t\t\t\t\t\tambiguous = true\n\t\t\t\t\t\treturn\n"
+       "\t\t\t\t\tend\n"
+       "\t\t\t\t\tif level < rankLevel then return end\n"
+       "\t\t\t\tend\n",
+       "\t\t\t\tif type(level) == \"number\" and level >= 1 and type(rankLevel) == \"number\"\n"
+       "\t\t\t\t\tand level < rankLevel then return end\n",
+       "favour-caster: a withheld level is counted as castable",
+       expect=N + "a withheld level of a possible caster is not guessed",
+       script=S)
+
+# The fallback at the landing: exactly one living, connected, capable player.
+mutate("Favours.lua",
+       "\t\t\t\telseif (seen.candidateCount or 0) > 1 then\n",
+       "\t\t\t\telseif false then\n",
+       "favour-caster: two possible casters are not recorded",
+       expect=N + "two players in sight able to cast the rank name nobody", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tif caster.ignored then\n",
+       "\t\t\t\tif false then\n",
+       "favour-caster: an ignored possible caster is still owed",
+       expect=N + "the only possible caster on the ignore list is not named", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tif type(class) ~= \"string\" then\n\t\t\t\t\tambiguous = true\n",
+       "\t\t\t\tif false then\n\t\t\t\t\tambiguous = true\n",
+       "favour-caster: a withheld class chooses a caster",
+       expect=N + "a withheld class of a player in sight names nobody", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tif not SpellHasClass(class, seen.key) then return end\n",
+       "\t\t\t\tif false then return end\n",
+       "favour-caster: a class can be the caster of another class's buff",
+       expect=N + "a player of a class without the landed buff is no candidate", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tif type(rankLevel) == \"number\" then\n"
+       "\t\t\t\t\tif type(level) ~= \"number\" or level < 1 then\n"
+       "\t\t\t\t\t\tambiguous = true\n\t\t\t\t\t\treturn\n"
+       "\t\t\t\t\tend\n"
+       "\t\t\t\t\tif level < rankLevel then return end\n"
+       "\t\t\t\tend\n",
+       "\t\t\t\tif type(rankLevel) == \"number\" and type(level) ~= \"number\" or level < 1 then\n"
+       "\t\t\t\t\tambiguous = true\n\t\t\t\t\treturn\n"
+       "\t\t\t\tend\n",
+       "favour-caster: a low-level player can cast a rank they cannot know",
+       expect=N + "a player below the landed rank's level is no candidate", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tif dead == true or connected == false then return end\n",
+       "\t\t\t\tif connected == false then return end\n",
+       "favour-caster: a dead player can be the caster",
+       expect=N + "a dead possible caster is not named", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tif dead == true or connected == false then return end\n",
+       "\t\t\t\tif dead == true then return end\n",
+       "favour-caster: a disconnected player can be the caster",
+       expect=N + "a disconnected possible caster is not named", script=S)
+
+mutate("Hints.lua",
+       "\t\tor db.profile.verbose ~= true or CandidateAlreadyOffered(seen) then return false end\n",
+       "\t\tor CandidateAlreadyOffered(seen) then return false end\n",
+       "favour-caster: the chat hint ignores Show what Manners is doing",
+       expect=N + "the unnamed line is quiet when chat commentary is off", script=S)
+
+mutate("Hints.lua",
+       "\t\tor db.profile.verbose ~= true or CandidateAlreadyOffered(seen) then return false end\n",
+       "\t\tor db.profile.verbose ~= true then return false end\n",
+       "favour-caster: the chat hint names an already offered group member",
+       expect=N + "the unnamed line stays quiet when a group member is already offered", script=S)

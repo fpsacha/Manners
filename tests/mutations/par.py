@@ -100,8 +100,10 @@ mutate("Favours.lua",
        expect="a Fortitude from nobody the game would name", script=S)
 
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast then Unnamed(key, seen.unseen) end\n",
-       "\t\tif ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.claimIgnored and not seen.awaitCast then\n"
+       "\t\t\tUnnamed(key, seen.unseen)\n\t\tend\n",
+       "\t\tif ns.ALL_BUFF_IDS[key] and not seen.claimIgnored then\n"
+       "\t\t\tUnnamed(key, seen.unseen)\n\t\tend\n",
        "par: a named buff called unnamed",
        expect="a buff from somebody named, and the line says nobody", script=S)
 
@@ -121,7 +123,7 @@ mutate("Hints.lua",
        expect="the nameplates are on, and the line blames them", script=S)
 
 mutate("Hints.lua",
-       "\tif InCombatLockdown() or db.profile.silentChat == true then return false end\n"
+       "\tif InCombatLockdown() or db.profile.silentChat == true or db.profile.verbose ~= true then return false end\n"
        "\tif not ns.FriendlyPlatesOff()",
        "\tif db.profile.silentChat == true then return false end\n"
        "\tif not ns.FriendlyPlatesOff()",

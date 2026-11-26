@@ -73,7 +73,16 @@ local STAND_IN = {
 	["profiles.current"] = true,
 }
 
-local GROUPS = { { "general" }, { "who", "skip", "when" }, { "self", "pet" }, { "quiet", "fight", "click", "appearance" }, { "profiles", "diagnostics" } }
+local function ExpectedGroups()
+	local modules = { "modules" }
+	if Mock.class == "HUNTER" then modules[#modules + 1] = "pet" end
+	modules[#modules + 1] = "self"
+	modules[#modules + 1] = "services"
+	return {
+		{ "general" }, { "who", "skip", "when" }, { "click", "quiet" },
+		{ "fight", "appearance" }, modules, { "profiles", "diagnostics" },
+	}
+end
 local FLAGS = { indent = true, pair = true, standIn = true, lead = true, columns = true, widget = true, big = true,
 	buttons = true, match = true }
 
@@ -145,6 +154,7 @@ end
 
 -- The shape of the table itself: pages, groups, sections, keys and flags.
 local function CheckShape(layout, problem)
+	local GROUPS = ExpectedGroups()
 	local pages, inGroups = layout.pages or {}, {}
 	for g, group in ipairs(layout.groups or {}) do
 		for i, pageId in ipairs(group) do
@@ -169,7 +179,14 @@ local function CheckShape(layout, problem)
 			icon = ok and out or nil
 		end
 		-- The page's own picture, shipped with the addon, so no client lacks it.
-		if type(icon) == "string" then
+		if type(icon) == "string" and icon == "Interface\\AddOns\\Manners\\Textures\\Manners64" then
+			local file = io.open(dir .. "/Textures/Manners64.tga", "rb")
+			if not file then
+				problem("page " .. pageId .. "'s Manners icon has no file")
+			else
+				file:close()
+			end
+		elseif type(icon) == "string" then
 			local name = icon:match("^Interface\\AddOns\\Manners\\Textures\\Menu\\(%a+)$")
 			if not name then
 				problem("page " .. pageId .. "'s icon is not one of Textures\\Menu: " .. icon)

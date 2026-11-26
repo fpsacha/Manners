@@ -13,7 +13,7 @@ ROTA = "cures-review: a cure pressed leaves the buff rotation where it stood"
 
 # The deny list hides only the denied debuff: Cleanse offered for a poison
 # beside Unstable Affliction.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tif not anyDenied then return end\n",
        "\tif true then return end\n",
        "cures-review: a denied debuff hides only itself",
@@ -21,14 +21,14 @@ mutate("Cures.lua",
 
 # No spell that spares the denied kind is looked for: a poison beside it is
 # offered nothing with Purify known.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\tif other then list[i].cure = other else table.remove(list, i) end\n",
        "\t\t\ttable.remove(list, i)\n",
        "cures-review: no second spell for a debuff beside a denied one",
        expect=DENY, script=S)
 
 # A kind's second spell is taken for one a probe took away.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\tif not scan.state.live[cure] then\n",
        "\t\tif scan.byKind[cure.cure] ~= cure then\n",
        "cures-review: a kind's second spell is never offered",
@@ -44,7 +44,7 @@ mutate("Queue.lua",
        expect=CLEAN, script=S)
 
 # The reading that finds nothing leaves the memory standing.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tForget(full)\n\treturn nil\n",
        "\treturn nil\n",
        "cures-review: a clean reading leaves the memory standing",

@@ -514,19 +514,19 @@ mutate("Options/Diagnostics.lua",
 
 # --- the rows (Options/Who.lua, Options/Window/Layout.lua) ---
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\treturn family.scroll or ns.OwnSpellKnown(spell)\n",
        "\treturn ns.OwnSpellKnown(spell)\n",
        "scrolls: only those in the bags listed",
        expect="the Familiar choices are", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\tif why == \"best\" then return L[\"Automatic (%s, the best you can use now)\"]:format(name) end\n",
        "",
        "scrolls: Automatic's best unsaid",
        expect="Automatic reads", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_familiar\", indent = true },\n",
        "",
        "scrolls: no Familiar row in the window",

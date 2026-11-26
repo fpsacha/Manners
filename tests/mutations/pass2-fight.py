@@ -9,28 +9,28 @@ HOLD = 'button:SetAttribute("pressAndHoldAction", true)'
 
 # --- a key press is a down click ---------------------------------------------
 
-mutate("Prompt/CureFight.lua", HOLD, "-- " + HOLD,
+mutate("Modules/Combat/CureFight.lua", HOLD, "-- " + HOLD,
        "pass2-fight: the cure button without pressAndHoldAction",
        expect=P + "the cure button casts on its key with ActionButtonUseKeyDown off", script=S)
 
-mutate("Prompt/BreakFree.lua", HOLD, "-- " + HOLD,
+mutate("Modules/Combat/BreakFree.lua", HOLD, "-- " + HOLD,
        "pass2-fight: the break-free button without pressAndHoldAction",
        expect=P + "the break-free button casts on its key with ActionButtonUseKeyDown off", script=S)
 
-mutate("Prompt/MendPet.lua", HOLD, "-- " + HOLD,
+mutate("Modules/Combat/MendPet.lua", HOLD, "-- " + HOLD,
        "pass2-fight: the mend-pet button without pressAndHoldAction",
        expect=P + "the mend-pet button casts on its key with ActionButtonUseKeyDown off", script=S)
 
 # --- the cure button takes no click out of sight ------------------------------
 
-mutate("Prompt/CureFight.lua", "slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)",
-       "slot.button:EnableMouse(true)",
+mutate("Modules/Combat/CureFight.lua", "slot.mouseOn = used ~= false and slot.keyLabel == nil",
+       "slot.mouseOn = true",
        "pass2-fight: the cure button takes clicks with its key bound",
        expect=P + "out of sight with its key bound the cure button takes no click", script=S)
 
 # --- a secret is never compared ------------------------------------------------
 
-mutate("Prompt/BreakFree.lua", 'elseif type(raw) ~= "nil" then',
+mutate("Modules/Combat/BreakFree.lua", 'elseif type(raw) ~= "nil" then',
        "elseif raw ~= nil then",
        "pass2-fight: ReadLoss compares a possibly secret record",
        expect=P + "ReadLoss never compares a possibly secret record", script=S)

@@ -26,13 +26,13 @@ mutate("Buffs.lua",
        "elixir-pair: every Mists scroll in the battle slot",
        expect=P + "mists: a scroll takes its own slot alone", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\telseif family.slot then\n",
        "\telseif false then\n",
        "elixir-pair: the switch does not say its slot",
        expect=P + "tbc: a battle and a guardian elixir are each reminded of", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\tif family.slotScrolls then\n",
        "\t\tif false then\n",
        "elixir-pair: Mists' switch silent about scrolls",
@@ -108,7 +108,7 @@ mutate("Commands.lua",
        "elixir-pair: the ticks do not travel",
        expect=P + "vanilla: one family, nothing carried, the ticks repaired and shared", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\treturn not family or ns.OwnPick(family) ~= \"auto\" or next(KeepChoices()) == nil\n",
        "\t\t\treturn not family or next(KeepChoices()) == nil\n",
        "elixir-pair: the box shown with the elixir switch off",
@@ -122,7 +122,7 @@ mutate("Core.lua",
        "elixir-pair: a gap in the readings taken for a clash",
        expect=P + "vanilla: a gap in the readings is no clash", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\tns.ForgetElixirClash(key)\n",
        "",
        "elixir-pair: a pair kept as one never parted",

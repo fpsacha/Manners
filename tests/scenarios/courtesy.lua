@@ -331,7 +331,7 @@ do
 				fail(scenario, key .. " is not off in a new profile (" .. tostring(ns.defaults.profile.sources[key]) .. ")")
 			end
 			local listed = false
-			for _, field in ipairs(ns.OptionsPage.RESET.who) do
+			for _, field in ipairs(ns.OptionsPage.RESET.services) do
 				if field == "sources." .. key then listed = true end
 			end
 			if not listed then fail(scenario, key .. " is not put back by the page's reset") end

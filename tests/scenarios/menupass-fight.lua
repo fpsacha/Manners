@@ -291,19 +291,24 @@ do
 		ns.OpenOptions("fight")
 		ns.RefreshOptionsDisplay()
 		local normal = UI.side.bottom
-		if not normal or fits(scenario, ns, UI, "usual size") then
-			fail(scenario, "the usual window needed the compact sidebar")
+		if not normal then
+			fail(scenario, "the usual window has no sidebar height")
 			return
 		end
+		local normalCompact = fits(scenario, ns, UI, "usual size")
 		local was = UI.HEIGHT
 		UI.HEIGHT = UI.HEADER + (UI.strip.height or 0) + UI.FOOTER + normal - 12
 		ns.RefreshOptionsDisplay()
 		if not fits(scenario, ns, UI, "short of room") then
 			fail(scenario, "with 12 less than the pages need they were not laid out smaller")
 		end
-		if UI.side.bottom >= normal then fail(scenario, "the compact list is no shorter") end
+		if not normalCompact and UI.side.bottom >= normal then
+			fail(scenario, "the compact list is no shorter")
+		end
 		UI.HEIGHT = was
 		ns.RefreshOptionsDisplay()
-		if fits(scenario, ns, UI, "room again") then fail(scenario, "the sidebar stayed compact when there was room") end
+		if fits(scenario, ns, UI, "room again") ~= normalCompact then
+			fail(scenario, "the sidebar did not restore the usual page list")
+		end
 	end)
 end

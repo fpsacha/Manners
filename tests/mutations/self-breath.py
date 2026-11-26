@@ -41,7 +41,7 @@ mutate("Commands.lua",
        "self-breath: /manners debug quiet about swimming",
        expect="self-breath: camelot: never on dry land, offered while swimming", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tor family.swimming\n\t\t\t\t\tand L[",
        "\t\t\t\t\tor false\n\t\t\t\t\tand L[",
        "self-breath: the switch says nothing of the water",
@@ -101,7 +101,7 @@ mutate("Queue.lua",
        "self-breath: armed on yourself for the fight",
        expect="self-breath: not in a fight, and offered once it ends while still swimming", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_selfbreath\", indent = true },\n",
        "",
        "self-breath: the switch is not placed on the page",

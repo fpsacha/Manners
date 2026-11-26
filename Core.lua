@@ -523,6 +523,10 @@ local defaults = {
 			courtesyPortals = false,
 			courtesyHealthstones = false,
 			courtesySummons = false,
+			-- Manners: Services: water and food for your friendly target, and
+			-- how much the trade window receives. Kept under their old paths.
+			courtesyTarget = false,
+			courtesyAmount = "fill",
 			-- Yourself, missing your own buff. On: it costs nobody anything and reads
 			-- your own auras, which the game does not hide.
 			self = true,
@@ -537,6 +541,10 @@ local defaults = {
 		ask = {
 			channel = "WHISPER",
 			line = "moment",
+			-- The Paladin blessing to ask for. Automatic keeps the class's
+			-- existing role-based choice and may use another Paladin for a
+			-- different missing blessing.
+			paladin = "auto",
 			-- My own words (Ask.lua, line "own"): empty until written.
 			own = "",
 			inTowns = false,
@@ -830,6 +838,9 @@ local defaults = {
 			-- first, each shown only for the kinds its cure takes off. Off: one
 			-- button, the second cure on Shift (Prompt/CureFight.lua).
 			cureFightEach = true,
+			-- A cure assigned to Plain, Shift or Ctrl by the Combat module.
+			-- Kept per class because profiles are shared by every character.
+			cureFightMods = {},
 			-- The options window fading after a change on Look, so the prompt
 			-- shows behind it (Options/Window/Window.lua, PeekTarget). Off since
 			-- 1.11.20: players found it in the way.
@@ -1175,6 +1186,13 @@ do
 				break
 			end
 		end
+		-- A service cast by a pet (the imp's Fire Shield): the summon in the
+		-- player's book enables the optional spell; the pet book is checked on
+		-- the walk before it is offered.
+		if buff.pet then
+			info.known = SpellKnown(buff.pet) or nil
+			info.topRank, info.ranksKnown = nil, nil
+		end
 
 		-- The macro casts by name and the game picks the best rank of it, so the name
 		-- is the best rank's you know: a spell line can change its name on the way up
@@ -1450,9 +1468,13 @@ end
 -- else or itself: the one test for "is there a prompt at all", so a hunter
 -- still has one for his aspects.
 function ns.CanCastAnything()
+	local myBuffs = ns.ModuleActive and ns.ModuleActive("mybuffs")
 	-- A rogue or a warrior with a poison or a stone in the bags has something to
 	-- put on a weapon, whatever he has learned (ns.OwnItemsHeld).
-	if ns.OwnItemsHeld() then return true end
+	if myBuffs and ns.OwnItemsHeld() then return true end
+	-- A service is castable even when this class has no core buff to give:
+	-- retail priests and warlocks still have a prompt for what they learned.
+	if ns.Courtesy and ns.Courtesy.Active and ns.Courtesy.Active() then return true end
 	-- A resurrection learned is something to cast (Resurrect.lua): a monk on retail has nothing else.
 	-- Only with My group's dead on: off, it is as if there were none.
 	if caps.res and ns.Resurrect and ns.Resurrect.Wanted() then return true end
@@ -1465,7 +1487,7 @@ function ns.CanCastAnything()
 	if ns.ThankPending and ns.ThankPending() then return true end
 	-- Or a hunter's pet to care for (HunterPet.lua).
 	if ns.Beast and ns.Beast.Live() then return true end
-	return caps.anyKnown == true or caps.anyOwnKnown == true
+	return caps.anyKnown == true or (myBuffs and caps.anyOwnKnown == true)
 end
 
 -- A class with nothing for anybody else and something of its own learned: a
@@ -1473,7 +1495,8 @@ end
 -- or a stone in the bags. Everything about other people is left off the
 -- options page for it, and "Myself" is shown.
 function ns.OwnBuffsOnly()
-	return not caps.hasClassBuffs and (caps.anyOwnKnown == true or ns.OwnItemsHeld())
+	local myBuffs = ns.ModuleActive and ns.ModuleActive("mybuffs")
+	return myBuffs and not caps.hasClassBuffs and (caps.anyOwnKnown == true or ns.OwnItemsHeld())
 end
 
 -- Whether every buff this class has for others is learned from a talent, a
@@ -1757,6 +1780,57 @@ do
 	end
 end
 
+-- Pet-cast buffs are registered only by an optional service. Their spellbook
+-- is asked once and invalidated when the pet changes.
+do
+	local petKnows = {}
+	local function PetSpellKnown(id)
+		local book = C_SpellBook
+		local bank = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet
+		if type(book) == "table" and bank ~= nil then
+			if safecall(book.IsSpellKnown, id, bank) == true
+				or safecall(book.IsSpellInSpellBook, id, bank, false) == true then
+				return true
+			end
+		end
+		return safecall(_G.IsSpellKnown, id, true) == true
+	end
+	function ns.PetCasts(buff)
+		if not (buff and buff.pet) then return false end
+		local answer = petKnows[buff.key]
+		if answer ~= nil then return answer end
+		answer = false
+		if plain(UnitExists and UnitExists("pet")) == true
+			and not (UnitIsDead and plain(UnitIsDead("pet")) == true) then
+			for _, id in ipairs(buff.ranks or {}) do
+				if PetSpellKnown(id) then answer = true break end
+			end
+		end
+		petKnows[buff.key] = answer
+		return answer
+	end
+	function ns.ForgetPetBuffs()
+		wipe(petKnows)
+	end
+	-- Kept under the old public-in-tests name for diagnostics and older
+	-- reports; the scoped module invalidates it through ForgetPetBuffs.
+	ns.ForgetPetSpells = ns.ForgetPetBuffs
+	function ns.PetReady(list)
+		local out
+		for i, buff in ipairs(list) do
+			if buff.pet and not ns.PetCasts(buff) then
+				if not out then
+					out = {}
+					for j = 1, i - 1 do out[j] = list[j] end
+				end
+			elseif out then
+				out[#out + 1] = buff
+			end
+		end
+		return out or list
+	end
+end
+
 -- Everything of this class the player can actually cast, in list order (the
 -- player's own, when one is set: ns.WalkBuffs), once per scan. A neverAuto buff
 -- (Unending Breath) and a switched-off one are left out unless pinned: a pin is
@@ -1793,7 +1867,7 @@ function ns.CastableBuffs()
 			end
 		end
 	end
-	return out
+	return ns.PetReady and ns.PetReady(out) or out
 end
 
 -- The buff of this class that "Blessing of Kings first" puts at the head of the
@@ -1930,6 +2004,7 @@ end
 -- sentence about who is still offered (the options page, the lines about
 -- saving mana), so none leaves you out while the queue keeps you in.
 function ns.OffersSelf()
+	if not (ns.ModuleActive and ns.ModuleActive("mybuffs")) then return false end
 	local db = addon.db and addon.db.profile
 	return db ~= nil and db.sources.self == true
 		and (#ns.SelfBuffs() > 0 or ns.OwnFamiliesOn() > 0)
@@ -1940,6 +2015,7 @@ end
 -- hunter, a warlock before Unending Breath -- so every line that would say
 -- "nothing will be offered" asks this first.
 function ns.OwnBuffsLive()
+	if not (ns.ModuleActive and ns.ModuleActive("mybuffs")) then return false end
 	local db = addon.db and addon.db.profile
 	return db ~= nil and db.sources.self == true and ns.OwnFamiliesOn() > 0
 end
@@ -2268,6 +2344,9 @@ do
 		-- Held to yourself (Offer to: Only me): nobody else is offered it. Your own
 		-- is asked with no such field, so it is still reminded of.
 		if opts.meOnly and buff.tankChoice and opts.meOnly[buff.key] and not freed then return false end
+		-- A service carried by a pet: the imp's Fire Shield is deliberately for
+		-- a tank, without a widening choice. A named request remains explicit.
+		if buff.forTank and not opts.asked and not opts.isTank then return false end
 		-- Not you, inside a dungeon or a raid (Who to buff, under Offer to:
 		-- buff.notMeInside): SelfBuff hands the set only while you are in one.
 		if opts.notMeInside and buff.tankChoice and opts.notMeInside[buff.key] then return false end
@@ -2919,9 +2998,32 @@ do
 	-- (none in them), "noweapon" (one for a weapon, and no weapon in that hand:
 	-- the main hand for an imbue, the hand of its family for an enhancement),
 	-- "level" (yours is short of it) or "weapon" (one for another kind of weapon
-	-- than the one in that hand). No weapon before the level: it holds back
-	-- every imbue, and the line about the family said a scroll did not fit a
-	-- weapon that was not there.
+	-- than the one in that hand), or "unusable" (the client refuses the item
+	-- here and now, or it is cooling down). No weapon before the level: it holds
+	-- back every imbue, and the line about the family said a scroll did not fit
+	-- a weapon that was not there.
+	local function ItemReady(item)
+		local usable = C_Item and C_Item.IsUsableItem
+		if type(usable) ~= "function" then usable = _G.IsUsableItem end
+		if type(usable) == "function" and plain(usable(item)) ~= true then
+			return false
+		end
+		local cooldown = C_Container and C_Container.GetItemCooldown
+		if type(cooldown) ~= "function" then cooldown = _G.GetItemCooldown end
+		if type(cooldown) == "function" then
+			local rawStart, rawDuration = cooldown(item)
+			if issecretvalue and (issecretvalue(rawStart) or issecretvalue(rawDuration)) then
+				return false
+			end
+			local start, duration = plain(rawStart), plain(rawDuration)
+			if type(start) == "number" and type(duration) == "number" and start > 0 and duration > 2
+				and start + duration - GetTime() > 0 then
+				return false
+			end
+		end
+		return true
+	end
+
 	local function ScrollReady(spell)
 		if ScrollCount(spell) <= 0 then return false, "bags" end
 		local hand = (spell.weapon or spell.fits) and HandWeapon(spell.family and spell.family.slot or 16)
@@ -2936,6 +3038,7 @@ do
 		end
 		if spell.weapon and hand ~= spell.weapon then return false, "weapon" end
 		if spell.fits and not Fits(spell.fits, hand) then return false, "weapon" end
+		if not ItemReady(spell.item) then return false, "unusable" end
 		return true
 	end
 
@@ -3058,10 +3161,12 @@ do
 	-- Nothing outside these is read, offered or shown on the options page.
 	function ns.KnownOwnFamilies()
 		local out = {}
+		if not (ns.ModuleActive and ns.ModuleActive("mybuffs")) then return out end
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
 			if FirstKnown(family) then
 				out[#out + 1] = family
-			elseif family.journal and ns.OwnPick(family) ~= "off" and ns.PetJournalOwned() then
+			elseif family.journal and ns.OwnPick(family) ~= "off"
+				and ns.PetJournalOwned and ns.PetJournalOwned() then
 				-- A companion pet switched on with none in the bags and some in the
 				-- journal, which Manners brings out itself (Companion.lua).
 				out[#out + 1] = family
@@ -4403,7 +4508,9 @@ do
 		if family.food then local up, spell, left = ReadWellFed(family, GetTime()) if up == nil and ns.GoneWithDeath("own:" .. family.key, family.throughDeath) then return false end return up, spell, left end
 		if family.rest then return ReadRested(family, GetTime()) end
 		-- A companion pet: no aura, the journal's word or Manners' count (Companion.lua).
-		if family.pet then return ns.ReadPet(family) end
+		if family.pet then
+			return ns.ReadPet and ns.ReadPet(family) or false
+		end
 		if family.consumable then local up, spell, left = ReadConsumable(family, GetTime()) if up == nil and ns.GoneWithDeath("own:" .. family.key, family.throughDeath) then return false end return up, spell, left end
 		if family.makes then return ReadMakes(family) end
 		-- A healthstone to make: up while one is in the bags (no spell, no time).
@@ -4641,9 +4748,11 @@ do
 		-- ("journal": nothing for the prompt), ahead of the bags. "refused": the
 		-- game turned that away this session and the bags have none.
 		if family.pet then
+			if not ns.PetHold then return nil, up, nil, "instance", spell end
 			local hold = ns.PetHold(ctx.now)
 			if hold then return nil, up, nil, hold, spell end
-			local journal, refused = ns.PetFromJournal(family)
+			local journal, refused
+			if ns.PetFromJournal then journal, refused = ns.PetFromJournal(family) end
 			if journal then return nil, up, nil, "journal" end
 			if refused and not spell then return nil, up, nil, refused end
 		end
@@ -5125,6 +5234,7 @@ local function UnitHasBuff(unit, buff, guid)
 					-- Direct: a client-written token, which UnitIsUnit never throws on.
 					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
+					if same == false and buff.pet and plain(UnitIsUnit(source, "pet")) == true then mine = true end
 					-- Named as the caster on somebody else: this client says so
 					-- for your casts, as WoW Forever does.
 					if same == true and plain(UnitIsUnit(unit, "player")) == false then ns.namesYourCasts = true end
@@ -5371,10 +5481,12 @@ local MANA_CLASSES = {
 	MONK = true, EVOKER = true,
 }
 -- Retail hunters have Focus and no mana bar (ChrClasses.DisplayPower 2, build
--- 12.1.0.69933), where a vanilla hunter has mana. A monk stays, though his
--- class's DisplayPower is Energy (3): a Mistweaver is an Intellect healer with
--- mana (ChrSpecialization 270), and the class cannot say which spec passes by.
-if (ns.Flavour and ns.Flavour.flavour) == "mainline" then MANA_CLASSES.HUNTER = nil end
+-- 12.1.0.69933), where a vanilla hunter has mana. Mists hunters use Focus too.
+-- A monk stays, though his class's DisplayPower is Energy (3): a Mistweaver is
+-- an Intellect healer with mana (ChrSpecialization 270), and the class cannot
+-- say which spec passes by.
+local flavour = ns.Flavour and ns.Flavour.flavour
+if flavour == "mists" or flavour == "mainline" then MANA_CLASSES.HUNTER = nil end
 ns.MANA_CLASSES = MANA_CLASSES
 -- The classes a melee blessing does nothing for (Buffs.lua, meleeOnly).
 ns.CASTER_CLASSES = { MAGE = true, WARLOCK = true, PRIEST = true }
@@ -5403,23 +5515,12 @@ ns.UnitHasMana = UnitHasMana
 -- lists among its pets as it lists you among its members. Every other test
 -- stands for a pet as for a person: dead, not yours to help, too low.
 local function IsBuffableUnit(unit, f, pet)
-	if not unit or not plain(UnitExists(unit)) then return false end
-	if plain(UnitIsUnit(unit, pet and "pet" or "player")) then return false end
-	local isPlayer = plain(UnitIsPlayer(unit))
-	if pet then
-		if isPlayer == true then return false end
-	elseif isPlayer ~= true then
-		return false
-	end
-	-- Mists and retail: while a member is in a vehicle the client puts the
-	-- vehicle on their pet token, and that is no pet of theirs.
-	if pet then
-		local riding = _G.UnitHasVehicleUI
-		if type(riding) == "function" and plain(riding(pet)) == true then return false end
-		riding = _G.UnitInVehicle
-		if type(riding) == "function" and plain(riding(pet)) == true then return false end
-	end
-	if plain(UnitIsDeadOrGhost(unit)) == true then
+	local eligible, reason, person = ns.ContextTarget("buff", unit, false, pet ~= nil, pet,
+		f and f.minLevel)
+	if not eligible then
+		if reason ~= "dead" then
+			return false, person == true
+		end
 		-- Their buffs went with them: what was last read worn says nothing now.
 		local guid = plain(UnitGUID(unit))
 		ForgetAllWorn(guid)
@@ -5429,17 +5530,6 @@ local function IsBuffableUnit(unit, f, pet)
 		if ns.deadSeen then ns.deadSeen[#ns.deadSeen + 1] = unit end
 		return false, true
 	end
-	-- Only a definite refusal is a judgement about the person: a withheld
-	-- answer is nil, and the tokenless fallback exists to reach exactly those.
-	local canAssist = plain(UnitCanAssist("player", unit))
-	if canAssist ~= true then return false, canAssist == false end
-	if plain(UnitIsConnected(unit)) == false then return false, true end
-
-	if f.minLevel and f.minLevel > 1 then
-		local lvl = plain(UnitLevel(unit))
-		if lvl and lvl > 0 and lvl < f.minLevel then return false, true end
-	end
-
 	return true
 end
 ns.IsBuffableUnit = IsBuffableUnit
@@ -6124,6 +6214,7 @@ function ns.ClampSettings()
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
 	oneOf(profile.filters, "quietInTownsWhere", { both = true, cities = true, inns = true }, "both")
 	oneOf(profile.filters, "manaFloorKeeps", { asked = true, self = true, none = true }, "asked")
+	oneOf(profile.sources, "courtesyAmount", { fill = true, one = true }, "fill")
 	-- How often my own lines are said (Speech.lua, OwnTurn).
 	oneOf(profile.speech, "mixedShare", { third = true, half = true, twothirds = true, always = true }, "third")
 	-- Which pet: one of the three ways to choose, or a pet of the journal by
@@ -6315,6 +6406,22 @@ function ns.ClampSettings()
 	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
 	oneOf(p, "keycap", { look = true, show = true, hide = true }, "look")
 	oneOf(p, "fightButtons", { needed = true, always = true }, "needed")
+	-- The Combat module's modifier choices: a first-rank spell id (or 0 for
+	-- none), per client class and the plain/shift/ctrl keys.
+	if type(p.cureFightMods) ~= "table" then p.cureFightMods = {} end
+	for class, mods in pairs(p.cureFightMods) do
+		if type(class) ~= "string" or type(mods) ~= "table" then
+			p.cureFightMods[class] = nil
+		else
+			for mod, id in pairs(mods) do
+				if (mod ~= "plain" and mod ~= "shift" and mod ~= "ctrl")
+					or type(id) ~= "number" then
+					mods[mod] = nil
+				end
+			end
+			if next(mods) == nil then p.cureFightMods[class] = nil end
+		end
+	end
 	-- Gone in 1.12, when Manners went back to its essentials: In a fight, my
 	-- key casts (and Cast it on), Hide the prompt in a fight, No flashes in a
 	-- fight and Dim the prompt in combat. Whatever a profile saved of them is
@@ -6458,6 +6565,10 @@ function addon:OnInitialize()
 	-- Guarded: a repair that fails must not take the debts, the ledger, the
 	-- options and the slash commands with it.
 	ns.Guard("ClampSettings", ns.ClampSettings)
+	local modules = _G.MannersAPI
+	if modules and type(modules.Fire) == "function" then
+		ns.Guard("module database ready", modules.Fire, modules, "CoreReady", self.db)
+	end
 	-- After the clamp, so debts meet a validated window. Once per session, not
 	-- on PLAYER_ENTERING_WORLD, which would resurrect debts already settled.
 	ns.Guard("RestoreDebts", ns.RestoreDebts)
@@ -6737,9 +6848,19 @@ function addon:ProfileDeleted(event, _, name)
 	ns.ProfileChangedForUndo(event, name)
 end
 
+-- Services may expose a pet-cast buff. The module owns the real event frame;
+-- this legacy callback is also what old diagnostics used to invalidate it.
+function addon:UNIT_PET(_, unit)
+	if unit == "player" then ns.ForgetPetBuffs() end
+end
+
 -- `event` is AceDB's, and nil when an import or its undo calls this itself.
 function addon:RefreshConfig(event)
 	ns.Guard("ClampSettings", ns.ClampSettings)
+	local modules = _G.MannersAPI
+	if modules and type(modules.Fire) == "function" then
+		modules:Fire("ProfileChanged", self.db.profile, event)
+	end
 	-- The bag count only holds what the Who-to-buff switches said when it was
 	-- taken; a profile's own switches may differ.
 	ns.ForgetScrolls()
@@ -6911,10 +7032,17 @@ function addon:PLAYER_DEAD()
 	-- A death takes your buffs: see ns.GoneWithDeath.
 	ns.NoteDeath(GetTime())
 	ForgetAllWorn(plain(UnitGUID("player")))
+	ns.ForgetTrackingList()
 	if ns.Prompt then ns.Prompt:Refresh() end
 end
-function addon:PLAYER_ALIVE() if ns.Prompt then ns.Prompt:Refresh() end end
-function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
+function addon:PLAYER_ALIVE()
+	ns.ForgetTrackingList()
+	if ns.Prompt then ns.Prompt:Refresh() end
+end
+function addon:PLAYER_UNGHOST()
+	ns.ForgetTrackingList()
+	if ns.Prompt then ns.Prompt:Refresh() end
+end
 
 -- Combat freezes the secure attributes: until the fight ends the button runs
 -- whatever macro it had when the fight started, and the panel must show that

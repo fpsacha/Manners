@@ -48,9 +48,11 @@ a section named in none (the line a page opens with) is drawn with each. They li
 in the layout, not the AceConfig definition, which rejects unknown keys.
 
 The pages, in the sidebar's order: `general` (Start here); `who`, `skip`,
-`when`; `self` (My own buffs), `pet` (My pet, hunters only); `quiet`, `fight`
-(In a fight), `click` (What I say), `appearance` (Look); `profiles`,
-`diagnostics`. A section key always starts with its page id and changes when
+`when`; `click` (What I say), `quiet`; `fight` (In a fight), `appearance`
+(Look); `modules` (Optional modules), then module-owned `pet` (My pet,
+hunters only) and `self` (My own buffs); `profiles`, `diagnostics`. The
+sidebar groups them under Buffing, Speech, Prompt, Optional modules and
+Support. A section key always starts with its page id and changes when
 the section moves (`layout.lua` checks it); a setting key never does, so a
 move needs no migration. `renamedFolds` (old section key -> new) carries a
 fold's saved open state across such a move.

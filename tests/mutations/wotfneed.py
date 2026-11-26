@@ -4,7 +4,7 @@
 # tests/scenarios/wotfneed.lua; each undoes one rule.
 
 S = "runscenarios.py"
-BF = "Prompt/BreakFree.lua"
+BF = "Modules/Combat/BreakFree.lua"
 P = "wotfneed: "
 GUESS = '\tif not hit and lostAt and (how == "secret" or how == "no API") then\n'
 ENDS = '\t\tif full == false or (full == nil and GetTime() - lostAt <= UNSURE_SECONDS) then\n'

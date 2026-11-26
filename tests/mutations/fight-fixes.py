@@ -3,8 +3,8 @@
 # one fix.
 
 S = "runscenarios.py"
-BF = "Prompt/BreakFree.lua"
-CF = "Prompt/CureFight.lua"
+BF = "Modules/Combat/BreakFree.lua"
+CF = "Modules/Combat/CureFight.lua"
 P = "fight-fix: "
 
 # --- 1. a second secret loss of control inside the guess starts it again

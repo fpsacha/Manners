@@ -9,16 +9,19 @@
 --
 --   local files = dofile(dir .. "/tests/addonfiles.lua")(dir)
 
-return function(dir)
+return function(dir, tocPath)
 	local files = {}
-	local toc = assert(io.open(dir .. "/Manners.toc", "r"))
+	tocPath = (tocPath or "Manners.toc"):gsub("\\", "/")
+	local base = tocPath:match("^(.*)/[^/]*$") or ""
+	local toc = assert(io.open(dir .. "/" .. tocPath, "r"))
 	for raw in toc:lines() do
 		local line = raw:gsub("\r$", ""):match("^%s*(.-)%s*$")
 		if line ~= "" and not line:find("^#") then
-			local path = line:gsub("\\", "/")
-			if path:lower() == "embeds.xml" then
+			local own = line:gsub("\\", "/")
+			local path = base ~= "" and (base .. "/" .. own) or own
+			if own:lower() == "embeds.xml" then
 				-- The libraries: stubbed.
-			elseif path:lower():find("%.xml$") then
+			elseif own:lower():find("%.xml$") then
 				local folder = path:match("^(.*)/[^/]*$")
 				local xml = assert(io.open(dir .. "/" .. path, "r"))
 				local body = xml:read("*a")

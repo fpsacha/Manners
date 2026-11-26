@@ -103,19 +103,19 @@ mutate("Commands.lua",
 
 # --- the page ---
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\treturn not (type(n) == \"number\" and n > 0)\n",
        "\t\t\t\t\t\treturn true\n",
        "wellrested: the switch hidden with the bag in the bags",
        expect="wellrested: off by default", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\tif pick() ~= \"off\" then return false end\n",
        "",
        "wellrested: the switch hidden once on, with the bag gone",
        expect="wellrested: off by default", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_rested\",\n",
        "",
        "wellrested: the switch not placed on the page",
@@ -147,19 +147,19 @@ mutate("Core.lua",
        "wellrested: early: on by default",
        expect="a new profile's switch is", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.restedEarly = value == true\n",
        "\t\t\t\t\tns.db.profile.ownBuffs.restedEarly = true\n",
        "wellrested: early: the switch cannot be turned off",
        expect="turning it off wrote nothing", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\tif family.rest then return ns.OwnPick(family) == \"off\" end\n",
        "\t\t\t\t\t\tif family.rest then return true end\n",
        "wellrested: early: the switch always hidden",
        expect="hidden with Well-Rested on", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.ownRestedEarly\", indent = true },\n",
        "",
        "wellrested: early: the switch not placed",

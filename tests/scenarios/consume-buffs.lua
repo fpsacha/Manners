@@ -41,8 +41,8 @@ local function lines(ns) return table.concat(ns.MyselfLines(GetTime()), " / ") e
 -- id (id -> expiry), his level, whether he is mounted, where he stands, and
 -- which items were counted.
 local world
-local TOUCHED = { "C_Item", "C_UnitAuras", "UnitLevel", "IsMounted", "IsSpellKnown", "IsPlayerSpell", "IsResting",
-	"IsInInstance" }
+local TOUCHED = { "C_Item", "C_Container", "IsUsableItem", "C_UnitAuras", "UnitLevel", "IsMounted",
+	"IsSpellKnown", "IsPlayerSpell", "IsResting", "IsInInstance" }
 
 local function install()
 	rawset(_G, "C_Item", {
@@ -54,6 +54,19 @@ local function install()
 		RequestLoadItemDataByID = function() end,
 		GetItemIconByID = function(id) return 7100000 + id end,
 		GetItemInfoInstant = function(id) return id, "Consumable", "", "", 7100000 + id, 0, 2 end,
+		IsUsableItem = function(id)
+			local answer = world.usable[id]
+			return answer == nil and true or answer, false
+		end,
+	})
+	rawset(_G, "IsUsableItem", nil)
+	rawset(_G, "C_Container", {
+		GetItemCooldown = function(id)
+			local cooldown = world.cooldowns[id]
+			if cooldown == Mock.SECRET then return Mock.SECRET, Mock.SECRET end
+			if cooldown then return cooldown[1], cooldown[2] end
+			return 0, 0
+		end,
 	})
 	rawset(_G, "UnitLevel", function(unit)
 		if unit == "player" then return world.level end
@@ -94,7 +107,8 @@ local function with(scenario, opts, body)
 	Mock.setFlavour(flavour)
 	Mock.class = opts.class or "WARRIOR"
 	world = { bags = opts.bags or {}, level = opts.level or LEVEL[flavour], auras = {}, counted = {},
-		mounted = false, refuse = false, where = nil, from = nil }
+		usable = opts.usable or {}, cooldowns = opts.cooldowns or {}, mounted = false, refuse = false,
+		where = nil, from = nil }
 	local saved = {}
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
 	local undo = strangers({})
@@ -440,6 +454,38 @@ do
 		-- Any elixir of the family on you: none is asked for over it.
 		wear(ns, worst[3])
 		if mine(ns) then fail(scenario, "an elixir on you, and another offered: " .. key(mine(ns))) end
+	end)
+end
+
+do
+	local scenario = "consume-buffs: unusable and cooling bag items are passed over"
+	with(scenario, { on = { "elixir" } }, function(ns, data)
+		local best, next = data.elixir[1], data.elixir[2]
+		stock(ns, { [best[1]] = 1, [next[1]] = 1 })
+		world.usable[best[1]] = false
+		if key(mine(ns)) ~= "elixir" .. next[1] then
+			fail(scenario, "an item the game refuses was preferred to " .. next[1] .. ": " .. key(mine(ns)))
+		end
+		world.usable[best[1]] = true
+		world.cooldowns[best[1]] = { GetTime(), 30 }
+		Mock.advance(1)
+		if key(mine(ns)) ~= "elixir" .. next[1] then
+			fail(scenario, "an item cooling down was preferred to " .. next[1] .. ": " .. key(mine(ns)))
+		end
+		world.cooldowns[best[1]] = nil
+		world.bags[next[1]] = 0
+		world.usable[best[1]] = Mock.SECRET
+		stock(ns, world.bags)
+		if mine(ns) then fail(scenario, "a secret usability answer was taken as usable: " .. key(mine(ns))) end
+		if not lines(ns):find("cannot be used right now", 1, true) then
+			fail(scenario, "debug does not say why the held item cannot be used: " .. lines(ns))
+		end
+		world.usable[best[1]] = true
+		rawset(C_Item, "IsUsableItem", nil)
+		Mock.advance(1)
+		if key(mine(ns)) ~= "elixir" .. best[1] then
+			fail(scenario, "without an item usability API, the local checks did not stand in: " .. key(mine(ns)))
+		end
 	end)
 end
 

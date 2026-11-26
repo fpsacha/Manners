@@ -173,6 +173,21 @@ local function load()
 		if not chunk then error("load " .. file .. ": " .. tostring(err)) end
 		chunk("Manners", ns)
 	end
+	local moduleTocs = {
+		"Modules/Combat/Manners_Combat.toc",
+		"Modules/Achievements/Manners_Achievements.toc",
+		"Modules/Pets/Manners_Pets.toc",
+		"Modules/MyBuffs/Manners_MyBuffs.toc",
+		"Modules/Services/Manners_Services.toc",
+	}
+	for _, toc in ipairs(moduleTocs) do
+		local moduleFiles = dofile(dir .. "/tests/addonfiles.lua")(addonDir, toc)
+		for _, file in ipairs(moduleFiles) do
+			local chunk, err = loadfile(addonDir .. "/" .. file)
+			if not chunk then error("load " .. file .. ": " .. tostring(err)) end
+			chunk()
+		end
+	end
 	return ns
 end
 

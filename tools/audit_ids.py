@@ -93,8 +93,8 @@ csv.field_size_limit(1 << 28)
 FLAVOURS = ("camelot", "vanilla", "tbc", "mists", "mainline")
 # The build per client comes from .claude/docs/data-sources.md ("The builds cited in the code"), by
 # tools/clients_watch.py's reading of it; these stand in if that line moves.
-BUILDS = {"camelot": "1.60.1.70790", "vanilla": "1.15.9.70003", "tbc": "2.5.6.69795",
-          "mists": "5.5.4.70032", "mainline": "12.1.0.69933"}
+BUILDS = {"camelot": "1.60.1.71139", "vanilla": "1.15.9.70576", "tbc": "2.5.6.70577",
+          "mists": "5.5.4.71089", "mainline": "12.1.5.70961"}
 
 TABLES = ("SpellName", "Spell", "SpellMisc", "SpellEffect", "SpellLevels", "SkillLineAbility",
           "SpellReagents", "ItemSparse", "ChrRaces", "ChrClasses", "SpellAuraOptions",
@@ -257,6 +257,7 @@ class Client:
                     "t0": num(r.get("ImplicitTarget_0")), "t1": num(r.get("ImplicitTarget_1")),
                     "radius": num(r.get("EffectRadiusIndex_0")),
                     "misc0": num(r.get("EffectMiscValue_0")),
+                    "item": num(r.get("EffectItemType")),
                     # What the effect gives, as the build's table spells it: the Classic builds an
                     # integer (base) with a die of one side (the value is base + 1), Forever a float
                     # (basef) that is the value itself.
@@ -1365,6 +1366,7 @@ def check_consumables(rep, c, d, flavour):
     # another does, is a finding.
     elixir_of = {}
     by_elixir = {key: {s["ranks"][0] for s in f["spells"]} for key, f in fams if key in ELIXIRS}
+    elixirs = {spell for ids in by_elixir.values() for spell in ids}
     for key, f in fams:
         if key in SCROLL_STAT:
             named = {e for e, ids in by_elixir.items() if ids & set(f.get("covers") or [])}
@@ -1381,7 +1383,7 @@ def check_consumables(rep, c, d, flavour):
             rep.finding("consumable.%s" % key, "no kind of consumable is called %r" % key)
             continue
         for i in f.get("covers") or []:
-            if not (i in both or (key != "flask" and (i in flasks or i in scrolls))):
+            if not (i in both or (key != "flask" and (i in flasks or i in scrolls or i in elixirs))):
                 rep.finding("consumable.%s" % key, "covers %d (%s), which is no flask, scroll or both-slot aura the addon holds" % (i, c.names.get(i)))
             elif i in both and (i not in c.names or (c.duration_ms(i) or 0) < 1800000):
                 rep.finding("consumable.%s" % key, "covers %d, which has no SpellName or lasts under half an hour" % i)
@@ -1544,10 +1546,14 @@ def check_durations(rep, c, d, flavour):
                 continue
             for sp in fam["spells"]:
                 where = "own.%s.%s.%s" % (cls, fam["key"], sp["key"])
+                if sp.get("since") and build_number(flavour) < sp["since"]:
+                    for rank in sp["ranks"]:
+                        held.setdefault(rank, where)
+                    continue
                 if fam.get("enhance") or fam.get("scroll") or fam.get("imbue"):
-                    use = sp["ranks"][0]
-                    exp, how = use_seconds(c, rep, where, use, sp.get("enchant"))
-                    judge(where, use, exp, how)
+                    for rank in sp["ranks"]:
+                        exp, how = use_seconds(c, rep, where, rank, sp.get("enchant"))
+                        judge(where, rank, exp, how)
                     continue
                 for i in sp["ranks"]:
                     judge(where, i, spell_seconds(c, i), "SpellDuration", group=(where, "ranks"))
@@ -1822,6 +1828,13 @@ def selftest(cache, offline):
     def no_seconds(d):
         d["seconds"].pop("10157")
 
+    def missing_imbue_rank(d):
+        for fams in d["own"].values():
+            for fam in fams:
+                if fam.get("key") == "shamanimbue":
+                    fam["spells"][0]["ranks"].remove(10486)
+                    return
+
     def stray_seconds(d):
         d["seconds"]["424242"] = 1800
 
@@ -1868,6 +1881,7 @@ def selftest(cache, offline):
         ("a weapon item that fits other weapons than the addon says", wrong_fit, "weapon subclass mask"),
         ("a length that is not the one the client's data gives", wrong_seconds, "lasts 60s in the table"),
         ("an id the client gives a length with none in the table", no_seconds, "has no length in the table"),
+        ("an imbue rank no longer held by its family", missing_imbue_rank, "held nowhere"),
         ("a length for an id the addon holds nowhere", stray_seconds, "held nowhere"),
         ("a scroll's worth that is not the spell's", wrong_value, "the table says 5"),
         ("a scroll of the client's that the addon does not list", drop_blocker, "does not list it"),

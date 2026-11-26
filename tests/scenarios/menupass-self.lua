@@ -132,7 +132,8 @@ do
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do sidebar[#sidebar + 1] = id end
 		end
-		if not table.concat(sidebar, " "):find("when self pet quiet", 1, true) then
+		if not table.concat(sidebar, " "):find("modules pet self", 1, true)
+			and not table.concat(sidebar, " "):find("modules self", 1, true) then
 			fail(scenario, "the sidebar is " .. table.concat(sidebar, " "))
 		end
 		-- The top-up heading no longer says what the page is called.

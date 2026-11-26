@@ -827,9 +827,7 @@ do
 	end)
 	with(scenario, { class = "MAGE" }, function(ns)
 		local bond = findOption(ns.optionsTable, "beastBond")
-		local hidden = bond and bond.hidden
-		if type(hidden) == "function" then hidden = hidden() end
-		if not hidden then fail(scenario, "a mage is shown Bond with my pet") end
+		if bond then fail(scenario, "a mage has a My pet option") end
 		for _, e in ipairs(ns.BuildQueue()) do
 			if e.care or e.bond then fail(scenario, "a mage is offered care for a pet") end
 		end

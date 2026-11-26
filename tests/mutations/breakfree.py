@@ -2,7 +2,7 @@
 # that call it). Caught by tests/scenarios/breakfree.lua; each undoes one rule.
 
 S = "runscenarios.py"
-BF = "Prompt/BreakFree.lua"
+BF = "Modules/Combat/BreakFree.lua"
 ARMED = "breakfree: armed out of combat, shown by its own driver in a fight, nothing protected from Lua"
 
 # --- 1. armed out of combat, shown by the driver, nothing protected in a fight
@@ -52,7 +52,7 @@ mutate(BF,
        expect="breakfree: not for a Forsaken without the spell", script=S)
 
 mutate("Options/Look.lua",
-       "\t\t\t\thidden = function() return ns.caps.breakFree == nil end,\n",
+       "\t\t\t\thidden = function() return not ns.BreakFree or ns.caps.breakFree == nil end,\n",
        "\t\t\t\thidden = function() return false end,\n",
        "breakfree: the switch shown to anybody",
        expect="breakfree: not for a human", script=S)
@@ -231,8 +231,9 @@ mutate("Options/Window/Layout.lua",
        expect="breakfree: the switch is on In a fight and on by default", script=S)
 
 mutate("Options/Look.lua",
-       "\t\t\t\t\treturn ns.caps.breakFree == nil or P().breakFree == false or not ns.Setup.CanBind()\n",
-       "\t\t\t\t\treturn ns.caps.breakFree == nil or not ns.Setup.CanBind()\n",
+       "\t\t\t\t\treturn not ns.BreakFree or ns.caps.breakFree == nil\n"
+       "\t\t\t\t\t\tor P().breakFree == false or not ns.Setup.CanBind()\n",
+       "\t\t\t\t\treturn not ns.BreakFree or ns.caps.breakFree == nil or not ns.Setup.CanBind()\n",
        "breakfree: its key shown with the switch off",
        expect="breakfree: the switch is on In a fight and on by default", script=S)
 
@@ -249,8 +250,10 @@ mutate("Options/Start.lua",
        expect="breakfree: its key control binds it and says what the key now does", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
-       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
+       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\",\n"
+       "\t\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
+       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\",\n"
+       "\t\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
        "breakfree: In a fight's reset leaves the switch",
        expect="advanced: put these back to default on In a fight", script=S)
 

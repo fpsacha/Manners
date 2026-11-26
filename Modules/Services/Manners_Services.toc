@@ -1,0 +1,13 @@
+## Interface: 16001, 11509, 20506, 50504, 120105
+## Title: Manners: Services
+## Notes: Optional class services for clear, secure requests across all five clients.
+## Author: Sacha
+## Version: 1.12.1
+## Dependencies: Manners
+## DefaultState: disabled
+## X-License: MIT
+
+Courtesy.lua
+FireShield.lua
+Options.lua
+Init.lua

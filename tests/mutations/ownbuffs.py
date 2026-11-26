@@ -70,7 +70,7 @@ mutate("Queue.lua",
 # --- which spell, and whether it is up (Core.lua) ---
 
 mutate("Core.lua",
-       "\treturn caps.anyKnown == true or caps.anyOwnKnown == true\n",
+       "\treturn caps.anyKnown == true or (myBuffs and caps.anyOwnKnown == true)\n",
        "\treturn caps.anyKnown == true\n",
        "own: a hunter has nothing to cast",
        expect="a hunter with his aspects learned has nothing to cast", script=S)
@@ -360,43 +360,43 @@ mutate("Prompt/Refresh.lua",
 
 # --- the options (Options.lua) ---
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\tif known == family then return false end\n",
        "\t\t\t\t\t\tdo return false end\n",
        "own: every class's families shown",
        expect="is shown to a mage", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\tif OwnChoice(family, spell) then\n\t\t\t\t\t\t\tvalues[spell.key]",
        "\t\t\t\t\t\tif true then\n\t\t\t\t\t\t\tvalues[spell.key]",
        "own: spells not learned offered",
        expect="Mage Armor is a choice for a mage who has not learned it", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\tif why == \"last\" then return L[\"Automatic (%s, the one you had up last)\"]:format(name) end\n",
        "",
        "own: Automatic does not say it is the last one",
        expect="Automatic reads", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\tif why == \"world\" then return L[\"Automatic (%s, outside dungeons and raids)\"]:format(name) end\n",
        "",
        "own: Automatic does not say outside dungeons",
        expect="Automatic reads", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\tif (#family.spells > 1 or family.tank) and not family.bagged then\n",
        "\t\t\tif true then\n",
        "own: a spell alone as a dropdown",
        expect="a priest's Inner Fire is not a checkbox", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\tif (#family.spells > 1 or family.tank) and not family.bagged then\n",
        "\t\t\tif #family.spells > 1 and not family.bagged then\n",
        "own: Righteous Fury as a checkbox",
        expect="Righteous Fury's choices read", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\tdisabled = function() return not S().self end,\n\t\t\t}\n",
        "\t\t\t\tdisabled = function() return false end,\n\t\t\t}\n",
        "own: live with Myself off",
@@ -432,7 +432,7 @@ mutate("Options/Launcher.lua",
        "own: the launcher tells a hunter there is nothing",
        expect="the launcher tells a hunter", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.inCities = value\n",
        "",
        "own: Also in cities and inns not written",
@@ -724,19 +724,19 @@ mutate("Core.lua",
 
 # Myself's heading and Also in cities and inns shown to a warrior, and the
 # latter live with Myself off.
-mutate("Options/Who.lua",
-       "order = 15, hidden = NothingForSelf },",
-       "order = 15 },",
+mutate("Modules/MyBuffs/Options.lua",
+       "myselfHeader = { type = \"header\", name = L[\"Myself\"], order = 15, hidden = NothingForSelf },",
+       "myselfHeader = { type = \"header\", name = L[\"Myself\"], order = 15 },",
        "own: Myself's heading shown to a warrior",
        expect="myselfHeader is shown to a warrior on retail", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\torder = 15.9,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = NothingForSelf,\n",
        "\t\t\t\torder = 15.9,\n\t\t\t\twidth = \"full\",\n",
        "own: Also in cities and inns shown to a warrior",
        expect="ownCities is shown to a warrior on retail", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\tdisabled = function() return not S().self end,\n"
        "\t\t\t\tget = function() return ns.db.profile.ownBuffs.inCities == true end,\n",
        "\t\t\t\tget = function() return ns.db.profile.ownBuffs.inCities == true end,\n",

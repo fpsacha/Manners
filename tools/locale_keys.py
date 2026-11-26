@@ -48,14 +48,17 @@ _unquote = _lua.eval("function(src) return load('return ' .. src)() end")
 def code_files():
     """The addon's own Lua files, as the toc loads them, Locales/ left out."""
     out = []
-    for raw in open(os.path.join(ROOT, "Manners.toc"), encoding="utf-8"):
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        path = line.replace("\\", "/")
-        if path.lower().endswith(".xml") or path.startswith("Locales/"):
-            continue
-        out.append(path)
+    import maketocs
+    for source in [maketocs.SOURCE] + [path for path, _ in maketocs.MODULES]:
+        base = os.path.dirname(source).replace(os.sep, "/")
+        for raw in open(os.path.join(ROOT, source), encoding="utf-8"):
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            own = line.replace("\\", "/")
+            if own.lower().endswith(".xml") or own.startswith("Locales/"):
+                continue
+            out.append((base + "/" + own) if base else own)
     return out
 
 

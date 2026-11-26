@@ -1551,17 +1551,27 @@ end
 -- Tell the favour ledger (Ledger.lua) what happened to a favour: one way only,
 -- so it never changes who is offered what, and guarded. Assigns the local
 -- declared above the never-offer list.
-function TellLedger(event, ...)
-	if ns.FavourFate then ns.FavourFate(event, ...) end
+local function UpdateLedger(event, ...)
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
-	if type(fn) == "function" then ns.Guard("ledger " .. event, fn, ...) end
+	if type(fn) == "function" then fn(...) end
+	-- The launcher counts the favours waiting to be returned. Both are
+	-- read-only core updates; one guard covers them after the module callbacks
+	-- have had their own isolated boundary.
+	if ns.RefreshBrokerText then ns.RefreshBrokerText() end
+end
+
+function TellLedger(event, ...)
+	local modules = _G.MannersAPI
+	if modules and type(modules.Fire) == "function" then
+		modules:Fire("Favour." .. event, ...)
+	end
+	if ns.FavourFate then ns.FavourFate(event, ...) end
+	ns.Guard("ledger " .. event, UpdateLedger, event, ...)
 	-- "In character" counts the exchanges with each person this session from
 	-- the same four moments, for its lines about meeting somebody again.
 	local heard = ns.InCharacter and ns.InCharacter.Heard
 	if type(heard) == "function" then ns.Guard("in character " .. event, heard, event, ...) end
-	-- The launcher counts the favours waiting to be returned.
-	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
 end
 ns.TellLedger = TellLedger
 
@@ -2450,6 +2460,9 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 				lead = memo.lead,
 				leadKind = memo.leadKind,
 			}
+			local decision = ns.ContextDecision("buff", "buff", name,
+				PRIORITY[memo.reason], memo.reason, true, math.max(0, now - memo.seen))
+			queue[#queue].priority, queue[#queue].reason = decision.priority, decision.reason
 			-- Written after the table is built, as in the scan's own entry.
 			if memo.guild then queue[#queue].guild = memo.guild end
 			if memo.level then queue[#queue].level = memo.level end
@@ -2726,9 +2739,12 @@ function ns.SupplyEntry(db, now)
 		if ns.ItemFamily(family) then
 			local spell, has, remaining = ns.OwnVerdict(family, ctx)
 			if spell and spell.item then
-				return { name = full, short = ShortName(full), display = L["You"],
+				local entry = { name = full, short = ShortName(full), display = L["You"],
 					targetName = ns.TargetName(full), unit = "player", class = caps.class,
 					buff = spell, reason = "self", known = has, remaining = remaining, checked = true }
+				local decision = ns.ContextDecision("own", "item", full, PRIORITY.self, "self", true, nil)
+				entry.priority, entry.reason = decision.priority, decision.reason
+				return entry
 			end
 		end
 	end
@@ -2924,6 +2940,8 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 		local cure = full and ns.CureSelf(full) or nil
 		if cure and not ListedAs(full, verdict) then return cure end
 	end
+	-- My own buffs are an optional module; a pending disable stops them at once.
+	if not (ns.ModuleActive and ns.ModuleActive("mybuffs")) then return nil end
 	local held, full = HeldBackExceptList(db, now)
 	-- In a fight nothing of your own is offered but a warrior's shout, alone
 	-- with "Remind me of my shout when I'm alone" on (CastsOnSelf): it lasts
@@ -3009,6 +3027,8 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	-- ahead of the team, the people a graveyard raised beside you included,
 	-- and the long extras after it (Battle.lua).
 	if battle then ns.Battle.Rank(entry) end
+	local decision = ns.ContextDecision("own", "self-buff", full, entry.priority, "self", true, nil)
+	entry.priority, entry.reason = decision.priority, decision.reason
 	return entry
 end
 
@@ -3226,14 +3246,15 @@ function ns.BuildQueue(watch)
 	-- for anybody else, and still walks for a poison or a disease.
 	-- The cure scan is asked first, once: only what it hands back is walked for,
 	-- so a fight, where it hands back nothing, is no walk for a class with no buff.
-	ns.CureScan(db, now)
+	if ns.CureScan then ns.CureScan(db, now) end
+	local curesScanned = ns.CureScanned and ns.CureScanned() or nil
 	-- A courtesy asked for (Courtesy.lua: water, a portal) is no buff, and is offered with none to give; with a spell only a request names, the walk below adds it.
 	-- Not with a cure to offer, which the walk reads, nor in a battleground's fight: both are the lines below. And somebody to ask (Ask.lua) still follows it.
-	if #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= "fight" and not ns.CureScanned() and ns.Courtesy and ns.Courtesy.Standing(now) then
+	if #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= "fight" and not curesScanned and ns.Courtesy and ns.Courtesy.Standing(now) then
 		if db.sources.ask == true and ns.AskInto then return ns.AskInto(ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked)) end
 		return ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked)
 	end
-	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CureScanned() then
+	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not curesScanned then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
 		-- Somebody to ask for a buff instead (Ask.lua), behind your own.
 		if db.sources.ask == true and ns.AskInto then return ns.AskInto(own and { own } or {}, own and {} or true) end
@@ -3255,12 +3276,15 @@ function ns.BuildQueue(watch)
 	-- everybody the walk reaches.
 	-- tanksOutside is the scan's, the same for everybody, so written once here.
 	local opts = { unpaid = UNPAID, tanksOutside = tanksOutside }
+	for _, buff in ipairs(candidates) do
+		if buff.forTank then opts.forTank = true break end
+	end
 	-- toTargetHeld rides on it too (visit is out of upvalues), copied to
 	-- opts.toTarget for the target alone.
 	opts.toTargetHeld = toTargetHeld
 	-- Cures (Cures.lua): the two switches as this scan has them, or nil with
 	-- none to offer (both off, nothing learned, a fight). The scan's too.
-	opts.cures = ns.CureScanned()
+	opts.cures = curesScanned
 	-- In a battleground or an arena nobody measured out of a single cast's
 	-- reach is offered one, whatever Only in range says (Battle.lua, Reach):
 	-- so the walk keeps them for a group cast's fold there as that switch does.
@@ -3509,7 +3533,7 @@ function ns.BuildQueue(watch)
 		-- here, past every test of the person and before any buff, and theirs
 		-- is the one entry they get, so it comes before a buff for them. With
 		-- nothing to cure the buff switches stand as they did above.
-		if curing then
+		if curing and ns.CureFor then
 			local cure = ns.CureFor(unit, full, guid, inGroup, pointed, flag)
 			if cure then
 				seen[full] = true
@@ -3569,7 +3593,7 @@ function ns.BuildQueue(watch)
 		-- asked for it by name, who has said what they want.
 		local tanksOnly = not asked and tanksHeld or nil
 		opts.tanksOnly = tanksOnly
-		opts.isTank = tanksOnly and inGroup and ns.IsTankUnit(unit) or nil
+		opts.isTank = (tanksOnly or opts.forTank) and inGroup and ns.IsTankUnit(unit) or nil
 		-- And for a buff for one target at a time (Core.lua, Castable): who
 		-- wears yours, whether they tank, and their class (Symbiosis).
 		opts.oneHeld = oneHeld
@@ -3591,7 +3615,9 @@ function ns.BuildQueue(watch)
 		if asked and not named then
 			opts.relevantOnly = f.relevantOnly
 			opts.tanksOnly = tanksHeld
-			if opts.isTank == nil then opts.isTank = tanksHeld and inGroup and ns.IsTankUnit(unit) or nil end
+			if opts.isTank == nil then
+				opts.isTank = (tanksHeld or opts.forTank) and inGroup and ns.IsTankUnit(unit) or nil
+			end
 			opts.meOnly = meHeld
 		end
 		-- Your target, for a buff ticked "Also offer it to my target"
@@ -3737,6 +3763,9 @@ function ns.BuildQueue(watch)
 				kept.name, kept.short, kept.targetName, kept.unit = full, ShortName(full), ns.TargetName(full), unit
 				kept.class, kept.buff, kept.reason = plain(select(2, UnitClass(unit))), buff, reason
 				kept.priority, kept.known, kept.remaining, kept.checked = PRIORITY[reason], has, remaining, checked
+				local decision = ns.ContextDecision("buff", "buff", full,
+					kept.priority, reason, true, nil)
+				kept.priority, kept.reason = decision.priority, decision.reason
 				queue[#queue + 1] = kept
 				opts.folding = true
 			end
@@ -3772,7 +3801,7 @@ function ns.BuildQueue(watch)
 		end
 
 		seen[full] = true
-		queue[#queue + 1] = {
+		local entry = {
 			name = full,
 			short = ShortName(full),
 			-- The spelling the macro's /target line carries, which is not always
@@ -3804,6 +3833,9 @@ function ns.BuildQueue(watch)
 			-- which the memory of them keeps (RememberPasserBy).
 			pvp = flag,
 		}
+		local decision = ns.ContextDecision("buff", "buff", full, priority, reason, true, nil)
+		entry.priority, entry.reason = decision.priority, decision.reason
+		queue[#queue + 1] = entry
 		-- A refusal the client may lift a moment on (Core.lua, ReadingSource):
 		-- the end of a fight lets go of a passer-by remembered on one
 		-- (ForgetUnreadPassersBy). Set after the table is built, only when
@@ -3950,6 +3982,10 @@ function ns.BuildQueue(watch)
 							-- follows the setting.
 							checked = (f.whenBuffed or "skip") ~= "always",
 						}
+						local decision = ns.ContextDecision("buff", "buff", full,
+							PRIORITY.owed, "owed", true,
+							type(entry.at) == "number" and math.max(0, now - entry.at) or nil)
+						queue[#queue].priority, queue[#queue].reason = decision.priority, decision.reason
 						-- Their level, for the rank the macro names: written
 						-- after the table is built, only when there is one.
 						if entry.level then queue[#queue].level = entry.level end
@@ -3967,7 +4003,9 @@ function ns.BuildQueue(watch)
 	OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, neverVerdict,
 		not db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)
 	-- And the passers-by remembered for a cure (Cures.lua), by its own switch.
-	if opts.cures then ns.CuresRemembered(queue, seen, rejected, now, savingMana or notResting) end
+	if opts.cures and ns.CuresRemembered then
+		ns.CuresRemembered(queue, seen, rejected, now, savingMana or notResting)
+	end
 
 	-- In a battleground or an arena only somebody within reach (Battle.lua):
 	-- nobody measured out of range, whatever Only in range says, and nobody

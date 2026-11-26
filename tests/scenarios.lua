@@ -33,13 +33,31 @@ end
 
 dofile(dir .. "/tests/mockapi.lua")
 -- What the toc loads, in its order -- see tests/addonfiles.lua.
-ADDON_FILES = dofile(dir .. "/tests/addonfiles.lua")(dir)
+local addonFiles = dofile(dir .. "/tests/addonfiles.lua")
+ADDON_FILES = addonFiles(dir)
 
 -- Defaults as the addon ships them, where load() changes them for the
 -- scenarios (below).
 local SHIPPED = {}
 
-local function load(scenario)
+local function loadModule(scenario, tocPath)
+	local module = {}
+	for _, file in ipairs(addonFiles(dir, tocPath)) do
+		local chunk, err = loadfile(dir .. "/" .. file)
+		if not chunk then
+			fail(scenario, "load module " .. file .. ": " .. tostring(err))
+			return nil
+		end
+		local ok, runErr = pcall(chunk, "Manners module", module)
+		if not ok then
+			fail(scenario, "run module " .. file .. ": " .. tostring(runErr))
+			return nil
+		end
+	end
+	return module
+end
+
+local function load(scenario, coreOnly)
 	if run.loaded then run.loaded(scenario, run.file) end
 	-- A scenario left out gets nil back, which every scenario already reads as
 	-- "skip": the same answer as an addon file that would not load.
@@ -74,6 +92,20 @@ local function load(scenario)
 	if ns.defaults and ns.defaults.profile and ns.defaults.profile.verbose ~= nil then
 		SHIPPED.verbose = ns.defaults.profile.verbose
 		ns.defaults.profile.verbose = true
+	end
+	-- Existing scenarios describe the addon with optional modules present, so
+	-- every folder is loaded after the core in its own dependency order. Pass
+	-- true for the boundary test that must prove the core works with none.
+	if not coreOnly then
+		for _, toc in ipairs({
+			"Modules/Combat/Manners_Combat.toc",
+			"Modules/Achievements/Manners_Achievements.toc",
+			"Modules/Pets/Manners_Pets.toc",
+			"Modules/MyBuffs/Manners_MyBuffs.toc",
+			"Modules/Services/Manners_Services.toc",
+		}) do
+			if not loadModule(scenario, toc) then return nil end
+		end
 	end
 	return ns
 end
@@ -17870,7 +17902,8 @@ local H = {
 	firstLogin = firstLogin, strangers = strangers, clearClicks = clearClicks,
 	freshPrompt = freshPrompt, pressButton = pressButton, owe = owe,
 	knowShout = knowShout, primeAuras = primeAuras, favourFrom = favourFrom,
-	pressAndSend = pressAndSend, findOption = findOption, optionsByKey = optionsByKey, namedSpell = namedSpell,
+	pressAndSend = pressAndSend, loadModule = loadModule,
+	findOption = findOption, optionsByKey = optionsByKey, namedSpell = namedSpell,
 	savedProfile = savedProfile, tryAgainst = tryAgainst, optionText = optionText,
 	shipped = SHIPPED,
 	-- Whether the toc loads the options window's layout (Options/Window/

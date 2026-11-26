@@ -55,6 +55,63 @@ local function AccentDead()
 end
 Page.AccentDead = AccentDead
 
+-- The Combat module's Plain, Shift and Ctrl cure choices. The saved value is
+-- a spell's first rank id (0 means nothing), per class in the shared profile.
+local CureMods = {}
+do
+	local INDEX = { plain = 1, shift = 2, ctrl = 3 }
+	local function Known() return ns.CureFightKnown and ns.CureFightKnown() or nil end
+	local function Id(spell) return spell and tostring(spell.cure.ranks[1]) or "none" end
+	function CureMods.Hidden()
+		if not ns.CureFight or not (ns.ClassHasCures() and ns.CureLearned())
+			or P().cureFight ~= true then return true end
+		local known = Known()
+		return not (known and known[2])
+	end
+	function CureMods.Values()
+		local out = { none = L["Nothing"] }
+		for _, spell in ipairs(Known() or {}) do out[Id(spell)] = tostring(spell.name) end
+		return out
+	end
+	function CureMods.Sorting()
+		local out = {}
+		for _, spell in ipairs(Known() or {}) do out[#out + 1] = Id(spell) end
+		out[#out + 1] = "none"
+		return out
+	end
+	function CureMods.Get(mod)
+		if not ns.CureFight or type(ns.CureFight.Chosen) ~= "function" then return "none" end
+		local plain, shift, ctrl = ns.CureFight.Chosen()
+		local picks = { plain, shift, ctrl }
+		return Id(picks[INDEX[mod]])
+	end
+	function CureMods.Set(mod, value)
+		if not ns.CureFight or type(ns.CureFight.Chosen) ~= "function" then return end
+		local profile, class = P(), ns.caps.class
+		if not class then return end
+		if type(profile.cureFightMods) ~= "table" then profile.cureFightMods = {} end
+		local mine = type(profile.cureFightMods[class]) == "table" and profile.cureFightMods[class] or {}
+		local known = Known() or {}
+		if value == Id(known[INDEX[mod]]) then
+			mine[mod] = nil
+		else
+			mine[mod] = value == "none" and 0 or tonumber(value)
+		end
+		profile.cureFightMods[class] = next(mine) ~= nil and mine or nil
+		if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+	end
+	function CureMods.KeyLine()
+		if not ns.CureFight or type(ns.CureFight.Chosen) ~= "function" then return "" end
+		local _, shift, ctrl = ns.CureFight.Chosen()
+		if shift and ctrl then
+			return " " .. L["Hold Shift for %s, Ctrl for %s."]:format(tostring(shift.name), tostring(ctrl.name))
+		end
+		if shift then return " " .. L["Hold Shift for %s."]:format(tostring(shift.name)) end
+		if ctrl then return " " .. L["Hold Ctrl for %s."]:format(tostring(ctrl.name)) end
+		return ""
+	end
+end
+
 -- The icon's size on a look that sizes it itself (Toast, from the height), or
 -- nil where the slider sets it.
 local function LookIconSize()
@@ -78,7 +135,7 @@ function Page.BuildLookTab()
 		-- prompt, so their switches must be reachable.
 		hidden = function()
 			return not HasPrompt() and ns.caps.breakFree == nil
-				and not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())
+				and not (ns.MendPet and ns.MendPet.KnowsMend())
 		end,
 		args = {
 			-- Everything on this tab is a secure attribute or a texture
@@ -468,7 +525,7 @@ function Page.BuildLookTab()
 				desc = L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep, and whenever you lose control of your character in a fight where the game will not say what took it: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."],
 				order = 32.46,
 				width = "full",
-				hidden = function() return ns.caps.breakFree == nil end,
+				hidden = function() return not ns.BreakFree or ns.caps.breakFree == nil end,
 				get = pGet,
 				set = function(info, value)
 					pSet(info, value)
@@ -483,12 +540,17 @@ function Page.BuildLookTab()
 				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 32.47,
 				hidden = function()
-					return ns.caps.breakFree == nil or P().breakFree == false or not ns.Setup.CanBind()
+					return not ns.BreakFree or ns.caps.breakFree == nil
+						or P().breakFree == false or not ns.Setup.CanBind()
 				end,
 				-- SetBinding is refused in a fight.
 				disabled = function() return InCombatLockdown() end,
-				get = function() return ns.Setup.Key(ns.BreakFree.COMMAND) or "" end,
+				get = function()
+					if not ns.BreakFree or type(ns.BreakFree.COMMAND) ~= "string" then return "" end
+					return ns.Setup.Key(ns.BreakFree.COMMAND) or ""
+				end,
 				set = function(_, value)
+					if not ns.BreakFree or type(ns.BreakFree.COMMAND) ~= "string" then return end
 					local spell = ns.caps.breakFree and ns.caps.breakFree.name or ""
 					ns.Setup.SetKey(value, ns.BreakFree.COMMAND, function(key, was)
 						return L["%s was bound to %s; it now casts %s."]:format(key, was, spell)
@@ -506,7 +568,9 @@ function Page.BuildLookTab()
 				desc = L["A button of its own beside the prompt, with its own key. It shows while your pet is under half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight, it shows only with Show the fight buttons set to All fight; its key works either way. A change made in a fight counts from the next one."],
 				order = 32.48,
 				width = "full",
-				hidden = function() return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend()) end,
+				hidden = function()
+					return not ns.MendPet or not ns.MendPet.KnowsMend()
+				end,
 				disabled = function() return ns.db.profile.beast.all == false end,
 				get = function() return ns.db.profile.beast.fightMend ~= false end,
 				set = function(_, value)
@@ -520,14 +584,18 @@ function Page.BuildLookTab()
 				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 32.49,
 				hidden = function()
-					return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())
+					return not ns.MendPet or not ns.MendPet.KnowsMend()
 						or ns.db.profile.beast.fightMend == false or not ns.Setup.CanBind()
 				end,
 				disabled = function() return InCombatLockdown() end,
-				get = function() return ns.Setup.Key(ns.MendPet.COMMAND) or "" end,
+				get = function()
+					if not ns.MendPet or type(ns.MendPet.COMMAND) ~= "string" then return "" end
+					return ns.Setup.Key(ns.MendPet.COMMAND) or ""
+				end,
 				set = function(_, value)
+					if not ns.MendPet or type(ns.MendPet.COMMAND) ~= "string" then return end
 					ns.Setup.SetKey(value, ns.MendPet.COMMAND, function(key, was)
-						return L["%s was bound to %s; it now casts %s."]:format(key, was, ns.Beast.MendName() or "")
+						return L["%s was bound to %s; it now casts %s."]:format(key, was, ns.MendPet.MendName() or "")
 					end)
 					if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
 				end,
@@ -545,11 +613,11 @@ function Page.BuildLookTab()
 				values = { needed = L["Only when needed"], always = L["All fight, dim until needed"] },
 				sorting = { "needed", "always" },
 				hidden = function()
-					return ns.caps.breakFree == nil and not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())
+					return not ns.BreakFree and not ns.MendPet
 				end,
 				disabled = function()
 					local bf = ns.caps.breakFree ~= nil and P().breakFree ~= false
-					local mp = ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend()
+					local mp = ns.MendPet and ns.MendPet.KnowsMend()
 						and ns.db.profile.beast.all ~= false and ns.db.profile.beast.fightMend ~= false
 					return not (bf or mp)
 				end,
@@ -574,7 +642,7 @@ function Page.BuildLookTab()
 				end,
 				order = 32.491,
 				width = "full",
-				hidden = function() return not (ns.ClassHasCures() and ns.CureLearned()) end,
+				hidden = function() return not ns.CureFight or not (ns.ClassHasCures() and ns.CureLearned()) end,
 				get = pGet,
 				set = function(info, value)
 					pSet(info, value)
@@ -590,7 +658,8 @@ function Page.BuildLookTab()
 				order = 32.4915,
 				width = "full",
 				hidden = function()
-					if not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true then return true end
+					if not ns.CureFight or not (ns.ClassHasCures() and ns.CureLearned())
+						or P().cureFight ~= true then return true end
 					local list = ns.CureFightSpells()
 					return not (list and list[2])
 				end,
@@ -603,14 +672,21 @@ function Page.BuildLookTab()
 			cureFightKey = {
 				type = "keybinding",
 				name = L["Key for my cure in a fight"],
-				desc = L["Saved with your game key bindings, so it works on every profile."],
+				desc = function()
+					return L["Saved with your game key bindings, so it works on every profile."] .. CureMods.KeyLine()
+				end,
 				order = 32.492,
 				hidden = function()
-					return not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true or not ns.Setup.CanBind()
+					return not ns.CureFight or not (ns.ClassHasCures() and ns.CureLearned())
+						or P().cureFight ~= true or not ns.Setup.CanBind()
 				end,
 				disabled = function() return InCombatLockdown() end,
-				get = function() return ns.Setup.Key(ns.CureFight.COMMAND) or "" end,
+				get = function()
+					if not ns.CureFight or type(ns.CureFight.COMMAND) ~= "string" then return "" end
+					return ns.Setup.Key(ns.CureFight.COMMAND) or ""
+				end,
 				set = function(_, value)
+					if not ns.CureFight or type(ns.CureFight.COMMAND) ~= "string" then return end
 					local list = ns.CureFightSpells()
 					ns.Setup.SetKey(value, ns.CureFight.COMMAND, function(key, was)
 						local spell = list and list[1] and list[1].name
@@ -628,13 +704,18 @@ function Page.BuildLookTab()
 				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 32.4925,
 				hidden = function()
+					if not ns.CureFight or not (ns.ClassHasCures() and ns.CureLearned()) then return true end
 					local list = ns.CureFightSpells()
-					return not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true
+					return P().cureFight ~= true
 						or P().cureFightEach ~= true or not (list and list[2]) or not ns.Setup.CanBind()
 				end,
 				disabled = function() return InCombatLockdown() end,
-				get = function() return ns.Setup.Key(ns.CureFight.COMMAND2) or "" end,
+				get = function()
+					if not ns.CureFight or type(ns.CureFight.COMMAND2) ~= "string" then return "" end
+					return ns.Setup.Key(ns.CureFight.COMMAND2) or ""
+				end,
 				set = function(_, value)
+					if not ns.CureFight or type(ns.CureFight.COMMAND2) ~= "string" then return end
 					local list = ns.CureFightSpells()
 					ns.Setup.SetKey(value, ns.CureFight.COMMAND2, function(key, was)
 						local spell = list and list[2] and list[2].name
@@ -643,6 +724,39 @@ function Page.BuildLookTab()
 					end)
 					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
 				end,
+			},
+			cureFightPlain = {
+				type = "select",
+				name = L["Plain press"],
+				desc = L["Which cure the cure button and its key cast with no key held. Only cures your class knows are listed. A change made in a fight counts from the next one."],
+				order = 32.4926,
+				hidden = CureMods.Hidden,
+				values = CureMods.Values,
+				sorting = CureMods.Sorting,
+				get = function() return CureMods.Get("plain") end,
+				set = function(_, value) CureMods.Set("plain", value) end,
+			},
+			cureFightShift = {
+				type = "select",
+				name = L["With Shift"],
+				desc = L["Which cure the cure button and its key cast while you hold Shift. With A button for each cure on, this cure also gets the second button. A change made in a fight counts from the next one."],
+				order = 32.4927,
+				hidden = CureMods.Hidden,
+				values = CureMods.Values,
+				sorting = CureMods.Sorting,
+				get = function() return CureMods.Get("shift") end,
+				set = function(_, value) CureMods.Set("shift", value) end,
+			},
+			cureFightCtrl = {
+				type = "select",
+				name = L["With Ctrl"],
+				desc = L["Which cure the cure button and its key cast while you hold Ctrl. A change made in a fight counts from the next one."],
+				order = 32.4928,
+				hidden = CureMods.Hidden,
+				values = CureMods.Values,
+				sorting = CureMods.Sorting,
+				get = function() return CureMods.Get("ctrl") end,
+				set = function(_, value) CureMods.Set("ctrl", value) end,
 			},
 			-- The window fading while a look is changed (Window.lua, PeekTarget).
 			peekOnChange = {

@@ -662,6 +662,13 @@ local function Hairline(parent)
 	return t
 end
 
+local function GroupLabel(parent)
+	local text = UI.Text(parent, GameFontNormalSmall, C.goldSoft)
+	text:SetWordWrap(false)
+	text:Hide()
+	return text
+end
+
 function UI.BuildSidebar()
 	local side, layout = UI.side, UI.Layout()
 	side.top = UI.BuildSearch(side.frame)
@@ -670,8 +677,10 @@ function UI.BuildSidebar()
 	side.viewItem = UI.Item((layout.menu or {}).simple)
 	if side.viewItem then side.view = ns.WindowWidgets.Build("toggle", side.frame, side.viewItem) end
 	side.lines = {}
+	side.labels = {}
 	for gi, group in ipairs(layout.groups) do
 		if gi > 1 then side.lines[gi] = Hairline(side.frame) end
+		if (layout.groupLabels or {})[gi] then side.labels[gi] = GroupLabel(side.frame) end
 		for _, id in ipairs(group) do PageButton(id) end
 	end
 end
@@ -757,25 +766,42 @@ local function LaySidebar(side, layout, compact)
 	local gap, lineAt = compact and 7 or 11, compact and 3 or 5
 	UI.visiblePages = {}
 	for gi, group in ipairs(layout.groups) do
-		local line, any = side.lines[gi], false
+		local line, label, any = side.lines[gi], side.labels[gi], false
+		local shown = {}
 		for _, id in ipairs(group) do
 			local b, page = side.buttons[id], layout.pages[id]
 			if page and UI.PageListed(id) then
-				if not any and placed and line then
-					line:ClearAllPoints()
-					line:SetPoint("TOPLEFT", side.frame, "TOPLEFT", 8, -(y + lineAt))
-					line:SetPoint("TOPRIGHT", side.frame, "TOPRIGHT", -8, -(y + lineAt))
-					line:Show()
-					y = y + gap
-				end
 				any = true
 				UI.visiblePages[id] = true
-				y = y + PaintPageButton(b, page, y, compact) + 1
+				shown[#shown + 1] = id
 			elseif b then
 				b:Hide()
 			end
 		end
-		if line and not (any and placed) then line:Hide() end
+		if not any then
+			if line then line:Hide() end
+			if label then label:Hide() end
+		else
+			if placed and line then
+				line:ClearAllPoints()
+				line:SetPoint("TOPLEFT", side.frame, "TOPLEFT", 8, -(y + lineAt))
+				line:SetPoint("TOPRIGHT", side.frame, "TOPRIGHT", -8, -(y + lineAt))
+				line:Show()
+				y = y + gap
+			elseif line then
+				line:Hide()
+			end
+			if label then
+				label:SetText((layout.groupLabels or {})[gi] or "")
+				label:ClearAllPoints()
+				label:SetPoint("TOPLEFT", side.frame, "TOPLEFT", 10, -y)
+				label:Show()
+				y = y + 15
+			end
+			for _, id in ipairs(shown) do
+				y = y + PaintPageButton(side.buttons[id], layout.pages[id], y, compact) + 1
+			end
+		end
 		placed = placed or any
 	end
 	return y

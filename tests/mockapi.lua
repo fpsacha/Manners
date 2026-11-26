@@ -823,7 +823,14 @@ local function newFrame()
 		self.unitEvents = self.unitEvents or {}
 		self.unitEvents[event] = { ... }
 	end
-	f.UnregisterEvent = function() end
+	f.UnregisterEvent = function(self, event)
+		if self.events then self.events[event] = nil end
+		if self.unitEvents then self.unitEvents[event] = nil end
+	end
+	f.UnregisterAllEvents = function(self)
+		self.events = {}
+		self.unitEvents = {}
+	end
 
 	-- Last, so it wraps whatever the two loops above left behind rather than
 	-- being overwritten by them. A call made by secure code (a state driver, a
@@ -1684,6 +1691,7 @@ local function bracketHolds(conditional)
 		if word == "combat" and not inFight() then return false end
 		if word == "nocombat" and inFight() then return false end
 		if word == "mod:shift" and not (IsShiftKeyDown and IsShiftKeyDown()) then return false end
+		if word == "mod:ctrl" and not (IsControlKeyDown and IsControlKeyDown()) then return false end
 		if who then
 			if word == "help" and hostile then return false end
 			if word == "harm" and not hostile then return false end
@@ -1949,6 +1957,12 @@ local SPELL_NAMES = {
 	[20914] = "Blessing of Sanctuary",
 	[5697] = "Unending Breath",
 	[25289] = "Battle Shout",
+	[2947] = "Fire Shield",
+	[8316] = "Fire Shield",
+	[8317] = "Fire Shield",
+	[11770] = "Fire Shield",
+	[11771] = "Fire Shield",
+	[27269] = "Fire Shield",
 	-- The group versions (tests/scenarios/groupbuffs.lua), which a macro casts
 	-- by these names. 21562, Prayer of Fortitude's first rank here, is left to
 	-- the retail list below: that client reuses the id for the single buff.

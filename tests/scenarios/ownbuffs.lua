@@ -996,7 +996,7 @@ do
 		if mine(ns) then fail(scenario, "offered " .. key(mine(ns)) .. " though the game says it cannot be cast") end
 		Mock.printed = {}
 		ns.addon:HandleSlash("debug")
-		if not said():find("Armor: the game says Ice Armor cannot be cast right now.", 1, true) then
+		if not said():find("Armor: the game says Ice Armor cannot be used right now.", 1, true) then
 			fail(scenario, "/manners debug does not say the armor cannot be cast: " .. flat(said()))
 		end
 		rawset(_G, "C_Spell", setmetatable({ IsSpellUsable = function() return nil end }, { __index = base }))

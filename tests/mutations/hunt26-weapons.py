@@ -106,14 +106,14 @@ mutate(C,
 # ------------------------------------------------ a rogue's prompt
 # Nothing to do for a rogue with a poison and nothing learned.
 mutate(C,
-       "\tif ns.OwnItemsHeld() then return true end\n",
+       "\tif myBuffs and ns.OwnItemsHeld() then return true end\n",
        "",
        "hunt26-weapons: a rogue with a poison has nothing to cast",
        expect="a rogue with a poison in the bags can cast nothing", script=S)
 
 mutate(C,
-       "\treturn not caps.hasClassBuffs and (caps.anyOwnKnown == true or ns.OwnItemsHeld())\n",
-       "\treturn not caps.hasClassBuffs and caps.anyOwnKnown == true\n",
+       "\treturn myBuffs and not caps.hasClassBuffs and (caps.anyOwnKnown == true or ns.OwnItemsHeld())\n",
+       "\treturn myBuffs and not caps.hasClassBuffs and caps.anyOwnKnown == true\n",
        "hunt26-weapons: a rogue with a poison is not a class with buffs of its own",
        expect="a rogue with a poison in the bags is not a class with buffs of his own", script=S)
 
@@ -231,13 +231,13 @@ mutate(B,
        expect="with Wound Poison up, a rogue was offered", script=S)
 
 # ------------------------------------------------ the options page and /manners debug
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\treturn ns.OwnSpellKnown(spell) or (type(picks) == \"table\" and picks[family.key] == spell.key)\n",
        "\t\treturn true\n",
        "hunt26-weapons: every item a choice",
        expect="a poison not in the bags is a choice", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\t\t:format(ns.HandName(family.slot))\n",
        "\t\t\t\t\t\t\t:format(ns.HandName(16))\n",
        "hunt26-weapons: the off hand's row names the main hand",
@@ -303,7 +303,7 @@ mutate(C,
 
 # ------------------------------------------------ the options window
 # A family with no place in the window.
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_lure\",\n",
        "",
        "hunt26-weapons: the lure row has no place in the window",

@@ -26,7 +26,7 @@ mutate("Core.lua",
        "wellfed: food never counted in the bags",
        expect="wellfed: off by default", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\tif family.bagged and ns.ForgetScrolls then ns.ForgetScrolls() end\n",
        "",
        "wellfed: the bags not read again when it is switched on",
@@ -128,13 +128,13 @@ mutate("Buffs.lua",
 
 # --- the page ---
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tif family.food then return false end\n\t\t\t\t\t-- A companion pet",
        "\t\t\t\t\t-- A companion pet",
        "wellfed: the switch hidden until food is in the bags",
        expect="wellfed: off by default", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\tif (#family.spells > 1 or family.tank) and not family.bagged then\n",
        "\t\t\tif #family.spells > 1 or family.tank then\n",
        "wellfed: the switch a list of every food",
@@ -146,7 +146,7 @@ mutate("Options/Shared.lua",
        "wellfed: a warrior has no Myself",
        expect="wellfed: Myself is a warrior's too", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_food\",\n",
        "",
        "wellfed: the switch not placed on the page",
@@ -154,31 +154,31 @@ mutate("Options/Window/Layout.lua",
 
 # --- the page's order: each sub-option under its switch ---
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_leave_food\", indent = true },\n",
        "\t\t\t\t\t\"who.own_leave_food\",\n",
        "wellfed: the foods to leave out no further in than Well Fed",
        expect="the foods to leave out are not right under Well Fed", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\tif ns.OwnLeaveable(family) and (family.food and true or false) == (food == true) then\n",
        "\t\t\tif ns.OwnLeaveable(family) then\n",
        "wellfed: the foods in both lists",
        expect="a food is in the general list too", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\treturn not family or ns.OwnPick(family) == \"off\" or next(LeaveChoices(true)) == nil\n",
        "\t\t\treturn not family or next(LeaveChoices(true)) == nil\n",
        "wellfed: the foods to leave out shown with Well Fed off",
        expect="with Well Fed off the list of foods is still shown", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_scrollspirit\", indent = true },\n",
        "\t\t\t\t\t\"who.own_scrollspirit\",\n",
        "wellfed: a scroll no further in than the Scrolls switch",
        expect="is not one step further in than the Scrolls switch", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.ownPetChoice\", indent = true },\n",
        "\t\t\t\t\t\"who.ownPetChoice\",\n",
        "wellfed: Which pet no further in than Companion pet",
@@ -198,7 +198,7 @@ mutate("Queue.lua",
        "wellfed: the switch leaves my food first",
        expect="wellfed: my food goes after everybody else", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.itemsLast = value == true\n",
        "",
        "wellfed: the last-of-all switch writes nothing",

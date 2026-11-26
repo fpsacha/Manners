@@ -19,7 +19,7 @@ mutate("Options/Launcher.lua",
        "menupass-pointers: the mounted line names its page by hand",
        expect="menupass-pointers: no sentence names a page by hand", script=S)
 
-mutate("Prompt/BreakFree.lua",
+mutate("Modules/Combat/BreakFree.lua",
        "\tns.AddSettingsLine(tip, \"appearance.breakFree\")\n",
        "",
        "menupass-pointers: the break-free tooltip does not say where its settings are",

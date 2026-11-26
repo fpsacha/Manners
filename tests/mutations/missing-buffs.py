@@ -178,19 +178,19 @@ mutate(K,
 
 # ---------------------------------------------------------------- the page
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_demonicsacrifice\", indent = true },\n",
        "",
        "missing-buffs: Demonic Sacrifice not placed on the page",
        expect="who.own_demonicsacrifice is not placed under Myself", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_treeoflife\", indent = true },\n",
        "",
        "missing-buffs: Tree of Life not placed on the page",
        expect="who.own_treeoflife is not placed under Myself", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_spiritofthealpha\", indent = true },\n",
        "",
        "missing-buffs: Spirit of the Alpha not placed on the page",

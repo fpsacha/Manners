@@ -8,19 +8,83 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*24 November 2026. Last release: 1.12.1 (live everywhere and in the owner's
+*26 November 2026. Last release: 1.12.1 (live everywhere and in the owner's
 game folder). Read `.claude/docs/lessons.md` first: it holds the 1.11.41
 rollback, the scope rule, what Forever hides and what is open.*
 
-- **In flight:** nothing. 1.11.41's code is kept on branch `features-1.11.41`.
-- **Next, offered to the owner:** bring back only the cure button's
-  aura-display workaround, off by default.
-- **Waiting on players:** KoriKaiMoon (`/manners debug` from a dungeon),
-  user_bbmzm47xiinpl0fq (version), issues 44, 33, 21, 46, 50.
+- **In flight (branch `fix-44`, worktree `Manners-wt-44`):** issue #44 is
+  implemented with the caster's addon whisper, one-candidate fallback and a
+  quiet verbose-only hint. The module API, package plumbing and disabled
+  `Manners: Combat` folder are implemented. The remaining modules are also
+  migrated: disabled Achievements, My Buffs and Services, plus enabled
+  `Manners: Pets` (hunter-only behaviour; inert elsewhere). Combat carries the
+  Forever cure workaround, break-free and in-fight Mend Pet. Services now has a
+  dedicated page and independently controlled, exact-client request services:
+  refreshments and named portals, Slow Fall, Levitate, Water Walking,
+  healthstones/Soulwell, summons, Soulstones and Fire Shield where supported.
+  Disabled services create no event frame or queue entry, and the exact
+  `tools/audit_services.py` matrix is clean on all five builds.
+- **Context audit:** bag items now obey the client's usability and cooldown
+  answers before they are offered; Camper's Lure is modeled on the player's
+  Forever 1.60.1.71091 build at +60 Fishing for five minutes. The death,
+  resurrection and unghost tracking-cache bug has a focused scenario and is
+  installed in the owner's game. GitHub issue #55 records that report.
+- **Bug-fix pass:** the final review closed Services-only prompt detection,
+  saved Fire Shield lifecycle, combat-rota leakage, whisper/focus scope errors,
+  ignored or conflicting caster claims, unreadable caster levels and
+  disabled-module resets. All 126 performance-budget loads pass, every new
+  mutation is caught, and `check.py --lint --anchors --quick` passes all 8
+  steps with 8,044 live anchors. The verified core and all five module folders
+  were copied to WoW Forever and hash-checked against this worktree.
+- **Paladin cure report:** Forever's secret-aura fallback now draws a
+  visible ring at the game-owned poison/disease indicator; a Paladin's
+  dangerous Cleanse is replaced by learned Purify when a never-removed debuff
+  is beside the ailment. Combat, Pets and My Buffs now suspend their queue
+  paths, event frames and visible secure controls when disabled and resume
+  them without changing saved settings. All focused cases and the 126
+  performance loads pass; the quick gate is 8/8 with 8,051 live anchors. The
+  exact build was copied and hash-checked in WoW Forever, with `Libs`
+  preserved.
+- **Cure ownership moved:** `Modules/Combat/Cures.lua`, the Who-to-buff cure
+  controls and their layout now load only from Manners: Combat. The core has
+  guarded absent-module queue/report paths, and a pending Combat disable clears
+  cure caches, scans and queue work without changing saved switches or duration.
+  Disabled Combat settings are also excluded from core-page resets. Focused
+  cure/module scenarios, four ownership/reset mutations, 126 performance loads
+  and the 8-step quick gate pass; 8,055 anchors are live. WoW Forever is
+  hash-matched to the move and its `Libs` remain intact.
+- **Architecture backlog complete:** every module suspends immediately and
+  resumes without rebuilding secure frames; one safe context decision feeds
+  buffs, cures, own items and Services; `/manners debug` keeps the last twenty
+  rejected decisions without printing secrets; and `tools/install_package.py`
+  stages all six addon folders, preserves source-install libraries and verifies
+  every installed byte with SHA-256. Its seven checks include a complete release
+  ZIP round trip, unsafe paths, missing libraries, source-library preservation,
+  byte checks and rollback. Focused lifecycle/context scenarios, performance
+  budgets and package-install mutations pass.
+- **Player requests and data gates complete:** asking for a paladin blessing has
+  an Automatic/Kings/Might/Wisdom/Salvation choice where supported, and Automatic
+  can ask another reachable paladin for another missing blessing. Every cited
+  client is on its current upstream build and `audit_ids.py` has zero findings;
+  the old 18 Forever shaman-imbue findings are resolved. Mists' Focus fallback
+  and consumable-slot audit are fixed, retail fight/module scenarios run in CI
+  and release checks, and nightly runs strict client-build, Services and ID
+  audits. New shipped Lua locals fail `lint.py` unless deliberately listed in
+  the reviewed historical baseline.
+- **Presentation and install current:** the prompt, cure, Services, My Buffs,
+  options and listing screenshots were redrawn with every optional module
+  attached. The verified six-folder build is installed in WoW Forever by the
+  package installer, with `Libs` preserved. The complete Forever suite is green,
+  the reviewed retail baseline is current, and the final quick gate is 8/8.
+- No release, push or commit was made.
+- **Waiting on player evidence, not code:** KoriKaiMoon (`/manners debug` from a
+  dungeon), issues 33 and 21 (client/settings/report), and issue 28's first-press
+  error text or `/manners clicks`. Issue 44 is implemented; issue 55 is fixed
+  locally and stays open until release.
 
 ## State
 
-- **Released:** 1.11.36 (21 November 2026), on all five clients through
+- **Released:** 1.12.1 (24 November 2026), on all five clients through
   CurseForge, Wago and GitHub. `CHANGELOG.md` says what each version brought.
 - **The owner does not test in the game** (21 November). The code is taken as
   working once the suites pass; players' reports find the rest, with
@@ -55,27 +119,14 @@ rollback, the scope rule, what Forever hides and what is open.*
   path fails on a first press: the mock casts once on it. Waiting on the
   player's error text or a `/manners clicks` log. Meanwhile the key boxes take a
   controller button (`WidgetsChoice.lua`, `tests/scenarios/gamepad-key.lua`).
-- **Classic Era, TBC, Mists and retail get less care than Forever.** Their
-  baselines took in about 900 to 1,250 known reds each on 15 November. Most of
-  those are Forever fixtures (two-part names, Forever's scrolls and group
-  casts), and nobody has read them line by line. Mists and retail are worth
-  reading first. Give the Forever-only files the `hasBuffs` skip so that what
-  remains is real.
-- **A client bump stales `tests/baselines/mainline.txt`:** nine lines carry
-  the client line. `normalise()` in `tests/runscenarios.py` could strip the
-  build and interface.
-- **Retail runs of the fight scenarios are local only:** `check.py --flavours`
-  runs them as mainline. CI and `release.py` do not.
-- **Client builds move:** `python tools/clients_watch.py` shows DRIFT, and the
-  toc then needs the new number (`tools/maketocs.py`'s `FLAVOURS` and
-  `Manners.toc`).
-- **Unused local functions are found by hand:** nothing flags a local
-  function that nobody calls.
-- **`tools/audit_ids.py --client camelot --offline` lists 18 findings:** these
-  are the shaman imbue ranks the client may name. They are known and nothing
-  reads them.
-- **The listing pictures** of the options window need redrawing after the
-  menu pass (see *Where I left off*).
+- **Other-client suite baselines remain conservative fixtures.** The exact data
+  and client-specific focused files are green, but the whole off-Forever suites
+  keep their historical failure baselines. New lines still fail a release;
+  build/interface churn in those lines is normalized.
+- **Release boundary.** Full Forever scenarios, the final quick gate, the
+  package round trip and the game-folder hash install are the last pre-release
+  steps. Commit, merge, publish and closing/replying to player issues remain the
+  owner's call.
 
 ## Decisions
 

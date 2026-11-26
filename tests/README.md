@@ -22,7 +22,12 @@ own scenario files, no trace), not with the full run below.
 ## `runharness.py` — load the addon for real
 
 Loads `harness.lua`, a mock WoW API, then loads every addon file `Manners.toc`
-names, in its order (`tests/addonfiles.lua` reads the list), and drives
+names, in its order (`tests/addonfiles.lua` reads the list). Scenario tests
+load optional addon tocs through the same reader; `H.load(scenario)` includes
+Manners: Combat for the old combat scenarios, while `H.load(scenario, true)` keeps the core alone for the no-module boundary test;
+without `true`, scenarios load Combat, Achievements, Pets, My Buffs and
+Services after the core. Each migration also has its own focused scenario and
+mutation file. Then it drives
 the main paths: `OnInitialize`, `OnEnable`, `PLAYER_ENTERING_WORLD`,
 `BuildQueue`, `Tick`, the aura handler that stands in for the combat log this
 client does not have, `ScanOwnBuffs`, `ApplyStyle`, `Refresh`, and the slash
@@ -280,8 +285,9 @@ sub-second subset for the middle of an edit.
 - `baselines/<client>.txt`: each client's known reds (see `--flavours` above).
 - `setversion.py`: writes the version into every toc, `ns.BUILD` and the
   changelog heading. Never edit those by hand (`RELEASING.md`).
-- `addonfiles.lua`: the addon's files in load order, read from `Manners.toc`,
-  for every loader. `harness.lua`: what `runharness.py` drives.
+- `addonfiles.lua`: a tocs' files in load order, read from `Manners.toc` or an
+  optional module source toc, for every loader. `harness.lua`: what
+  `runharness.py` drives.
 - `frametree.lua`, `mockwidgets.lua`, `mockwindow.lua`: the mock's frames.
   `mockwidgets.lua` also models Blizzard's secure handlers ("secure handlers
   and state drivers"): `RegisterStateDriver` and `RegisterAttributeDriver`
@@ -330,7 +336,7 @@ The menu pass has a scenario file of its own for each step, `menupass-search`,
 `GROUPS` and `window-classes.lua`'s `TABLE`.
 
 The features of 1.11.25 each have a file of their own too: `res.lua`,
-`cures.lua`, `courtesy.lua`, `ask.lua`, `raidsplit.lua`, `battleground.lua`,
+`cures.lua`, `courtesy.lua`, `services-utilities.lua`, `ask.lua`, `raidsplit.lua`, `battleground.lua`,
 `battle-tracking.lua`, `bg-hidden.lua`, `grouppets.lua`, `journalpet.lua` and
 `resting-hint.lua`, with the mutation file of the same name.
 

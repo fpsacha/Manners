@@ -95,7 +95,7 @@ do
 		elseif why == "tried" then
 			return L["%s: %s was pressed or skipped a moment ago."]:format(label, name or "?")
 		elseif why == "unusable" then
-			return L["%s: the game says %s cannot be cast right now."]:format(label, name or "?")
+			return L["%s: the game says %s cannot be used right now."]:format(label, name or "?")
 		elseif why == "mounted" then
 			-- Manners' own rule for food, the sleeping bag, flasks, elixirs and
 			-- scrolls, not the game's.
@@ -956,6 +956,7 @@ do
 	local SHARE_ASK = {
 		["ask.channel"] = true,
 		["ask.line"] = true,
+		["ask.paladin"] = true,
 		-- My own words: free text, so kept as the player has it too.
 		["ask.own"] = true,
 		["ask.inTowns"] = true,
@@ -1757,8 +1758,8 @@ local function LastFavourLine(now)
 	elseif fate == "never" then text = L["let go: they are on your never-offer list"]
 	elseif fate == "ignored" then text = L["let go: they are on your ignore list"]
 	elseif fate == "unnamed" then
-		if last.why == "several" then
-			text = L["nobody to buff back: the game did not say who cast it, and more than one player in sight cast it at that moment"]
+		if last.why == "several" or last.why == "severalPossible" then
+			text = L["nobody to buff back: the game did not say who cast it, and more than one player in sight could have cast it at that moment"]
 		elseif last.platesOff then
 			text = L["nobody to buff back: the game did not say who cast it, with friendly nameplates off"]
 		elseif last.why ~= nil and last.why ~= "none" and last.why ~= "else" then
@@ -2042,7 +2043,7 @@ function addon:HandleSlash(rawInput)
 			end
 		end
 	elseif input == "spell" then
-		ns.OwnSpells.Slash(rest)
+		if ns.OwnSpells then ns.OwnSpells.Slash(rest) end
 	elseif input == "snooze" then
 		local arg = rest:lower()
 		if arg == "off" or arg == "stop" or arg == "end" then
@@ -2153,8 +2154,8 @@ function addon:HandleSlash(rawInput)
 		-- Where there is none, the casts other players make are the other witness.
 		if ns.castWatch.armed then
 			local cast = ns.castWatch
-			self:Print(("  casts by other players: %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters"):format(
-				cast.seen, cast.named, cast.late, cast.several))
+			self:Print(("  casts by other players: %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters, %d Manners messages, %d only possible casters"):format(
+				cast.seen, cast.named, cast.late, cast.several, cast.messages, cast.possible))
 		end
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
 		-- Whether a rank for somebody low went unnamed, and why (Prompt/Macro.lua).
@@ -2199,7 +2200,8 @@ function addon:HandleSlash(rawInput)
 				for _, line in ipairs(ns.Battle.Lines(GetTime())) do self:Print(line) end
 				self:Print((db.enabled and L["queue now: %d"] or L["queue if switched on: %d"]):format(#ns.BuildQueue()))
 				for _, line in ipairs(ns.PvPLines()) do self:Print("  " .. line) end
-				for _, line in ipairs(ns.CureLines()) do self:Print("  " .. line) end
+				for _, line in ipairs(ns.CureLines and ns.CureLines() or {}) do self:Print("  " .. line) end
+				for _, line in ipairs(ns.ContextRejectionLines and ns.ContextRejectionLines() or {}) do self:Print("  " .. line) end
 			end
 			-- The one state below that holds the /thank back too, said as the
 			-- full report says it, or the thank reads "on" with nothing to show.
@@ -2371,7 +2373,8 @@ function addon:HandleSlash(rawInput)
 		-- nothing on screen to say why.
 		for _, line in ipairs(ns.PvPLines()) do self:Print("  " .. line) end
 		-- What this character cures, and who that scan left alone and why (Cures.lua).
-		for _, line in ipairs(ns.CureLines()) do self:Print("  " .. line) end
+		for _, line in ipairs(ns.CureLines and ns.CureLines() or {}) do self:Print("  " .. line) end
+		for _, line in ipairs(ns.ContextRejectionLines and ns.ContextRejectionLines() or {}) do self:Print("  " .. line) end
 		-- And who that scan left to another Manners user of your class (Share.lua).
 		for _, line in ipairs(ns.ShareLines()) do self:Print("  " .. line) end
 		ns.Guard("WriteProbe", ns.WriteProbe)

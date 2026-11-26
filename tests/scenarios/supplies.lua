@@ -172,6 +172,9 @@ do
 		local text = tostring(macro(ns))
 		if not text:find("/use item:" .. data[1][1], 1, true) then fail(scenario, "the button's macro is " .. text) end
 		if ns.Supplies:Current() == nil then fail(scenario, "the button names nothing") end
+		if ns.Supplies:Current().reason ~= "self" or ns.Supplies:Current().priority ~= ns.PRIORITY.self then
+			fail(scenario, "the item decision lost its own-buff reason or priority")
+		end
 		local b = button(ns)
 		b.scripts.OnEnter(b)
 		do

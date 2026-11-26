@@ -22,13 +22,13 @@ mutate("Core.lua",
        "shoutalone: on by default",
        expect="shoutalone: off by default, a warrior alone is not offered his shout", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\thidden = function() return not ns.HasShout() end,\n",
        "\t\t\t\thidden = false,\n",
        "shoutalone: every class is shown the switch",
        expect="shoutalone: a mage is not shown the switch", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.shoutAlone = value == true\n",
        "\t\t\t\t\tns.db.profile.ownBuffs.shoutAlone = false\n",
        "shoutalone: the switch keeps nothing",

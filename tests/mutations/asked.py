@@ -181,16 +181,16 @@ mutate("Requests.lua",
 
 # Anything said in a fight kept for afterwards: interrupt calls offered.
 mutate("Requests.lua",
-       "\t\tif fighting and channel ~= \"WHISPER\" then\n",
-       "\t\tif false then\n",
+       "\t\t\tif not filtered then\n",
+       "\t\t\tif false then\n",
        "requests made in a fight kept",
        expect="a request in a fight is offered after it",
        script="runscenarios.py")
 
 # A whisper in a fight let go with the rest.
 mutate("Requests.lua",
-       "\t\tif fighting and channel ~= \"WHISPER\" then\n",
-       "\t\tif fighting then\n",
+       "\t\t\tif not filtered then\n",
+       "\t\t\tif not filtered or channel == \"WHISPER\" then\n",
        "whispers in a fight let go",
        expect="a request in a fight is offered after it",
        script="runscenarios.py")

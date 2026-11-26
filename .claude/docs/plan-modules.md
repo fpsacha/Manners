@@ -41,13 +41,14 @@ one enables it once in the game's AddOns list. Manners itself stays small.
 | `Manners_Achievements` | The overhauled achievements (plan below) | disabled |
 | `Manners_Pets` | The hunter pet module (and, the owner wants it for warlocks too: a warlock's demon would need its own features designed; today the module is hunter-only): Call, Revive, Feed, Mend Pet out of a fight, Bond with my pet, the pet's own lines and moments (`HunterPet.lua`, `HunterPetHints.lua`, `BeastFoods.lua`, the My pet page) | enabled by default for hunters and warlocks (owner). `DefaultState` is per account, not per class: ship it enabled and have it do nothing (no frames, no events, no options page) for any other class |
 | `Manners_MyBuffs`, titled **Manners: My Buffs** (owner's name) | Your own class buffs (armor, aura, aspect, forms, shields; "your own buffs come up as You"), consumables (food, flasks, elixirs, scrolls, weapon oils/stones/poisons, the consumables button), fishing lure, Well-Rested, companion pet, tracking, a mage's scrolls, Make a healthstone | disabled |
-| `Manners_Services`, titled **Manners: Services** (owner: its own module) | Class services for others: a mage's water, food and portals on request, Offer water and food to my target, a warlock's healthstones and summons, Fire Shield from the imp on the tank (branch `features-1.11.41`) | disabled |
+| `Manners_Services`, titled **Manners: Services** (owner: its own module) | Exact, explicit-request class services with independent controls: mage water/food, named portals and Slow Fall; priest Levitate; shaman Water Walking; warlock healthstones/Soulwell, summons and Soulstones; target refreshments; Fire Shield on the supported clients. Every service is off until enabled, and disabled services create no runtime frames, events or queue entries | disabled |
 
 Order of work (owner: "good with me", Services in question): plumbing first,
 then Combat (it brings the cure fix back), then Achievements, then Pets, the
-own-buffs module, Services. ONE module per release so nothing breaks at once.
+own-buffs module, Services. The migration is now implemented as one coherent
+branch for focused verification; any release remains the owner's call.
 
-## Achievements plan (approved direction; four details open)
+## Achievements plan (implemented)
 
 Goals: off by default (the module ships disabled), zero cost and zero risk
 when off, rewards good manners rather than grinding, never noisy.
@@ -64,7 +65,7 @@ when off, rewards good manners rather than grinding, never noisy.
   on three days).
 - No grind: only real exchanges with other players count; daily caps per
   person; nothing rewards spamming buffs at nameplates.
-- Quiet: one Achievements window (or a tab of the ledger) with progress bars
+- Quiet: one tab of the ledger with progress bars
   and the next goal per theme; toasts OFF by default (choice: none, a small
   toast, or one chat line; no sound unless picked); titles only inside that
   window; nothing on the minimap or in the ledger itself.
@@ -133,7 +134,7 @@ when off, rewards good manners rather than grinding, never noisy.
 
 ## Player requests to fold in
 
-- **Which blessing to ask a paladin for (core, the Ask feature).** Two players
+- **Which blessing to ask a paladin for (core, the Ask feature, implemented).** Two players
   asked: Rhysicuss (Reddit: "change which buff is asked for ... Blessing of
   Kings instead of Wisdom") and broodwave (CurseForge, a Feral druid: "it
   defaults to ask Paladins for Blessing of Wisdom always, and stops after
@@ -147,7 +148,9 @@ when off, rewards good manners rather than grinding, never noisy.
   (a Feral or a tank wants Might or Kings, not Wisdom, as `Core.lua`'s
   talent reading already does for other choices); and, with several paladins
   in reach, asking a second paladin for a second blessing (in Classic each
-  paladin's blessing on you is separate). Off-by-default rules do not apply:
+  paladin's blessing on you is separate). Automatic can move to a different
+  missing blessing for the next reachable paladin after the first request.
+  Off-by-default rules do not apply:
   Automatic must keep today's behaviour for everyone who does not choose.
 - **The cure in a fight never shows on Forever** (user_8qf1t3rx4pgp80ez:
   "it shows cure poison out of a fight, but when I enter, nothing pops up";
@@ -176,7 +179,10 @@ when off, rewards good manners rather than grinding, never noisy.
   quieter: it reads like an error to players ("I'm getting an error"), and
   1.12.1 already turned the chat commentary off by default. Write scenarios
   for each with the shapes the check-ups show (`tools/read_report.py` on #53).
-- **#33, Will of the Forsaken never offered:** waiting on the player's game.
+- **#33, Will of the Forsaken never offered:** the module and focused scenarios
+  cover learned-spell, race, control and lost-of-control reads. The report still
+  lacks the player's client and `/manners debug`, so no player-specific root
+  cause can be claimed.
   Now part of Manners: Combat (off by default since 1.12.0).
 - **#21, No buff popup:** waiting on the player's client and log since 21
   November; likely stale, close if nothing comes.
@@ -187,13 +193,33 @@ when off, rewards good manners rather than grinding, never noisy.
   dungeons; not reproduced with defaults (`tests/scenarios/dungeon-party.lua`);
   asked for a `/manners debug` from a dungeon.
 
-## First steps for the next AI
+## Progress
 
-1. Ask the owner the four achievement details still open (listed under the
-   achievements plan). Settled 25 November: My Buffs, Services as its own
-   module, Pets enabled for hunters and warlocks.
-2. Build the plumbing (the public API, packaging of extra folders, toc
-   generation, tests loading modules, the Start here line) with no feature
-   moved yet; release it once CI is green.
-3. Move Combat (with the cure aura-display fix from `features-1.11.41`),
-   release; then the next module, one per release.
+- **Issue #44 is built:** the caster's Manners sends one spell-id whisper on
+  success; the receiver uses it first, else one capable player in sight and no
+  ambiguous class; the chat hint is calm, verbose-only and once a session.
+- **Plumbing is built:** `MannersAPI`, profile callbacks, dynamic options
+  extensions and pages, bounded ledger copies, typed service-buff
+  registration, a module-aware toc generator and core-without-module tests.
+- **Manners: Combat is built:** disabled, with five generated tocs and the
+  secure fight buttons.
+- **Manners: Achievements is built:** disabled, with its own saved data, four
+  themes, 10/100/1000 tiers, hidden moments, daily per-person caps and a
+  first-enable seed from the ledger's last 200 rows.
+- **Manners: Pets is built:** enabled by default; another class gets no pet
+  frame, event or page, and a warlock is deliberately inert.
+- **Manners: My Buffs is built:** disabled; own-buff behaviour, custom spells,
+  companion pets and the supplies button live in the module while saved keys
+  stay where they were.
+- **Manners: Services is built:** disabled, with its own page and per-service
+  controls. Exact client data supports mage refreshments, portals and Slow
+  Fall, priest Levitate and shaman Water Walking on all five clients; warlock
+  healthstones, summons and Soulstones on all five, with Soulwell on TBC,
+  Mists and retail; Fire Shield only on Forever, Classic Era and TBC. The
+  service registry, lazy event frames, item-usability gates and the exact-build
+  `tools/audit_services.py` check hold these boundaries.
+
+## Next
+
+Run the focused scenarios, quick/anchor checks and review the complete
+worktree. No release, push or commit is part of this migration.

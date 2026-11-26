@@ -36,7 +36,7 @@ mutate("Prompt/Press.lua",
        "ownskip-long: a right-click on another person takes the minutes",
        expect="ownskip-long: a right-click on another person keeps the seconds", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tns.SkipOwn(current.name, current.buff.key, ns.OwnSkipSeconds())\n",
        "\tns.MarkAttempted(current.name, current.buff.key, ns.SkipSeconds())\n",
        "ownskip-long: the consumables button keeps the seconds",

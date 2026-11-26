@@ -77,7 +77,7 @@ function ns.UnnamedBuffHint(unseen)
 	if unnamedSaid then return false end
 	local db = ns.db
 	if not (db and db.profile and db.char) then return false end
-	if InCombatLockdown() or db.profile.silentChat == true then return false end
+	if InCombatLockdown() or db.profile.silentChat == true or db.profile.verbose ~= true then return false end
 	if not ns.FriendlyPlatesOff() then return false end
 	local hints = db.char.hints
 	local told = type(hints) == "table" and type(hints.unnamed) == "number" and hints.unnamed or 0
@@ -109,41 +109,30 @@ function ns.UnnamedBuffHint(unseen)
 	return true
 end
 
--- The third: the friendly nameplates are on, a class buff from another player
--- landed on you, the game named nobody, and the casts Manners saw at that moment
--- (Favours.lua, the cast watch) named nobody either. Said once a session, on three
--- sessions a character at most (`hints.unmatched` counts them), out of a fight,
--- and never for a caster on your ignore list. It says what happened and where the
--- full check-up keeps the detail, never that nothing could be done.
-local UNMATCHED_SESSIONS = 3
+-- The third: the game and every certain Manners signal left a buff's caster
+-- unnamed. Said once a session, only while chat commentary is on, in words that
+-- describe the limit without presenting it as an error.
 local unmatchedSaid = false
 
-function ns.UnmatchedBuffHint(why)
+local function CandidateAlreadyOffered(seen)
+	local prompt = ns.Prompt
+	if not (prompt and type(prompt.Showing) == "function") then return false end
+	local ok, showing = pcall(prompt.Showing, prompt)
+	if not (ok and type(showing) == "table" and type(showing.name) == "string") then return false end
+	for _, candidate in pairs(type(seen) == "table" and seen.candidates or {}) do
+		if candidate.name == showing.name and (candidate.inGroup or candidate.sameParty) then return true end
+	end
+	return false
+end
+
+function ns.UnmatchedBuffHint(_, seen)
 	if unmatchedSaid then return false end
 	local db = ns.db
 	if not (db and db.profile and db.char) then return false end
-	if InCombatLockdown() or db.profile.silentChat == true or db.profile.enabled == false then return false end
-	local _, v = ns.FriendlyPlatesCVar()
-	if not (v == "1" or v == 1 or v == true) then return false end
-	if why == "ignored" then return false end
-	local hints = db.char.hints
-	local told = type(hints) == "table" and type(hints.unmatched) == "number" and hints.unmatched or 0
+	if InCombatLockdown() or db.profile.silentChat == true or db.profile.enabled == false
+		or db.profile.verbose ~= true or CandidateAlreadyOffered(seen) then return false end
 	unmatchedSaid = true
-	if told >= UNMATCHED_SESSIONS then return false end
-	if type(hints) ~= "table" then
-		hints = {}
-		db.char.hints = hints
-	end
-	hints.unmatched = told + 1
-	local check = "|cffffd100" .. L["Run a full check-up"] .. "|r"
-	local tab = "|cffffd100" .. ns.TabName("diagnostics.fullReport") .. "|r"
-	if why == "several" then
-		ns.addon:Print(L["Somebody just put a buff on you, but the game did not say who, and more than one player in sight cast it at that moment, so Manners did not guess whom to buff back. %s on %s keeps it under What happened lately."]:format(check, tab))
-	elseif why ~= nil and why ~= "none" and why ~= "else" then
-		ns.addon:Print(L["Somebody just put a buff on you, but the game did not say who. Manners saw a cast at that moment, but could not be sure whose buff it was, so there is nobody to buff back this time. %s on %s keeps it under What happened lately."]:format(check, tab))
-	else
-		ns.addon:Print(L["Somebody just put a buff on you, but the game did not say who, and Manners saw no player in sight cast it on you, so there is nobody to buff back this time. It sees the casts of people on a nameplate, your target, your focus, your mouseover and your group. %s on %s keeps it under What happened lately."]:format(check, tab))
-	end
+	ns.addon:Print(L["Manners could not tell who buffed you, so there is nobody to return it to."])
 	return true
 end
 

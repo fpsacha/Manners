@@ -402,8 +402,10 @@ do
 				end
 			end
 		end
-		-- A courtesy (Courtesy.lua: water, a portal, a healthstone, a summon) is named by keys of its own, and judged below as a buff is.
-		if ns.Courtesy then ns.Courtesy.Named(words, lowered, found, covered, strict, Mark, Words) end
+		-- A courtesy (Courtesy.lua: a service) is named by keys of its own, and judged below as a buff is.
+		if ns.Courtesy and ns.Courtesy.Active and ns.Courtesy.Active() then
+			ns.Courtesy.Named(words, lowered, found, covered, strict, Mark, Words)
+		end
 		-- A looser word standing only inside another buff's whole name names
 		-- that one, not its own: "beacon of faith pls" is no ask for Beacon of
 		-- Light.
@@ -502,12 +504,22 @@ do
 		end
 		local keys = Asks(text, channel)
 		if not keys then return end
-		-- In a fight "int pls" is an interrupt, so only a whisper counts, and
-		-- it is held until the fight is over.
+		-- A buff in a fight is held only from a whisper. A service can instead
+		-- choose to hold the request or let the fighting message go.
 		local fighting = InCombatLockdown() and true or nil
-		if fighting and channel ~= "WHISPER" then
-			ns.askScan.fight = ns.askScan.fight + 1
-			return
+		if fighting then
+			local filter = ns.Courtesy and ns.Courtesy.FilterFight
+			local filtered
+			if type(filter) == "function" then
+				filtered = filter(keys, channel)
+			elseif channel == "WHISPER" then
+				filtered = keys
+			end
+			if not filtered then
+				ns.askScan.fight = ns.askScan.fight + 1
+				return
+			end
+			keys = filtered
 		end
 
 		local now = GetTime()
@@ -664,6 +676,10 @@ do
 		local lines = {}
 		if not (db and db.sources.asked) then
 			lines[1] = L["not listening for requests -- %s is switched off."]:format("|cffffd100" .. L["People who ask me in chat"] .. "|r")
+			-- A mage's target refreshment needs no chat channel.
+			if ns.Courtesy and db and db.sources.courtesyTarget == true then
+				ns.Guard("courtesy lines", ns.Courtesy.Lines, lines)
+			end
 			return lines
 		end
 		local now = GetTime()

@@ -28,7 +28,7 @@ mutate("Buffs.lua",
        "detectinvis: none on Burning Crusade",
        expect="detectinvis: tbc: switched on and none up, cast on yourself", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_detectinvis\", indent = true },\n",
        "",
        "detectinvis: the switch is not placed on the page",

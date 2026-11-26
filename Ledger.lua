@@ -962,6 +962,32 @@ function Ledger.Entries(filter)
 	return out
 end
 
+-- A bounded copy for optional modules. It deliberately omits the live store,
+-- position and totals, and copies every nested field a consumer is allowed to
+-- inspect so a module cannot mutate the ledger by changing a result.
+function Ledger.RecentForModules(limit)
+	local s = Store()
+	limit = math.max(0, math.min(200, math.floor(tonumber(limit) or 200)))
+	local out = {}
+	if not s then return out end
+	local first = math.max(1, #s.entries - limit + 1)
+	for i = #s.entries, first, -1 do
+		local source = s.entries[i]
+		local row = {
+			kind = source.kind, name = source.name, class = source.class,
+			at = source.at, doneAt = source.doneAt, spell = source.spell,
+			state = source.state, why = source.why, to = source.to,
+			asked = source.asked == true or nil,
+		}
+		row.spells = {}
+		for j, spell in ipairs(source.spells or {}) do row.spells[j] = spell end
+		row.times = source.times
+		row.covered = source.covered
+		out[#out + 1] = row
+	end
+	return out
+end
+
 -- Why nothing new can reach the list now, or nil: "off" (addon switched off),
 -- "nothing" (nothing to cast), "owedoff" (favours not watched for). The same
 -- gates NoteFavour and the prompt pass, so the window never promises a row
@@ -1500,8 +1526,13 @@ local function Paint(row, e, now)
 	row:Show()
 end
 
+local function ModuleTab(key)
+	local api = _G.MannersAPI
+	return api and type(api.LedgerTabs) == "function" and api:LedgerTabs()[key] or nil
+end
+
 local function SetFilter(key)
-	filter = FILTERS[key] and key or "all"
+	filter = (FILTERS[key] or ModuleTab(key)) and key or "all"
 	local s = Store()
 	if s then s.filter = filter end
 	-- A different tab has a different entry on top, and that is not something
@@ -1561,6 +1592,27 @@ function Render()
 	window.subline:SetText(Subline(sum))
 	for _, stat in ipairs(window.stats) do
 		stat.value:SetText(tostring(sum.totals[stat.key] or 0))
+	end
+
+	local module = ModuleTab(filter)
+	if module then
+		for i = 1, ROWS do rows[i]:Hide() end
+		window.empty:Hide()
+		window.emptyIcon:Hide()
+		window.clear:Hide()
+		window.track:Hide()
+		window.thumb:Hide()
+		window.showing:Hide()
+		if not window.modulePanel then
+			window.modulePanel = CreateFrame("Frame", nil, window)
+		end
+		window.modulePanel:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, LIST_TOP)
+		window.modulePanel:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -PAD, FOOTER + 8)
+		window.modulePanel:Show()
+		ns.Guard("ledger module " .. module.id, module.paint, module, window.modulePanel)
+		return
+	elseif window.modulePanel then
+		window.modulePanel:Hide()
 	end
 
 	local maxOffset = math.max(0, #list - ROWS)
@@ -1730,6 +1782,26 @@ local function BuildTabs()
 		slack = slack + spare[i]
 		window.tabs[i] = tab
 	end
+	local api = _G.MannersAPI
+	local moduleTabs = api and type(api.LedgerTabs) == "function" and api:LedgerTabs() or {}
+	local moduleOrder = {}
+	for _, def in pairs(moduleTabs) do moduleOrder[#moduleOrder + 1] = def end
+	table.sort(moduleOrder, function(a, b) return a.id < b.id end)
+	for _, def in ipairs(moduleOrder) do
+		local i = #window.tabs + 1
+		local tab = FlatButton(window, def.label, 80, TAB_HEIGHT)
+		tab.key = def.id
+		tab.underline = Solid(tab, "BORDER", 2)
+		tab.underline:SetPoint("BOTTOMLEFT")
+		tab.underline:SetPoint("BOTTOMRIGHT")
+		tab.underline:SetHeight(2)
+		tab:SetScript("OnClick", TabClicked)
+		widths[i] = FitWidth(tab.label, { def.label }, 70, 160)
+		total = total + widths[i]
+		spare[i] = math.max(0, widths[i] - (math.ceil(TextWidth(tab.label)) + 8))
+		slack = slack + spare[i]
+		window.tabs[i] = tab
+	end
 	local room = WIDTH - 2 * PAD - gap * (#widths - 1)
 	local over = total - room
 	if over > 0 and slack >= over then
@@ -1884,7 +1956,7 @@ end
 -- `tab`, when given, is the tab it opens on.
 function Ledger.Show(tab)
 	if not window then Build() end
-	if type(tab) == "string" and FILTERS[tab] then SetFilter(tab) end
+	if type(tab) == "string" and (FILTERS[tab] or ModuleTab(tab)) then SetFilter(tab) end
 	local c = Accent()
 	window.accent:SetVertexColor(c[1], c[2], c[3], 0.9)
 	window.thumb:SetVertexColor(c[1], c[2], c[3], 0.8)

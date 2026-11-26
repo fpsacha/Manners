@@ -544,6 +544,9 @@ do
 	function ns.HeardAddonMessage(prefix, text, channel, sender)
 		-- Another Manners user's hello to the group (Share.lua), which is its to read.
 		if ns.plain(prefix) == PREFIX and ns.ShareHeard and ns.ShareHeard(text, channel, sender) then return end
+		-- A caster's Manners names the receiver of one buff with the sender's name.
+		if ns.plain(prefix) == PREFIX and ns.BuffClaimHeard
+			and ns.BuffClaimHeard(text, channel, sender) then return end
 		if ns.plain(prefix) ~= PREFIX or ns.plain(text) ~= WORD then return end
 		if (ns.Flavour and ns.Flavour.flavour) ~= "camelot" or not ns.IsPlayerName(AUTHOR) then return end
 		local who = ns.plain(sender)
@@ -768,6 +771,15 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		landed = not unheard,
 		group = pending.group, members = members, givenAs = givenAs })
 	ns.pendingClick = nil
+end
+
+function ns.NoteModulePetCast(spellID, castGUID)
+	local buff = type(spellID) == "number" and ns.BUFF_BY_ID[spellID] or nil
+	if buff and buff.pet then SettlePendingClick(nil, spellID, castGUID) end
+end
+
+function ns.PetCastLanded(unit, castGUID, spellID)
+	if unit == "pet" then ns.NoteModulePetCast(spellID, castGUID) end
 end
 
 -- A refusal arriving after the settle let the record go: SENT is the client
@@ -1045,6 +1057,42 @@ end
 -- Who each class-buff cast was sent at, by cast, for UNIT_SPELLCAST_SUCCEEDED:
 -- a cast on a team-mate says nothing of your own aura. Wiped past 30 entries.
 local sentTarget, sentCount = {}, 0
+local buffClaimSecond, buffClaimCount = nil, 0
+local BUFF_CLAIM_LIMIT = 8
+
+-- Only a player's own successful cast can send this certain signal. Addon
+-- messaging is quiet while the client says chat is restricted, and an encounter
+-- cannot make it spend the client's small burst allowance.
+local function SendBuffClaim(to, id)
+	local db = addon.db and addon.db.profile
+	if not (db and db.enabled) or InCombatLockdown() then return end
+	if type(to) ~= "string" or to == "" or ns.IsPlayerName(to) then return end
+	local chat = _G.C_ChatInfo
+	if type(chat) ~= "table" or type(chat.SendAddonMessage) ~= "function" then return end
+	if type(chat.InChatMessagingLockdown) == "function" then
+		local ok, held = pcall(chat.InChatMessagingLockdown)
+		if not ok or plain(held) ~= false then return end
+	end
+	local actions, enum = _G.C_RestrictedActions, _G.Enum
+	local kind = enum and enum.AddOnRestrictionType and enum.AddOnRestrictionType.Chat
+	local idle = enum and enum.AddOnRestrictionState and enum.AddOnRestrictionState.Inactive
+	if kind ~= nil and idle ~= nil and actions
+		and type(actions.GetAddOnRestrictionState) == "function" then
+		local ok, state = pcall(actions.GetAddOnRestrictionState, kind)
+		if not ok or plain(state) ~= idle then return end
+	end
+	local second = math.floor(GetTime())
+	if second ~= buffClaimSecond then
+		buffClaimSecond, buffClaimCount = second, 0
+	end
+	if buffClaimCount >= BUFF_CLAIM_LIMIT then return end
+	buffClaimCount = buffClaimCount + 1
+	local ok, result = pcall(chat.SendAddonMessage, "Manners", "B1:" .. tostring(id), "WHISPER", to)
+	result = ok and plain(result) or nil
+	if not (result == nil or result == true or result == 0) then
+		ns.Trail("share", "a buff claim could not be sent: " .. tostring(result))
+	end
+end
 
 function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 	if unit ~= "player" then return end
@@ -1120,7 +1168,10 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 		if own and own.family then ns.NoteCastSinceDeath("own:" .. own.family.key) end
 		local buff = ns.BUFF_BY_ID[id]
 		-- Only a cast that reached you: one on somebody else leaves your own reading as it was.
-		local to = sentTarget[plain(castGUID)]
+		local guid = plain(castGUID)
+		local to = sentTarget[guid]
+		sentTarget[guid] = nil
+		if buff then SendBuffClaim(to, id) end
 		-- A group form reaches you, but one that goes by class only on your own class.
 		local group = buff and IsGroupId(buff, id)
 		if group and ns.GROUP_BY_CLASS[ns.PlayerClass()] == true then group = ClassReachesYou(to) end

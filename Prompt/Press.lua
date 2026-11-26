@@ -512,6 +512,8 @@ local function OnPostClick(self, mouseButton, down)
 			-- that would put them straight back on the prompt.
 			ns.BlockPerson(victim, own and ns.OwnSkipSeconds() or ns.SkipSeconds())
 		end
+		-- A target refreshment skipped on purpose waits its longer service rest.
+		if ns.Courtesy and ns.Courtesy.Skipped then ns.Courtesy.Skipped(victim) end
 		-- A group cast on the panel: the skip is of the whole party, or the
 		-- cast re-forms around the next of them on the next scan.
 		local group = S.current and S.current.name == victim and S.current.groupCast and S.current or nil

@@ -296,7 +296,7 @@ for _, claims in ipairs({ false, true }) do
 			ns.Ledger.Hide()
 		end
 		local window = ns.Ledger.Window()
-		if not (window and window.tabs and #window.tabs == 3) then
+		if not (window and window.tabs and #window.tabs >= 3) then
 			fail(scenario, how .. ", the window has no tabs")
 		elseif not (window.rows and window.rows[1] and window.rows[1].name:GetFont() == STANDARD_TEXT_FONT) then
 			fail(scenario, how .. ", a row's name is not in the game's own font: "

@@ -10,11 +10,11 @@
 -- (Burning Crusade, Mists) an elixir row has a fourth value, "battle" or
 -- "guardian": the slot its spell's own text names. The tool's docstring says
 -- what counts. Builds:
---   camelot  1.60.1.70790, 8 flasks, 59 elixirs, 24 scrolls
---   vanilla  1.15.9.70003, 10 flasks, 37 elixirs, 24 scrolls
---   tbc      2.5.6.69795, 26 flasks, 42 elixirs, 30 scrolls
---   mists    5.5.4.70032, 45 flasks, 81 elixirs, 54 scrolls
---   mainline 12.1.0.69933, 52 flasks, 0 elixirs, 0 scrolls
+--   camelot  1.60.1.71139, 8 flasks, 66 elixirs, 24 scrolls
+--   vanilla  1.15.9.70576, 10 flasks, 37 elixirs, 24 scrolls
+--   tbc      2.5.6.70577, 26 flasks, 42 elixirs, 30 scrolls
+--   mists    5.5.4.71089, 45 flasks, 81 elixirs, 54 scrolls
+--   mainline 12.1.5.70961, 52 flasks, 0 elixirs, 0 scrolls
 
 local _, ns = ...
 
@@ -90,6 +90,13 @@ ns.CONSUMABLES = {
 			{ 5997, 1, 673 },
 			{ 247754, 1, 1245244 },
 			{ 247755, 1, 1245249 },
+			{ 289082, 1, 1327736 },
+			{ 289083, 1, 1327737 },
+			{ 289084, 1, 1327738 },
+			{ 289086, 1, 1327751 },
+			{ 289087, 1, 1327753 },
+			{ 289321, 1, 1328032 },
+			{ 289334, 1, 1328127 },
 		},
 		scroll = {
 			agility = {

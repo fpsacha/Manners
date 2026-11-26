@@ -17,3 +17,24 @@ mutate("Core.lua",
        "tracking: known without the minimap list",
        expect="counts as known",
        script=S)
+
+mutate("Core.lua",
+       "\tForgetAllWorn(plain(UnitGUID(\"player\")))\n\tns.ForgetTrackingList()\n",
+       "\tForgetAllWorn(plain(UnitGUID(\"player\")))\n",
+       "tracking: death keeps the old minimap reading",
+       expect="tracking: dying and reviving reread Find Minerals immediately",
+       script=S)
+
+mutate("Core.lua",
+       "function addon:PLAYER_ALIVE()\n\tns.ForgetTrackingList()\n\tif ns.Prompt then ns.Prompt:Refresh() end\nend\n",
+       "function addon:PLAYER_ALIVE()\n\tif ns.Prompt then ns.Prompt:Refresh() end\nend\n",
+       "tracking: reviving keeps the old minimap reading",
+       expect="tracking: dying and reviving reread Find Minerals immediately",
+       script=S)
+
+mutate("Core.lua",
+       "function addon:PLAYER_UNGHOST()\n\tns.ForgetTrackingList()\n\tif ns.Prompt then ns.Prompt:Refresh() end\nend\n",
+       "function addon:PLAYER_UNGHOST()\n\tif ns.Prompt then ns.Prompt:Refresh() end\nend\n",
+       "tracking: unghosting keeps the old minimap reading",
+       expect="tracking: dying and reviving reread Find Minerals immediately",
+       script=S)

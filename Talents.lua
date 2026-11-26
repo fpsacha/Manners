@@ -7,7 +7,7 @@
 -- The warlock's marks are talents that favour fire or shadow. Read by
 -- Core.lua's Best, which counts the talents taken (Automatic: the school of a
 -- mage's scroll or a warlock's stone, the role an oil serves). Build:
---   camelot  1.60.1.70790
+--   camelot  1.60.1.71139
 
 local _, ns = ...
 

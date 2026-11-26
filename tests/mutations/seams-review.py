@@ -34,23 +34,28 @@ mutate("Options/Shared.lua",
        expect=PROMPT, script=S)
 
 # The asker is whoever a token names, dead or not.
-mutate("Courtesy.lua",
-       "\t\tif plain(UnitIsDeadOrGhost(unit)) == true or plain(UnitIsConnected(unit)) == false\n"
-       "\t\t\tor plain(UnitCanAssist(\"player\", unit)) == false then return end\n",
+mutate("Context.lua",
+       "\tif dead == true then\n"
+       "\t\treturn RejectTarget(kind, unit, \"dead\")\n"
+       "\tend\n",
        "",
        "seams-review: a courtesy offered to the dead and the offline",
        expect=DEAD, script=S)
 
 # Offline alone is let through.
-mutate("Courtesy.lua",
-       "\t\tif plain(UnitIsDeadOrGhost(unit)) == true or plain(UnitIsConnected(unit)) == false\n",
-       "\t\tif plain(UnitIsDeadOrGhost(unit)) == true\n",
+mutate("Context.lua",
+       "\tif connected == false then\n"
+       "\t\treturn RejectTarget(kind, unit, \"offline\")\n"
+       "\tend\n",
+       "\tif false then\n"
+       "\t\treturn RejectTarget(kind, unit, \"offline\")\n"
+       "\tend\n",
        "seams-review: a courtesy offered to somebody offline",
        expect=DEAD, script=S)
 
 # A cure learned and a switch on walk the group, a fight or not.
 mutate("Queue.lua",
-       "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CureScanned() then\n",
+       "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not curesScanned then\n",
        "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CuresWanted(db) then\n",
        "seams-review: a class with a cure alone walks through a fight",
        expect=FIGHT, script=S)

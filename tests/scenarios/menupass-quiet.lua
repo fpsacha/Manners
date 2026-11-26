@@ -81,7 +81,7 @@ do
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do sidebar[#sidebar + 1] = id end
 		end
-		if not table.concat(sidebar, " "):find("when self pet quiet fight click", 1, true) then
+		if not table.concat(sidebar, " "):find("when click quiet fight appearance modules self", 1, true) then
 			fail(scenario, "the sidebar is " .. table.concat(sidebar, " "))
 		end
 	end)

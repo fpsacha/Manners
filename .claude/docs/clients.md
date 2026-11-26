@@ -289,7 +289,7 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   somebody; five flags now mark what else it can be, and every file that
   handles a press asks them before treating it as a buff: `entry.res`
   (Resurrect.lua: a dead member of the group, priority -1, ahead of your
-  target), `entry.cure` (Cures.lua: the kind removed, in the person's one
+  target), `entry.cure` (`Modules/Combat/Cures.lua`: the kind removed, in the person's one
   place in the queue at 1.25), `entry.courtesy` (Courtesy.lua: a plan with its
   `stage`, conjure or trade, under the reason "asked"), `entry.ask` (Ask.lua:
   last of everything at 9, a spoken line and no cast) and `entry.pet` with

@@ -169,8 +169,9 @@ local function BugReport()
 	-- Where there is no log, the casts other players made are the other witness.
 	if ns.castWatch and ns.castWatch.armed then
 		local cast = ns.castWatch
-		lines[#lines + 1] = ("cast watch: %s seen, %s named, %s late, %s several, %s none"):format(
-			tostring(cast.seen), tostring(cast.named), tostring(cast.late), tostring(cast.several), tostring(cast.none))
+		lines[#lines + 1] = ("cast watch: %s seen, %s named, %s late, %s several, %s none, %s messages, %s only possible"):format(
+			tostring(cast.seen), tostring(cast.named), tostring(cast.late), tostring(cast.several), tostring(cast.none),
+			tostring(cast.messages), tostring(cast.possible))
 	end
 
 	if #ns.errors == 0 then
@@ -395,7 +396,8 @@ function ns.FullReport(opts)
 	pcall(function() Heard(ns.BeastLines(GetTime())) end)
 	pcall(function() Heard(ns.RefusalLines(GetTime())) end)
 	pcall(function() Heard(ns.PvPLines()) end)
-	pcall(function() Heard(ns.CureLines()) end)
+	pcall(function() Heard(ns.CureLines and ns.CureLines() or {}) end)
+	pcall(function() Heard(ns.ContextRejectionLines and ns.ContextRejectionLines() or {}) end)
 	pcall(function() Heard(ns.ShareReport()) end)
 	for name in pairs(ns.owed or {}) do Alias(name) end
 	if ns.lastFavour then Alias(ns.lastFavour.name) end

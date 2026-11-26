@@ -1,11 +1,13 @@
--- Naming who buffed you from the casts seen at that moment (GitHub issue 26).
+-- Naming who buffed you without trusting a hidden caster field (GitHub issues 26 and 44).
 -- On WoW Forever, with no combat log, a stranger's buff on you can arrive with
 -- sourceUnit nil or withheld even with the friendly nameplates on, and nothing
 -- was owed. Favours.lua's cast watch keeps the class-buff casts other players
 -- make in sight (UNIT_SPELLCAST_SUCCEEDED, filtered by one table lookup) and a
 -- landing that names nobody asks it who cast that buff in the second either
--- side: exactly one player, or nobody is named. Every landing waits for the
--- window to close and is judged over every cast in it, which prefers the cast
+-- side: exactly one player, or nobody is named. A Manners on the caster's client
+-- can say whom its successful buff reached with certainty; otherwise a landing
+-- with no cast is named only by one capable player in sight. Every landing waits
+-- for its window to close and is judged over every cast in it, which prefers the cast
 -- aimed at you; one with no target names them only while the friendly
 -- nameplates are on and the caster plainly does not freshly wear the buff
 -- themselves. A cast whose target the client withholds, and your own casts of
@@ -46,7 +48,8 @@ local aimed = {}
 -- ignored (set of tokens on your ignore list), npc (set of tokens that are no
 -- player), fromPlayer (the aura says it is a player's), thank (the emote on),
 -- unseen (Thank them even when I can't see who it was), ask (Ask me before
--- thanking), delay (the pause before a thank), flavour, enabled (false to switch Manners off).
+-- thanking), delay (the pause before a thank), unitClass (the class of the
+-- other players), flavour, enabled (false to switch Manners off).
 local function with(scenario, opts, body)
 	Mock.reset()
 	if opts.flavour then Mock.setFlavour(opts.flavour) end
@@ -58,6 +61,7 @@ local function with(scenario, opts, body)
 	table.sort(plates, function(a, b) return tonumber(a:match("%d+")) < tonumber(b:match("%d+")) end)
 	Mock.nameplates = plates
 	Mock.class = opts.class or "PRIEST"
+	Mock.unitClass = opts.unitClass or "PRIEST"
 	if Mock.class == "DRUID" then Mock.knownSpells = { [1126] = true, [5232] = true, [8907] = true, [9885] = true } end
 	if Mock.class == "PRIEST" then
 		Mock.knownSpells = { [10938] = true, [10937] = true, [2791] = true, [1245] = true,
@@ -232,12 +236,270 @@ do
 		local text = land(ns, nil)
 		Mock.runTimers(2)
 		if next(ns.owed) then fail(scenario, "somebody was owed with two casters: " .. tostring(next(ns.owed))) end
-		if text:find("buffed you", 1, true) or said():find("buffed you", 1, true) then
+		if text:find("Anna Aim", 1, true) or text:find("Bea Bold", 1, true)
+			or said():find("Anna Aim", 1, true) or said():find("Bea Bold", 1, true) then
 			fail(scenario, "a line named somebody with two casters")
 		end
 		if not debugText(ns):find("more than one player", 1, true) then
 			fail(scenario, "/manners debug does not say that two players cast it")
 		end
+	end)
+end
+
+-- ---------------------------------------------------- one caster certain by Manners
+do
+	local scenario = "favour-caster: a Manners message names the caster before the aura"
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" } }
+	with(scenario, { names = names }, function(ns)
+		ns.addon:CHAT_MSG_ADDON(nil, "Manners", "B1:" .. tostring(FORTITUDE), "WHISPER", "Anna Aim")
+		land(ns, nil)
+		Mock.runTimers(2)
+		if not owedBy(ns, "Anna Aim") then fail(scenario, "the caster's message did not name Anna: " .. said()) end
+		if owedBy(ns, "Bea Bold") then fail(scenario, "the other possible caster was named") end
+		if ns.castWatch.messages ~= 1 then fail(scenario, "the certain message was not counted") end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a Manners message names a waiting aura by the spell family"
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" } }
+	with(scenario, { names = names }, function(ns)
+		land(ns, nil)
+		Mock.advance(0.2)
+		ns.addon:CHAT_MSG_ADDON(nil, "Manners", "B1:1243", "WHISPER", "Anna Aim")
+		Mock.runTimers(2)
+		if not owedBy(ns, "Anna Aim") then fail(scenario, "the rank's family did not name Anna: " .. said()) end
+		if ns.lastFavour and ns.lastFavour.fate ~= "owed" then
+			fail(scenario, "the waiting landing was filed as " .. tostring(ns.lastFavour.fate))
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a Manners message is not taken from another channel"
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" } }
+	with(scenario, { names = names }, function(ns)
+		land(ns, nil)
+		ns.addon:CHAT_MSG_ADDON(nil, "Manners", "B1:" .. tostring(FORTITUDE), "RAID", "Anna Aim")
+		Mock.runTimers(2)
+		if next(ns.owed) then fail(scenario, "a group message named somebody: " .. tostring(next(ns.owed))) end
+	end)
+end
+
+do
+	local scenario = "favour-caster: an ignored Manners claim cannot fall through to another caster"
+	local names = { nameplate1 = { "Bea", "Bold" } }
+	with(scenario, {
+		names = names, ignored = { ["Anna Aim"] = true }, thank = true, unseen = true,
+	}, function(ns)
+		ns.addon:CHAT_MSG_ADDON(nil, "Manners", "B1:" .. tostring(FORTITUDE), "WHISPER", "Anna Aim")
+		land(ns, nil)
+		Mock.runTimers(2)
+		if next(ns.owed) then fail(scenario, "the ignored claim named the other visible caster") end
+		if #emotes ~= 0 then fail(scenario, "the ignored claim was thanked to nobody") end
+		if not (ns.lastFavour and ns.lastFavour.fate == "ignored") then
+			fail(scenario, "the ignored claim fell through as " .. tostring(ns.lastFavour and ns.lastFavour.fate))
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: conflicting Manners claims cannot fall through to a visible caster"
+	local names = { nameplate1 = { "Cora", "Calm" } }
+	with(scenario, { names = names }, function(ns)
+		ns.addon:CHAT_MSG_ADDON(nil, "Manners", "B1:" .. tostring(FORTITUDE), "WHISPER", "Anna Aim")
+		ns.addon:CHAT_MSG_ADDON(nil, "Manners", "B1:" .. tostring(FORTITUDE), "WHISPER", "Bea Bold")
+		land(ns, nil)
+		Mock.runTimers(2)
+		if next(ns.owed) then fail(scenario, "conflicting claims named the visible caster") end
+		if not (ns.lastFavour and ns.lastFavour.why == "several") then
+			fail(scenario, "conflicting claims were filed as " .. tostring(ns.lastFavour and ns.lastFavour.why))
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a successful cast whispers one certain message"
+	with(scenario, {}, function(ns)
+		local sent = {}
+		rawset(_G, "C_ChatInfo", {
+			SendAddonMessage = function(...) sent[#sent + 1] = { ... } end,
+			InChatMessagingLockdown = function() return false end,
+		})
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna Aim", "Cast-one", FORTITUDE)
+		ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", "Cast-one", FORTITUDE)
+		ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", "Cast-one", FORTITUDE)
+		rawset(_G, "C_ChatInfo", nil)
+		if #sent ~= 1 then fail(scenario, ("%d messages were sent for one cast"):format(#sent)) return end
+		if sent[1][1] ~= "Manners" or sent[1][2] ~= "B1:" .. tostring(FORTITUDE)
+			or sent[1][3] ~= "WHISPER" or sent[1][4] ~= "Anna Aim" then
+			fail(scenario, "the message did not name the successful cast")
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a successful cast stays quiet while chat is restricted"
+	with(scenario, {}, function(ns)
+		local sent = 0
+		rawset(_G, "C_ChatInfo", {
+			SendAddonMessage = function() sent = sent + 1 end,
+			InChatMessagingLockdown = function() return true end,
+		})
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna Aim", "Cast-quiet", FORTITUDE)
+		ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", "Cast-quiet", FORTITUDE)
+		rawset(_G, "C_ChatInfo", nil)
+		if sent ~= 0 then fail(scenario, "a message was sent while chat was restricted") end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a successful cast stays quiet in a fight"
+	with(scenario, {}, function(ns)
+		local sent = 0
+		rawset(_G, "C_ChatInfo", { SendAddonMessage = function() sent = sent + 1 end })
+		Mock.inCombat = true
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna Aim", "Cast-fight", FORTITUDE)
+		ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", "Cast-fight", FORTITUDE)
+		Mock.inCombat = false
+		rawset(_G, "C_ChatInfo", nil)
+		if sent ~= 0 then fail(scenario, "a message was sent in a fight") end
+	end)
+end
+
+do
+	local scenario = "favour-caster: successful casts share an eight-message-per-second cap"
+	with(scenario, {}, function(ns)
+		local sent = 0
+		rawset(_G, "C_ChatInfo", { SendAddonMessage = function() sent = sent + 1 return 0 end })
+		for i = 1, 9 do
+			local guid = "Cast-cap-" .. i
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna Aim", guid, FORTITUDE)
+			ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", guid, FORTITUDE)
+		end
+		rawset(_G, "C_ChatInfo", nil)
+		if sent ~= 8 then fail(scenario, ("%d messages were sent, not eight"):format(sent)) end
+	end)
+end
+
+-- ----------------------------------------------- the only possible caster
+do
+	local scenario = "favour-caster: one player in sight able to cast the rank is named"
+	with(scenario, {}, function(ns)
+		land(ns, nil)
+		Mock.runTimers(2)
+		if not owedBy(ns, "Anna Aim") then
+			fail(scenario, "the only possible caster was not named (" .. tostring(ns.lastFavour and ns.lastFavour.why) .. "): " .. said())
+		end
+		if ns.castWatch.possible ~= 1 then fail(scenario, "the only-possible decision was not counted") end
+	end)
+end
+
+do
+	local scenario = "favour-caster: the only possible caster on the ignore list is not named"
+	with(scenario, { ignored = { nameplate1 = true } }, function(ns)
+		land(ns, nil)
+		Mock.runTimers(2)
+		if next(ns.owed) then fail(scenario, "an ignored possible caster was owed: " .. tostring(next(ns.owed))) end
+		if not (ns.lastFavour and ns.lastFavour.fate == "ignored") then
+			fail(scenario, "the ignored candidate was filed as " .. tostring(ns.lastFavour and ns.lastFavour.fate))
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: two players in sight able to cast the rank name nobody"
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" } }
+	with(scenario, { names = names }, function(ns)
+		land(ns, nil)
+		Mock.runTimers(2)
+		if next(ns.owed) then fail(scenario, "one of two possible casters was named: " .. tostring(next(ns.owed))) end
+		if ns.lastFavour.why ~= "severalPossible" then
+			fail(scenario, "the ambiguous candidates were filed as " .. tostring(ns.lastFavour.why))
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a withheld class of a player in sight names nobody"
+	with(scenario, {}, function(ns)
+		local realClass = UnitClass
+		rawset(_G, "UnitClass", function(unit)
+			local first = realClass(unit)
+			return first, unit == "nameplate1" and Mock.SECRET or select(2, realClass(unit))
+		end)
+		land(ns, nil)
+		Mock.runTimers(2)
+		rawset(_G, "UnitClass", realClass)
+		if next(ns.owed) then fail(scenario, "a player with a withheld class was guessed: " .. tostring(next(ns.owed))) end
+		if not (ns.lastFavour and ns.lastFavour.why == "unreadableCandidate") then
+			fail(scenario, "the withheld class was not recorded as uncertain: " .. tostring(ns.lastFavour and ns.lastFavour.why))
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a player below the landed rank's level is no candidate"
+	with(scenario, {}, function(ns)
+		local realLevel = UnitLevel
+		rawset(_G, "UnitLevel", function(unit) return unit == "nameplate1" and 1 or realLevel(unit) end)
+		land(ns, nil)
+		Mock.runTimers(2)
+		rawset(_G, "UnitLevel", realLevel)
+		if next(ns.owed) then fail(scenario, "a player too low for the rank was named: " .. tostring(next(ns.owed))) end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a withheld level of a possible caster is not guessed"
+	with(scenario, {}, function(ns)
+		local realLevel = UnitLevel
+		rawset(_G, "UnitLevel", function(unit) return unit == "nameplate1" and Mock.SECRET or realLevel(unit) end)
+		land(ns, nil)
+		Mock.runTimers(2)
+		rawset(_G, "UnitLevel", realLevel)
+		if next(ns.owed) then fail(scenario, "a player with a withheld level was named") end
+		if not (ns.lastFavour and ns.lastFavour.why == "unreadableCandidate") then
+			fail(scenario, "the withheld level was filed as " .. tostring(ns.lastFavour and ns.lastFavour.why))
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a player of a class without the landed buff is no candidate"
+	with(scenario, { unitClass = "WARRIOR" }, function(ns)
+		land(ns, nil)
+		Mock.runTimers(2)
+		if next(ns.owed) then fail(scenario, "a warrior was named for Fortitude: " .. tostring(next(ns.owed))) end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a dead possible caster is not named"
+	with(scenario, {}, function(ns)
+		local realDead = UnitIsDeadOrGhost
+		rawset(_G, "UnitIsDeadOrGhost", function(unit)
+			return unit == "nameplate1" and true or realDead(unit)
+		end)
+		land(ns, nil)
+		Mock.runTimers(2)
+		rawset(_G, "UnitIsDeadOrGhost", realDead)
+		if next(ns.owed) then fail(scenario, "a dead player was named: " .. tostring(next(ns.owed))) end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a disconnected possible caster is not named"
+	with(scenario, {}, function(ns)
+		local realConnected = UnitIsConnected
+		rawset(_G, "UnitIsConnected", function(unit)
+			if unit == "nameplate1" then return false end
+			return realConnected(unit)
+		end)
+		land(ns, nil)
+		Mock.runTimers(2)
+		rawset(_G, "UnitIsConnected", realConnected)
+		if next(ns.owed) then fail(scenario, "a disconnected player was named: " .. tostring(next(ns.owed))) end
 	end)
 end
 
@@ -269,7 +531,9 @@ end
 
 do
 	local scenario = "favour-caster: a cast outside the moment names nobody"
-	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" },
+		nameplate1target = { "Me", "Myself" } }
+	with(scenario, { names = names, aimed = AIMED }, function(ns)
 		land(ns, nil)
 		Mock.advance(1.5)
 		cast("nameplate1")
@@ -335,7 +599,9 @@ end
 
 do
 	local scenario = "favour-caster: a cast of another buff names nobody"
-	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" },
+		nameplate1target = { "Me", "Myself" } }
+	with(scenario, { names = names, aimed = AIMED }, function(ns)
 		cast("nameplate1", INTELLECT)
 		land(ns, nil, FORTITUDE)
 		Mock.runTimers(2)
@@ -386,7 +652,8 @@ do
 	-- her and name her again for a buff another player gave.
 	local scenario = "favour-caster: one cast under two tokens with a withheld guid is one caster"
 	local names = { nameplate1 = { "Anna", "Aim" }, target = { "Anna", "Aim" },
-		nameplate1target = { "Me", "Myself" }, targettarget = { "Me", "Myself" } }
+		nameplate2 = { "Bea", "Bold" }, nameplate1target = { "Me", "Myself" },
+		targettarget = { "Me", "Myself" } }
 	with(scenario, { names = names, aimed = { nameplate1target = "player", targettarget = "player" } }, function(ns)
 		local realGuid = _G.UnitGUID
 		rawset(_G, "UnitGUID", function(unit, ...)
@@ -425,9 +692,10 @@ do
 		land(ns, nil)
 		Mock.runTimers(2)
 		if next(ns.owed) then fail(scenario, "a self-cast was taken for a favour: " .. tostring(next(ns.owed))) end
-		-- A cast WAS seen, so neither the chat hint nor /manners debug may say that none was.
-		if said():find("saw no player in sight", 1, true) then fail(scenario, "the hint says no cast was seen: " .. said()) end
-		if not said():find("saw a cast at that moment", 1, true) then fail(scenario, "the hint does not say a cast was seen: " .. said()) end
+		-- A cast WAS seen; /manners debug keeps the distinction while chat stays calm.
+		if not said():find("Manners could not tell who buffed you", 1, true) then
+			fail(scenario, "the calm hint was not said: " .. said())
+		end
 		local text = debugText(ns)
 		if text:find("no player in sight was seen casting", 1, true) then fail(scenario, "/manners debug says no cast was seen") end
 		if not text:find("a cast was seen at that moment", 1, true) then fail(scenario, "/manners debug does not say a cast was seen: " .. text) end
@@ -681,26 +949,67 @@ end
 -- ---------------------------------------------------------------- the hint
 do
 	local scenario = "favour-caster: plates on: a buff with nobody to name says so once"
-	with(scenario, {}, function(ns)
+	with(scenario, { unitClass = "WARRIOR" }, function(ns)
 		land(ns, nil)
 		Mock.runTimers(2)
 		local first = said()
-		if not first:find("Somebody just put a buff on you", 1, true) then fail(scenario, "nothing was said when nobody could be named: " .. first) return end
+		if not first:find("Manners could not tell who buffed you", 1, true) then fail(scenario, "nothing calm was said when nobody could be named: " .. first) return end
 		Mock.printed = {}
 		land(ns, nil)
 		Mock.runTimers(2)
-		if said():find("Somebody just put a buff on you", 1, true) then fail(scenario, "the line was said a second time") end
+		if said():find("Manners could not tell who buffed you", 1, true) then fail(scenario, "the line was said a second time") end
 	end)
 end
 
 do
 	local scenario = "favour-caster: plates off: the new line stays quiet"
-	with(scenario, { plates = "0" }, function(ns)
+	with(scenario, { plates = "0", unitClass = "WARRIOR" }, function(ns)
 		land(ns, nil)
 		Mock.runTimers(2)
 		local text = said()
 		if text:find("Somebody just put a buff on you", 1, true) then fail(scenario, "the new line was said with the nameplates off: " .. text) end
 		if not text:find("the game would not say who", 1, true) then fail(scenario, "the old line was not said: " .. text) end
+	end)
+end
+
+do
+	local scenario = "favour-caster: the unnamed line is quiet when chat commentary is off"
+	with(scenario, { unitClass = "WARRIOR" }, function(ns)
+		ns.db.profile.verbose = false
+		land(ns, nil)
+		Mock.runTimers(2)
+		if said():find("Manners could not tell who buffed you", 1, true) then
+			fail(scenario, "the line was said with commentary off: " .. said())
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: the nameplates line is quiet when chat commentary is off"
+	with(scenario, { plates = "0", unitClass = "WARRIOR" }, function(ns)
+		ns.db.profile.verbose = false
+		land(ns, nil)
+		Mock.runTimers(2)
+		if said():find("the game would not say who", 1, true) then
+			fail(scenario, "the nameplates line was said with commentary off: " .. said())
+		end
+	end)
+end
+
+do
+	local scenario = "favour-caster: the unnamed line stays quiet when a group member is already offered"
+	with(scenario, {}, function(ns)
+		local showing = ns.Prompt.Showing
+		ns.Prompt.Showing = function()
+			return { name = "Anna Aim", inGroup = true }
+		end
+		ns.UnmatchedBuffHint(nil, {
+			candidates = { one = { name = "Anna Aim", inGroup = true } },
+		})
+		ns.Prompt.Showing = showing
+		if said():find("Manners could not tell who buffed you", 1, true) then
+			fail(scenario, "the line was said for somebody already offered: " .. said())
+		end
 	end)
 end
 
@@ -922,7 +1231,7 @@ end
 
 do
 	local scenario = "favour-caster: plates off: a landing nobody names says the nameplates line once its window closes"
-	with(scenario, { plates = "0" }, function(ns)
+	with(scenario, { plates = "0", unitClass = "WARRIOR" }, function(ns)
 		local text = land(ns, nil)
 		if text:find("the game would not say who", 1, true) then fail(scenario, "said before the window closed: " .. text) end
 		Mock.runTimers(2)
@@ -936,7 +1245,9 @@ do
 	-- it "several"), and the cast it would have taken names the next landing once
 	-- that one's window closes.
 	local scenario = "favour-caster: a full queue gives up on the oldest landing while its window is open"
-	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" },
+		nameplate1target = { "Me", "Myself" } }
+	with(scenario, { names = names, aimed = AIMED }, function(ns)
 		local anna = ns.UnitFullName("nameplate1")
 		cast("nameplate1")
 		for _ = 1, 8 do land(ns, nil) end
@@ -953,7 +1264,9 @@ end
 do
 	-- Once its window has closed, the oldest is judged as ever when the queue fills.
 	local scenario = "favour-caster: a full queue judges the oldest landing once its window has closed"
-	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" },
+		nameplate1target = { "Me", "Myself" } }
+	with(scenario, { names = names, aimed = AIMED }, function(ns)
 		local anna = ns.UnitFullName("nameplate1")
 		local realAfter = C_Timer.After
 		-- Timers that never fire, so only the full queue can decide.
@@ -991,7 +1304,8 @@ do
 	-- a player nobody saw, finds the other copy spent.
 	local scenario = "favour-caster: one cast under two tokens with every id withheld names one landing"
 	local names = { nameplate1 = { "Anna", "Aim" }, target = { "Anna", "Aim" },
-		nameplate1target = { "Me", "Myself" }, targettarget = { "Me", "Myself" } }
+		nameplate2 = { "Bea", "Bold" }, nameplate1target = { "Me", "Myself" },
+		targettarget = { "Me", "Myself" } }
 	with(scenario, { names = names, aimed = { nameplate1target = "player", targettarget = "player" } }, function(ns)
 		local realGuid = _G.UnitGUID
 		rawset(_G, "UnitGUID", function(unit, ...)

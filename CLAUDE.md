@@ -14,10 +14,11 @@ CurseForge 1705364, Wago `rNkgzlNa`) that returns buffs. It notices who buffed
 you, works out what you owe, and puts one secure button (the prompt) on screen;
 a press targets them by name, casts, and hands your target back. It also offers
 your group, people who ask in chat, and passers-by missing your buff, reminds
-you of your own self-buffs, keeps a favour ledger, and can say a line when it
+you of your own self-buffs when **Manners: My Buffs** is enabled, keeps a favour ledger, and can say a line when it
 casts (fixed sets or the "In character" set). Since 1.11.25 the same button
-also offers a resurrection, a cure, a courtesy somebody asked for and a polite
-ask for a buff you lack ("Entry kinds" in `.claude/docs/clients.md`). Addons
+also offers a resurrection, a cure and a polite ask for a buff you lack
+("Entry kinds" in `.claude/docs/clients.md`); courtesies are in
+**Manners: Services**. Addons
 cannot cast on their own: everything except the keypress is decided in Lua and
 parked on the button.
 
@@ -185,6 +186,7 @@ function, switch and test named. Change both together.
 Under `.claude/docs/`, each standing alone. Open the one your task touches.
 
 - `file-map.md`: what each file holds, adding a setting. Before adding or moving code.
+- `modules-api.md`: the narrow public surfaces optional folders may use.
 - `clients.md`: `Buffs.lua`'s fields and flags, each client's own ways, entry
   kinds. For anything one client does differently, or a new kind of entry.
 - `hard-rules.md`: the hard rules in full. Before touching `Prompt/`, a macro,

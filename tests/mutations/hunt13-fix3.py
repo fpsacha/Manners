@@ -90,7 +90,7 @@ mutate("Options/Advanced.lua",
 # Re-anchored: posPreset's pointer at Advanced is gone (the exact numbers are
 # a fold on Look), so the fault is now a rogue given the Look page itself.
 mutate("Options/Look.lua",
-       "\t\thidden = function()\n\t\t\treturn not HasPrompt() and ns.caps.breakFree == nil\n\t\t\t\tand not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())\n\t\tend,\n\t\targs = {\n",
+       "\t\thidden = function()\n\t\t\treturn not HasPrompt() and ns.caps.breakFree == nil\n\t\t\t\tand not (ns.MendPet and ns.MendPet.KnowsMend())\n\t\tend,\n\t\targs = {\n",
        "\t\targs = {\n",
        "hunt13-fix3: Look shown to a rogue",
        expect="a rogue has a Look page", script=S)

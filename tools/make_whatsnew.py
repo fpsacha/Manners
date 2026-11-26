@@ -72,6 +72,8 @@ def releases(text, limit=RELEASES):
     parts = re.split(r"(?m)^## (\S+)[ \t]*$", text)
     for i in range(1, len(parts) - 1, 2):
         version, block = parts[i], parts[i + 1]
+        if version.lower() == "unreleased":
+            continue
         sections, title, entry, date = [], None, None, None
         for line in block.splitlines():
             if title is None and date is None and DATE_LINE.match(line.strip()):

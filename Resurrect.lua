@@ -746,7 +746,8 @@ function Res.OnEvent(event, unit, second, third, fourth)
 		end
 		ns.TellLedger("Settled", pending.mass and pending.names[1] or pending.name, nil, {
 			buffKey = pending.mass and MASS_KEY or KEY, class = pending.class, inGroup = pending.inGroup,
-			reason = pending.reason, group = others and { spell = spell, members = others } or nil,
+			reason = pending.reason, res = true,
+			group = others and { spell = spell, members = others } or nil,
 		}, spell or (pending.mass and MASS or SINGLE).info.topRank)
 		Repaint()
 	else

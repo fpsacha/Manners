@@ -37,6 +37,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends fonts-noto-cjk fonts-dejavu-core
 
+      - name: Client builds and exact IDs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python tools/clients_watch.py --strict-builds
+          python tools/audit_services.py
+          python tools/audit_ids.py
+          python tools/make_consumables.py --check
+          python tools/make_talents.py --check
+          python tools/make_beastfoods.py --check
+
       # Three workers on the runner's four cores, as selftest.yml.
       - name: The whole release check
         run: python tools/check.py --release --jobs 3

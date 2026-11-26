@@ -42,11 +42,13 @@ if len(sys.argv) != 2 or not re.match(
 version = sys.argv[1]
 
 # --- the tocs ---------------------------------------------------------
-p = os.path.join(ROOT, maketocs.SOURCE)
-s = open(p, encoding="utf-8").read()
-s, n = re.subn(r"^## Version:.*$", "## Version: " + version, s, count=1, flags=re.M)
-assert n == 1, "no Version line in " + maketocs.SOURCE
-open(p, "w", encoding="utf-8", newline="\n").write(s)
+for source in [maketocs.SOURCE] + [path for path, _ in maketocs.MODULES]:
+    p = os.path.join(ROOT, source)
+    s = open(p, encoding="utf-8").read()
+    s, n = re.subn(r"^## Version:.*$", "## Version: " + version, s,
+                   count=1, flags=re.M)
+    assert n == 1, "no Version line in " + source
+    open(p, "w", encoding="utf-8", newline="\n").write(s)
 # And the generated ones that are copies of it. count=1 above is still right --
 # there is one Version line in the source -- but it stopped being the whole job
 # the day there was more than one toc, and a bump that reached the source and
@@ -101,5 +103,5 @@ if _news.returncode != 0:
     raise SystemExit("tools/make_whatsnew.py failed: WhatsNew.lua is not current with the changelog")
 
 print("version set to %s in all %d tocs, ns.BUILD and the changelog"
-      % (version, 1 + len(maketocs.FLAVOURS)))
+      % (version, (1 + len(maketocs.MODULES)) * (1 + len(maketocs.FLAVOURS))))
 print("verify with: python tests/validate.py")

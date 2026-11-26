@@ -5,7 +5,7 @@
 S = "runscenarios.py"
 
 # The pet's step of the scan no longer asks whether Manners is on or snoozed.
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif not db.enabled or ns.SnoozeLeft(now) then return end\n\tlocal family = Family()\n",
        "\tlocal family = Family()\n",
        "hunt3-seams: a pet is brought out while Manners is off or snoozed",
@@ -16,17 +16,17 @@ mutate("Companion.lua",
 # state: off, snoozed and unlocked each on its own.
 TRADE = "hunt3-seams: a trade the asker opens gets nothing while Manners is off, snoozed or unlocked"
 GATE = "\tif not (db and db.enabled) or ns.SnoozeLeft(now) or (db.prompt and db.prompt.locked == false) then return end\n"
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        GATE,
        "\tif not db or ns.SnoozeLeft(now) or (db.prompt and db.prompt.locked == false) then return end\n",
        "hunt3-seams: the water goes into the asker's trade with Manners switched off",
        expect=TRADE, script=S)
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        GATE,
        "\tif not (db and db.enabled) or (db.prompt and db.prompt.locked == false) then return end\n",
        "hunt3-seams: the water goes into the asker's trade while snoozed",
        expect=TRADE, script=S)
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        GATE,
        "\tif not (db and db.enabled) or ns.SnoozeLeft(now) then return end\n",
        "hunt3-seams: the water goes into the asker's trade with the prompt unlocked",
@@ -40,8 +40,9 @@ mutate("Commands.lua",
        "hunt3-seams: debug's short report ends before the scan's lines",
        expect=DEBUG, script=S)
 mutate("Commands.lua",
-       "\t\t\t\tfor _, line in ipairs(ns.CureLines()) do self:Print(\"  \" .. line) end\n\t\t\tend\n",
-       "\t\t\tend\n",
+       "\t\t\t\tfor _, line in ipairs(ns.PvPLines()) do self:Print(\"  \" .. line) end\n"
+       "\t\t\t\tfor _, line in ipairs(ns.CureLines and ns.CureLines() or {}) do self:Print(\"  \" .. line) end\n",
+       "\t\t\t\tfor _, line in ipairs(ns.PvPLines()) do self:Print(\"  \" .. line) end\n",
        "hunt3-seams: debug's short report leaves the cures out",
        expect=DEBUG, script=S)
 

@@ -7,6 +7,11 @@ their own licences.
 **A zip built from a clone has no libraries and the addon will not load.**
 Build through the workflow.
 
+When the build is copied locally, use `tools/install_package.py --zip` for a
+release archive or `--source` for a checkout. Both verify the six installed
+addon folders with SHA-256. Source mode preserves the installed `Manners/Libs`
+verbatim; zip mode refuses an archive with any declared library missing.
+
 ## Each release
 
 In this order. The tag goes last and on its own, because the moment it reaches

@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+### Highlights
+- **Optional modules.** Combat, Achievements, Pets, My Buffs and Services live
+  in separate addons in the same download. The core keeps its small,
+  default-on job, and disabled modules do no work.
+- **Ask for the blessing you need.** Under *Ask people for a buff I'm missing*,
+  *Blessing to ask a paladin for* chooses Automatic, Kings, Might, Wisdom or
+  Salvation where that client has it. Automatic can ask a second reachable
+  paladin for another missing blessing.
+
+### Changes
+- **Safer decisions.** Buffs, cures, your own buffs and requested Services use
+  one secret-safe eligibility result, with the last twenty rejections available
+  in `/manners debug`.
+- **Requested Services.** Mage refreshments and portals, Slow Fall, priest
+  Levitate, shaman Water Walking, warlock stones, summons and Soulstones are
+  independently controlled and class/client-gated.
+
+### Fixes
+- **Unknown buff casters.** Manners can receive a caster claim from another
+  Manners user and, only with one possible caster in sight, safely name that
+  player. Its quieter fallback is shown once and only with chat commentary on.
+- **Death and resurrection.** Find Minerals and other tracking effects are
+  remembered again after a death and resurrection instead of being left stale.
+- **Paladin cures.** Poison and disease cures on WoW Forever now keep the
+  visible, secure in-fight path and prefer Purify when Cleanse would remove a
+  never-removed debuff.
+
 ## 1.12.1
 
 *24 November 2026*

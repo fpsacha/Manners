@@ -153,7 +153,7 @@ mutate("Buffs.lua",
 # ------------------------------------------------ mana, by class
 # A retail hunter taken for a mana user where his power is withheld.
 mutate("Core.lua",
-       "if (ns.Flavour and ns.Flavour.flavour) == \"mainline\" then MANA_CLASSES.HUNTER = nil end\n",
+       "if flavour == \"mists\" or flavour == \"mainline\" then MANA_CLASSES.HUNTER = nil end\n",
        "",
        "mainline: a retail hunter read as having mana",
        expect="mainline: a hunter is not taken for a mana user",

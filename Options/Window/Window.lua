@@ -19,7 +19,7 @@ ns.WindowUI = UI
 -- stands, never less than the usual one (UI.MIN_W, UI.MIN_H).
 UI.WIDTH, UI.HEIGHT = 820, 600
 UI.MIN_W, UI.MIN_H = UI.WIDTH, UI.HEIGHT
-UI.HEADER, UI.FOOTER, UI.SIDEBAR = 44, 34, 160
+UI.HEADER, UI.FOOTER, UI.SIDEBAR = 44, 34, 176
 UI.ICON = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 
 -- The window's own colours, from the approved mock-up: a dark panel, gold
@@ -43,7 +43,7 @@ local C = {
 	dot = { 1, 0.29, 0.227, 1 },
 	strip = { 1, 0.82, 0, 0.055 },
 	stripEdge = { 1, 0.82, 0, 0.18 },
-	select = { 1, 0.82, 0, 0.09 },
+	select = { 1, 0.82, 0, 0.13 },
 	hover = { 1, 1, 1, 0.09 },
 	field = { 0.024, 0.024, 0.031, 1 },
 	fieldEdge = { 0.239, 0.235, 0.271, 1 },

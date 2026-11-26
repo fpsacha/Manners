@@ -47,19 +47,19 @@ mutate("Core.lua",
        "whichfood: a damaged order kept",
        expect="a damaged order was left", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.foodOrder = value\n",
        "",
        "whichfood: picking a food writes nothing",
        expect="picking a food wrote", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\t\t\tif spell.key == order and ns.OwnSpellKnown(spell) then return order end\n",
        "\t\t\t\t\t\t\t\tif spell.key == order then return order end\n",
        "whichfood: a food out of the bags still read as picked",
        expect="a food not in the bags reads", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.ownFoodChoice\", indent = true },\n",
        "",
        "whichfood: the choice not placed on the page",

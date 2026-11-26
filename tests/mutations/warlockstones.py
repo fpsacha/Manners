@@ -63,7 +63,7 @@ mutate("Core.lua",
        expect="warlockstones: a switch under Myself, and not held to dungeons", script=S)
 
 # The switch not placed on Who to buff's page.
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_warlockstone\",\n",
        "",
        "warlockstones: the switch is not placed on the page",

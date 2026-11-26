@@ -29,19 +29,19 @@ mutate("Core.lua",
        "foodoutside: OwnVerdict holds food as before",
        expect="foodoutside: on, food is offered out in the world", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.foodOutside = value == true\n",
        "",
        "foodoutside: the switch writes nothing",
        expect="foodoutside: the switch sits under Consumables only in dungeons and raids", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "disabled = function() return not S().self or ns.db.profile.ownBuffs.itemsInDungeons ~= true end,",
        "disabled = function() return not S().self end,",
        "foodoutside: the switch is live with the main switch off",
        expect="foodoutside: the switch sits under Consumables only in dungeons and raids", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.ownFoodOutside\", indent = true },\n",
        "",
        "foodoutside: the switch is not placed on the page",

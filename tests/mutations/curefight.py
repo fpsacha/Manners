@@ -3,8 +3,8 @@
 # Caught by tests/scenarios/curefight.lua; each undoes one rule.
 
 S = "runscenarios.py"
-CF = "Prompt/CureFight.lua"
-CU = "Cures.lua"
+CF = "Modules/Combat/CureFight.lua"
+CU = "Modules/Combat/Cures.lua"
 ARMED = "curefight: armed out of combat, shown by its own driver at alpha 0"
 
 # --- 1. out of sight until somebody needs a cure; armed out of combat; off by default
@@ -82,6 +82,22 @@ mutate(CF,
        "\tif not needy[unit] and type(info)",
        "curefight: a held-back unit is read only when a debuff is added",
        expect="curefight: a debuff never removed that goes lets the cure show", script=S)
+
+mutate(CU,
+       "\t\t\t\tlocal chosen\n"
+       "\t\t\t\tfor _, cure in ipairs(state.all) do\n",
+       "\t\t\t\tlocal chosen = byKind[kind]\n"
+       "\t\t\t\tfor _, cure in ipairs({}) do\n",
+       "curefight: a safer learned cure is never selected",
+       expect="curefight: paladin poison uses Purify when Cleanse would take a debuff never removed",
+       script=S)
+
+mutate(CF,
+       "\tlocal spell = kind and SpellFor(kind, cure) or nil\n",
+       "\tlocal spell = kind and SpellFor(kind) or nil\n",
+       "curefight: a safe cure reading still casts the dangerous spell",
+       expect="curefight: paladin poison uses Purify when Cleanse would take a debuff never removed",
+       script=S)
 
 # --- 3. where the client hides debuffs, and what a fight costs
 
@@ -162,20 +178,20 @@ mutate(CF,
        expect="curefight: forever: the macro is a bare cast", script=S)
 
 mutate(CF,
-       "Clause(list[2].name, true) .. \"; \" .. Clause(list[1].name, false)",
-       "Clause(list[1].name, true) .. \"; \" .. Clause(list[2].name, false)",
+       "return out[1], out[2], out[3]\n",
+       "return out[2], out[1], out[3]\n",
        "curefight: the cures are the wrong way round",
        expect="curefight: a druid's second cure is on Shift", script=S)
 
 mutate(CF,
-       "\tlocal shift = slot.index == 1 and armedTwo and spell == armedList[2]\n",
-       "\tlocal shift = false\n",
+       "\tlocal mod = slot.index == 1 and modOf[spell] or nil\n",
+       "\tlocal mod = nil\n",
        "curefight: the key line never names Shift",
        expect="curefight: the key line names Shift for the second cure", script=S)
 
 mutate(CF,
-       "\tif slots[1].shiftKey then return one, false end\n",
-       "",
+       "\tif slots[1].shiftKey then shiftSpell = nil end\n",
+       "\tif false then shiftSpell = nil end\n",
        "curefight: a key bound with Shift casts the second cure",
        expect="curefight: a key bound with Shift casts the first cure alone", script=S)
 
@@ -235,13 +251,13 @@ mutate(CF,
        "curefight: a settled scan asks the lockdown first",
        expect="curefight: out of a fight it listens to nothing", script=S)
 
-mutate(CF, "slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)",
-       "slot.button:EnableMouse(false)",
+mutate(CF, "slot.mouseOn = used ~= false and slot.keyLabel == nil",
+       "slot.mouseOn = false",
        "curefight: mouse off with no key",
        expect="curefight: with no key the button takes a click, with a key it takes none", script=S)
 
-mutate(CF, "slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)",
-       "slot.button:EnableMouse(true)",
+mutate(CF, "slot.mouseOn = used ~= false and slot.keyLabel == nil",
+       "slot.mouseOn = true",
        "curefight: the button takes a click with its key bound",
        expect="curefight: with a key bound the button takes no click", script=S)
 
@@ -272,8 +288,8 @@ mutate(CF,
 # --- 7. where the controls are
 
 mutate("Options/Look.lua",
-       "\t\t\t\thidden = function() return not (ns.ClassHasCures() and ns.CureLearned()) end,\n",
-       "",
+       "\t\t\t\thidden = function() return not ns.CureFight or not (ns.ClassHasCures() and ns.CureLearned()) end,\n",
+       "\t\t\t\thidden = function() return false end,\n",
        "curefight: the switch is shown to a class with no cure",
        expect="curefight: a class with no cure never sees it", script=S)
 
@@ -322,14 +338,14 @@ mutate(CF,
        expect=EACH, script=S)
 
 mutate(CF,
-       "\t\tArm(second, \"/cast \" .. Clause(list[2].name, false))\n",
-       "\t\tArm(second, \"/cast \" .. Clause(list[1].name, false))\n",
+       "\t\tArm(second, \"/cast \" .. Clause(shiftSpell.name, false))\n",
+       "\t\tArm(second, \"/cast \" .. Clause(plainSpell.name, false))\n",
        "curefight: the second button casts the first cure",
        expect="curefight: each cure's key casts its own cure", script=S)
 
 mutate(CF,
-       "\t\tmacro = MacroFor(list)\n\t\ttwo = false\n",
-       "\t\tmacro = \"/cast \" .. Clause(list[1].name, false)\n\t\ttwo = false\n",
+       "\tlocal macro, shiftOn, ctrlOn = MacroFor(plainSpell, shiftSpell, ctrlSpell)\n",
+       "\tlocal macro, shiftOn, ctrlOn = MacroFor(plainSpell, nil, ctrlSpell)\n",
        "curefight: the first button of two loses Shift for the second cure",
        expect="curefight: each cure's key casts its own cure", script=S)
 

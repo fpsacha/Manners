@@ -131,7 +131,7 @@ mutate("Options/Launcher.lua",
        expect="the launcher does not count the favours waiting", script=S)
 
 mutate("Queue.lua",
-       "\tif ns.RefreshBrokerText then ns.Guard(\"broker text\", ns.RefreshBrokerText) end\n",
+       "\tif ns.RefreshBrokerText then ns.RefreshBrokerText() end\n",
        "",
        "minimap: a favour filed and the text left behind",
        expect="a favour filed left the launcher", script=S)

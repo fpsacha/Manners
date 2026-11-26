@@ -799,14 +799,20 @@ do
 	with(scenario, {}, function(ns)
 		local root = ns.optionsTable
 		local who = root and root.args.who
-		local toggle = findOption(root, "self")
+		local toggle = who and who.args and who.args.self
 		if not (who and toggle) then
 			fail(scenario, "there is no Myself switch on Who to buff")
 			return
 		end
-		local a = who.args
-		if not (toggle.order > a.sourcesHeader.order and toggle.order < a.groupHeader.order) then
-			fail(scenario, "the switch is not under Offer my buff to")
+		local selfPage = ns.WindowLayout.pages.self
+		local placed = false
+		for _, section in ipairs(selfPage and selfPage.sections or {}) do
+			for _, item in ipairs(section.items or {}) do
+				if (type(item) == "table" and item[1] or item) == "who.self" then placed = true end
+			end
+		end
+		if not placed then
+			fail(scenario, "the switch is not on the My Buffs page")
 		end
 		if toggle.name ~= "Remind me when my own buff is missing" then
 			fail(scenario, "the switch reads " .. tostring(toggle.name))

@@ -11,31 +11,31 @@ mutate("Core.lua",
        "cures-self: on by default",
        expect="cures-self: off by default", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tif not (scan.live and scan.self) or not full then return nil end\n",
        "\tif not scan.live or not full then return nil end\n",
        "cures-self: the party's switch alone cures you",
        expect="cures-self: it asks no walk of anybody else", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tentry.reason = \"self\"\n",
        "",
        "cures-self: the entry is a group member's",
        expect="cures-self: a poison on you is offered the cure", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tscan.self = sources.curesSelf == true\n",
        "\tscan.self = true\n",
        "cures-self: the scan has it on with the switch off",
        expect="cures-self: it asks no walk of anybody else", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tif not (sources.cures == true or sources.curesStrangers == true or sources.curesSelf == true) then return nil end\n",
        "\tif not (sources.cures == true or sources.curesStrangers == true) then return nil end\n",
        "cures-self: the scan ignores the switch",
        expect="cures-self: a poison on you is offered the cure", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tif not (sources and (sources.cures == true or sources.curesStrangers == true or sources.curesSelf == true)) then return false end\n",
        "\tif not (sources and (sources.cures == true or sources.curesStrangers == true)) then return false end\n",
        "cures-self: a class with nothing else has no prompt for it",
@@ -65,15 +65,17 @@ mutate("Clicks.lua",
        "cures-self: the cure's key goes into the rotation pointer",
        expect="cures-self: a press settles as a cure on yourself", script=S)
 
-mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t\"who.curesSelf\",\n",
-       "",
+mutate("Modules/Combat/Options.lua",
+       "api:InsertLayoutItems(\"who\", \"who.resStrangers\", {\n"
+       "\t\"who.curesNote\", \"who.cures\", \"who.curesStrangers\", \"who.curesSelf\",\n",
+       "api:InsertLayoutItems(\"who\", \"who.resStrangers\", {\n"
+       "\t\"who.curesNote\", \"who.cures\", \"who.curesStrangers\",\n",
        "cures-self: the switch has no place on the window",
        expect="cures-self: the switch is on Who to buff", script=S)
 
-mutate("Options/Who.lua",
-       "local function CuresOff() return not (S().cures or S().curesStrangers or S().curesSelf) end",
-       "local function CuresOff() return not (S().cures or S().curesStrangers) end",
+mutate("Modules/Combat/Options.lua",
+       "return not (Source(\"cures\") or Source(\"curesStrangers\") or Source(\"curesSelf\"))",
+       "return not (Source(\"cures\") or Source(\"curesStrangers\"))",
        "cures-self: the seconds are greyed with only this switch on",
        expect="cures-self: the switch is on Who to buff", script=S)
 

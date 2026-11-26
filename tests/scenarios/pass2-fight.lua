@@ -125,9 +125,9 @@ end
 -- scenario reads the source instead (as tests/scenarios/standstill.lua does).
 do
 	local scenario = "pass2-fight: ReadLoss never compares a possibly secret record"
-	local f = io.open(dir .. "/Prompt/BreakFree.lua", "r")
+	local f = io.open(dir .. "/Modules/Combat/BreakFree.lua", "r")
 	if not f then
-		fail(scenario, "SKIPPED -- Prompt/BreakFree.lua not readable")
+		fail(scenario, "SKIPPED -- Modules/Combat/BreakFree.lua not readable")
 	else
 		local src = f:read("*a")
 		f:close()

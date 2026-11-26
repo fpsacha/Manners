@@ -306,7 +306,7 @@ mutate("Options/Start.lua",
        "self: summary forgets you",
        expect="the summary on Start here leaves you out", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\torder = 15.1,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = NothingForSelf,\n",
        "\t\t\t\torder = 15.1,\n\t\t\t\twidth = \"full\",\n",
        "self: switch shown to a warrior",

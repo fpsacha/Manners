@@ -246,7 +246,7 @@ mutate("Queue.lua",
        "audit-right-buff: short buffs held in a city leave your own Thorns offered",
        expect="audit-right-buff: short buffs held back in a city hold your own Thorns too", script="runscenarios.py")
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "if ns.Flavour.flavour == \"camelot\" and FamiliarUp() then return \"petbusy\" end",
        "if false then return \"petbusy\" end",
        "audit-right-buff: a journal pet comes out over a Familiar scroll's pet",

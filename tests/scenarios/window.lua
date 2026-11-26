@@ -192,7 +192,7 @@ do
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do ids[#ids + 1] = id end
 		end
-		if table.concat(ids, " ") ~= "general who skip when self pet quiet fight click appearance profiles diagnostics" then
+		if table.concat(ids, " ") ~= "general who skip when click quiet fight appearance modules self services profiles diagnostics" then
 			fail(scenario, "the page ids are " .. table.concat(ids, " "))
 		end
 
@@ -541,7 +541,8 @@ end
 do
 	local scenario = "window: the reset button is hidden on Start here, Profiles and Diagnostics"
 	with(scenario, {}, function(ns, UI)
-		local want = { general = false, who = true, skip = true, when = true, self = true, pet = true, quiet = true, fight = true, click = true, appearance = true,
+		local want = { general = false, who = true, skip = true, when = true, click = true, quiet = true, fight = true, appearance = true,
+			modules = false, self = true, pet = true, services = true,
 			profiles = false, diagnostics = false }
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do

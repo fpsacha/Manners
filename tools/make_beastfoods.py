@@ -1,7 +1,7 @@
-"""Write BeastFoods.lua: what a hunter's pet eats, per client, and the diets' names.
+"""Write Modules/Pets/BeastFoods.lua: pet foods and their diet names per client.
 
-    python tools/make_beastfoods.py            write BeastFoods.lua from the cached tables
-    python tools/make_beastfoods.py --check    say whether the shipped BeastFoods.lua is current
+    python tools/make_beastfoods.py            write the module's data file
+    python tools/make_beastfoods.py --check    say whether its file is current
     python tools/make_beastfoods.py --cache DIR  where the wago.tools CSVs live
 
 Only WoW Forever's Item table carries a food's diet (Item.ItemPetFoodID, the
@@ -19,31 +19,47 @@ fetched from wago.tools into the cache the first time; the item tables are the
 ones tools/audit_ids.py downloads (python tools/audit_ids.py --fetch-only).
 
 A table that cannot be read stops the tool: nothing is guessed. Nothing here
-ships; BeastFoods.lua does, held to its shape by tests/scenarios/hunterpet.lua.
+ships; Modules/Pets/BeastFoods.lua does, held by tests/scenarios/hunterpet.lua.
 """
 
 import argparse
 import csv
-import glob
 import os
 import sys
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, "BeastFoods.lua")
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import audit_ids  # noqa: E402
+OUT = os.path.join(ROOT, "Modules", "Pets", "BeastFoods.lua")
 
 SOURCE = "camelot"
 CLIENTS = ("camelot", "vanilla", "tbc")
 # The build GetPetFoodTypes' words are read from (the Classic Era client's).
-DIET_BUILD = "1.15.9.70003"
+DIET_BUILD = audit_ids.build_for("vanilla")
 LOCALES = ("enUS", "deDE", "esES", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW")
 
 
 def newest(cache, client, table):
-    files = sorted(glob.glob(os.path.join(cache, "%s@*_%s.csv" % (client, table))))
-    if not files:
-        raise SystemExit("no cached %s for %s in %s -- python tools/audit_ids.py --fetch-only" % (table, client, cache))
-    return files[-1]
+    path = os.path.join(cache, "%s@%s_%s.csv"
+                        % (client, audit_ids.build_for(client), table))
+    if not os.path.exists(path):
+        if table != "Item":
+            raise SystemExit("no cached %s for %s at %s in %s -- python tools/audit_ids.py --fetch-only"
+                             % (table, client, audit_ids.build_for(client), cache))
+        url = "https://wago.tools/db2/Item/csv?build=%s" % audit_ids.build_for(client)
+        try:
+            request = urllib.request.Request(url, headers={"User-Agent": "manners-audit"})
+            with urllib.request.urlopen(request, timeout=600) as response:
+                body = response.read().decode("utf-8")
+        except OSError as err:
+            raise SystemExit("cannot read %s: %s" % (url, err))
+        if "ItemPetFoodID" not in body.splitlines()[0]:
+            raise SystemExit("%s is not the Item table" % url)
+        os.makedirs(cache, exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="") as output:
+            output.write(body)
+    return path
 
 
 def rows(path):
@@ -111,7 +127,13 @@ def render(cache):
     ]
     for client in CLIENTS:
         lines.append("--   %-8s %s, %d foods" % (client, builds[client], len(table[client])))
-    lines += ["", "local _, ns = ...", "", "ns.BEAST_FOODS = {"]
+    lines += [
+        "",
+        'local api = assert(MannersAPI, "Manners is required")',
+        'local ns = assert(api:ModuleContext("pets"), "Manners module API is missing")',
+        "",
+        "ns.BEAST_FOODS = {",
+    ]
     for client in CLIENTS:
         lines.append("\t%s = {" % client)
         for item, diet, level in table[client]:
@@ -128,7 +150,8 @@ def render(cache):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--check", action="store_true", help="exit 1 when BeastFoods.lua is not what the tables give")
+    parser.add_argument("--check", action="store_true",
+                        help="exit 1 when the Pets data file is not what the tables give")
     parser.add_argument("--cache", default=os.path.join(os.environ.get("TEMP", "."), "manners-audit-cache"))
     args = parser.parse_args()
     text = render(args.cache)

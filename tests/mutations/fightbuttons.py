@@ -5,8 +5,8 @@
 # alpha 0, All fight keeping the dim buttons, the setting's default and repair.
 
 S = "runscenarios.py"
-BF = "Prompt/BreakFree.lua"
-MP = "Prompt/MendPet.lua"
+BF = "Modules/Combat/BreakFree.lua"
+MP = "Modules/Combat/MendPet.lua"
 FB = "fightbuttons: "
 
 # --- Will of the Forsaken out of sight until the need
@@ -118,7 +118,7 @@ mutate("Options/Window/Layout.lua",
 # --- the In a fight page's reset
 
 mutate("Options/Advanced.lua",
-       "\"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
-       "\"prompt.cureFightEach\",\n",
+       "\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
+       "\"prompt.cureFightMods\",\n",
        "fightbuttons: the In a fight page's reset leaves the setting",
        expect=FB + "the In a fight page's reset puts the setting back", script=S)

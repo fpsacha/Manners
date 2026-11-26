@@ -90,3 +90,53 @@ do
 	minimap(nil)
 	unlearn()
 end
+
+do
+	local scenario = "tracking: dying and reviving reread Find Minerals immediately"
+	Mock.reset()
+	local list = { { spellID = 2383, active = false }, { spellID = 2580, active = true } }
+	minimap(list)
+	learn()
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.db.profile.ownBuffs.pick.tracking = "auto"
+		ns.ForgetTrackingList()
+		local family = tracking(ns)
+		local ctx = { name = ns.UnitFullName("player"), now = GetTime(), whenBuffed = "skip" }
+		if not family then
+			fail(scenario, "SKIPPED -- tracking is not one of your own buffs")
+		else
+			local _, up = ns.OwnVerdict(family, ctx)
+			if up ~= true then fail(scenario, "Find Minerals did not begin as active") end
+			list[2].active = false
+			ns.addon:PLAYER_DEAD()
+			local spell, off = ns.OwnVerdict(family, ctx)
+			if off ~= false or not spell or spell.key ~= "findminerals" then
+				fail(scenario, "death kept the old Find Minerals-on reading")
+			end
+
+			list[2].active = true
+			ns.ForgetTrackingList()
+			ns.OwnVerdict(family, ctx)
+			list[2].active = false
+			ns.addon:PLAYER_ALIVE()
+			local aliveSpell, aliveOff = ns.OwnVerdict(family, ctx)
+			if aliveOff ~= false or not aliveSpell or aliveSpell.key ~= "findminerals" then
+				fail(scenario, "reviving kept the old Find Minerals-on reading")
+			end
+
+			list[2].active = true
+			ns.ForgetTrackingList()
+			ns.OwnVerdict(family, ctx)
+			list[2].active = false
+			ns.addon:PLAYER_UNGHOST()
+			local ghostSpell, ghostOff = ns.OwnVerdict(family, ctx)
+			if ghostOff ~= false or not ghostSpell or ghostSpell.key ~= "findminerals" then
+				fail(scenario, "unghosting kept the old Find Minerals-on reading")
+			end
+		end
+	end
+	minimap(nil)
+	unlearn()
+end

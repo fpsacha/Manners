@@ -83,7 +83,7 @@ mutate("Prompt/Hold.lua",
        "standstill: the hold keeps food on the move",
        expect=HOLD, script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tif ns.StillCut(current, _G.GetTime()) then\n",
        "\tif false then\n",
        "standstill: the consumables button presses on the move",

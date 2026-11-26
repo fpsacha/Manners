@@ -143,25 +143,25 @@ mutate("Commands.lua",
 
 # --- the page ---
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\tns.db.profile.ownBuffs.leave[key] = on and true or false\n",
        "\t\tns.db.profile.ownBuffs.leave[key] = false\n",
        "ownleave: a box ticked writes nothing",
        expect="ownleave: the page lists the spells you know", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tif ns.OwnSpellKnown(spell) then values[spell.key] = ns.BuffName(spell) end\n",
        "\t\t\t\t\tvalues[spell.key] = ns.BuffName(spell)\n",
        "ownleave: spells you do not know on the list",
        expect="ownleave: the page lists the spells you know", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\thidden = function() return next(LeaveChoices()) == nil end,\n",
        "\t\thidden = function() return false end,\n",
        "ownleave: the control shown with nothing to tick",
        expect="ownleave: the control is hidden", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_leave\",\n",
        "",
        "ownleave: the control not placed on the page",

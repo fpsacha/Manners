@@ -68,6 +68,12 @@ jobs:
       - name: Adversarial scenarios
         run: python tests/runscenarios.py --jobs 4
 
+      - name: Retail fight and module scenarios
+        run: |
+          python tests/runscenarios.py --flavour mainline --file curefight.lua --jobs 4
+          python tests/runscenarios.py --flavour mainline --file combat-module.lua --jobs 4
+          python tests/runscenarios.py --flavour mainline --file modules-migrations.lua --jobs 4
+
   images:
     runs-on: ubuntu-24.04
     steps:

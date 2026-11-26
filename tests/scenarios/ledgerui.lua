@@ -546,36 +546,42 @@ do
 						marked and "marked too" or "not marked"))
 				end
 			end
-			local list = ns.Ledger.Entries(tab.key)
-			if #list == 0 then fail(scenario, "SKIPPED -- the " .. tab.key .. " tab has nothing to list") end
-			for i, row in ipairs(window.rows) do
-				local e = list[i]
-				if e and not shown(row) then
-					fail(scenario, ("the %s tab shows no row %d with %d to list"):format(tab.key, i, #list))
-				elseif e then
-					if row.entry ~= e then
-						fail(scenario, ("the %s tab's row %d is not its %dth entry, newest first"):format(tab.key, i, i))
+			if tab.key == "achievements" then
+				if not (window.modulePanel and shown(window.modulePanel)) then
+					fail(scenario, "the achievements tab did not show its module panel")
+				end
+			else
+				local list = ns.Ledger.Entries(tab.key)
+				if #list == 0 then fail(scenario, "SKIPPED -- the " .. tab.key .. " tab has nothing to list") end
+				for i, row in ipairs(window.rows) do
+					local e = list[i]
+					if e and not shown(row) then
+						fail(scenario, ("the %s tab shows no row %d with %d to list"):format(tab.key, i, #list))
+					elseif e then
+						if row.entry ~= e then
+							fail(scenario, ("the %s tab's row %d is not its %dth entry, newest first"):format(tab.key, i, i))
+						end
+						if tab.key == "favours" and e.kind ~= "received" then
+							fail(scenario, "the favours tab lists a buff you gave")
+						elseif tab.key == "given" and e.kind ~= "given" then
+							fail(scenario, "the buffs-you-gave tab lists a favour")
+						end
+						local word = e.kind == "given" and T.STATE_GAVE or want[e.state]
+						if row.badge:GetText() ~= word then
+							fail(scenario, ("row %d of %s is %s and its badge reads %s"):format(i, tab.key,
+								tostring(e.kind == "given" and "a gift" or e.state), say(row.badge)))
+						end
+						local b, s = row.badge._textColor, row.stripe._color
+						if not (b and s and b[1] == s[1] and b[2] == s[2] and b[3] == s[3]) then
+							fail(scenario, ("row %d of %s: the badge and the stripe are not the same colour"):format(
+								i, tab.key))
+						end
+						if not plain(row.name:GetText()):find(e.name, 1, true) then
+							fail(scenario, ("row %d of %s names %s for %s"):format(i, tab.key, say(row.name), e.name))
+						end
+					elseif shown(row) then
+						fail(scenario, ("the %s tab shows a row %d with %d to list"):format(tab.key, i, #list))
 					end
-					if tab.key == "favours" and e.kind ~= "received" then
-						fail(scenario, "the favours tab lists a buff you gave")
-					elseif tab.key == "given" and e.kind ~= "given" then
-						fail(scenario, "the buffs-you-gave tab lists a favour")
-					end
-					local word = e.kind == "given" and T.STATE_GAVE or want[e.state]
-					if row.badge:GetText() ~= word then
-						fail(scenario, ("row %d of %s is %s and its badge reads %s"):format(i, tab.key,
-							tostring(e.kind == "given" and "a gift" or e.state), say(row.badge)))
-					end
-					local b, s = row.badge._textColor, row.stripe._color
-					if not (b and s and b[1] == s[1] and b[2] == s[2] and b[3] == s[3]) then
-						fail(scenario, ("row %d of %s: the badge and the stripe are not the same colour"):format(
-							i, tab.key))
-					end
-					if not plain(row.name:GetText()):find(e.name, 1, true) then
-						fail(scenario, ("row %d of %s names %s for %s"):format(i, tab.key, say(row.name), e.name))
-					end
-				elseif shown(row) then
-					fail(scenario, ("the %s tab shows a row %d with %d to list"):format(tab.key, i, #list))
 				end
 			end
 		end

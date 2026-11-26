@@ -93,7 +93,7 @@ mutate("Options/Who.lua",
        "window-fixes38: Who to buff hidden from a death knight with a flask",
        expect="window-fixes38: a retail death knight reaches the flask switch", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\treturn #ns.SelfBuffs() == 0 and #ns.KnownOwnFamilies() == 0 and not Page.BaggedSwitchShown()\n",
        "\treturn #ns.SelfBuffs() == 0 and #ns.KnownOwnFamilies() == 0\n",
        "window-fixes38: Myself hidden from a paladin with a flask",

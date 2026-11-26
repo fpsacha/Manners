@@ -388,6 +388,12 @@ end
 
 -- Controls whose shown value is computed: a later layout that folds one
 -- must use these, never the value the control displays.
+local function CureModSaved(mod)
+	local by = Profile().prompt.cureFightMods
+	local mine = type(by) == "table" and ns.caps.class and by[ns.caps.class] or nil
+	return type(mine) == "table" and mine[mod] ~= nil
+end
+
 local DIFFERS = {
 	["appearance.posPreset"] = function() return ns.CurrentPositionPreset() ~= "bars" end,
 	["general.quickWho"] = function() return ns.QuickSetup.Match(ns.QuickSetup.WHO) ~= "nearby" end,
@@ -407,6 +413,9 @@ local DIFFERS = {
 	["who.own_leave_food"] = function() return AnyTicked(Profile().ownBuffs.leave, FoodKeys()) end,
 	["who.own_elixirkeep"] = function() return AnyTicked(Profile().ownBuffs.elixirKeep) end,
 	["appearance.reasonPalette"] = function() return Profile().prompt.reasonPalette == "colourblind" end,
+	["appearance.cureFightPlain"] = function() return CureModSaved("plain") end,
+	["appearance.cureFightShift"] = function() return CureModSaved("shift") end,
+	["appearance.cureFightCtrl"] = function() return CureModSaved("ctrl") end,
 	["general.minimap"] = function() return Profile().minimap.hide == true end,
 	["click.preset"] = LinesChanged,
 	["click.phrases"] = LinesChanged,
@@ -594,7 +603,7 @@ end
 local function BuildFrames(m)
 	if m.built then return end
 	local child = UI.view.child
-	m.title = UI.Text(child, 18, C.gold)
+	m.title = UI.Text(child, 20, C.gold)
 	m.title:Hide()
 	m.blurb = UI.Text(child, 12, C.hint)
 	m.blurb:Hide()

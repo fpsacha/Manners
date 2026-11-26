@@ -51,8 +51,8 @@ mutate("Ask.lua",
 # Another class's buff of the same kind counts as a blessing worn: no Might
 # asked for beside a druid's Mark.
 mutate("Ask.lua",
-       "Wearing(buff, now, true) ~= false then return nil end",
-       "Wearing(buff, now) ~= false then return nil end",
+       "local worn = Wearing(buff, now, true)\n",
+       "local worn = Wearing(buff, now)\n",
        "ask-review: a druid's Mark taken for a blessing",
        expect=MARK, script=S)
 

@@ -65,19 +65,19 @@ mutate("Commands.lua",
        "dampenmagic: /manners debug quiet about the group",
        expect="/manners debug says", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.dampenAlone = value == true\n",
        "\t\t\t\t\tns.db.profile.ownBuffs.dampenAlone = true\n",
        "dampenmagic: the switch writes nothing",
        expect="turning it off wrote nothing", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\treturn not (spell and ns.OwnSpellKnown(spell))\n",
        "\t\t\t\t\treturn false\n",
        "dampenmagic: the switch shown to every mage",
        expect="shown to a mage without Dampen Magic", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.ownDampenAlone\", indent = 2 },\n",
        "",
        "dampenmagic: the switch not placed on the page",
@@ -95,13 +95,13 @@ mutate("Buffs.lua",
        "dampenmagic: Amplify Magic follows Dampen's switch",
        expect="Dampen's switch off let Amplify Magic through", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.amplifyAlone = value == true\n",
        "\t\t\t\t\tns.db.profile.ownBuffs.amplifyAlone = true\n",
        "dampenmagic: Amplify's switch writes nothing",
        expect="Amplify's switch off wrote nothing", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.ownAmplifyAlone\", indent = 2 },\n",
        "",
        "dampenmagic: Amplify's switch not placed on the page",

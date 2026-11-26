@@ -58,7 +58,7 @@ mutate("Buffs.lua",
        expect="issue18: vanilla: the warlock's family is as it was", script=S)
 
 # The page's Soul Link switch not placed.
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_soullink\", indent = true },\n",
        "",
        "issue18: Soul Link's switch not placed on the page",
@@ -123,7 +123,7 @@ mutate("Commands.lua",
        expect="issue18: forever: a stone is offered to be made only when the spell is known", script=S)
 
 # The switch not placed.
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_makestone\", indent = true },\n",
        "",
        "issue18: the stone's switch not placed on the page",

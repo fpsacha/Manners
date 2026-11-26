@@ -50,7 +50,7 @@ mutate("Buffs.lua",
        expect="healthstone: offered on every client where Create Healthstone is learned", script=S)
 
 # The switch not placed on the page.
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_makehealthstone\", indent = true },\n",
        "",
        "healthstone: the switch not placed",

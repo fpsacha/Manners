@@ -28,7 +28,7 @@ mutate("Queue.lua",
 # ------------------------------------------------------------ the walk
 # The walk never asks for a cure.
 mutate("Queue.lua",
-       "\t\tif curing then\n",
+       "\t\tif curing and ns.CureFor then\n",
        "\t\tif false then\n",
        "cures: the walk asks for no cure",
        expect="cures: a poisoned party member is offered the cure, by the usual press", script=S)
@@ -41,14 +41,14 @@ mutate("Core.lua",
        expect="cures: a poisoned party member is offered the cure, by the usual press", script=S)
 
 # A cure ranked with the passers-by: a buff for the group comes first.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "local PRIORITY = 1.25\n",
        "local PRIORITY = 2.5\n",
        "cures: a cure ranked after the group's buffs",
        expect="cures: a cure comes before a buff, for the same person and in the queue", script=S)
 
 # A cure ranked over a favour owed.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "local PRIORITY = 1.25\n",
        "local PRIORITY = 0.75\n",
        "cures: a cure ranked over a favour owed",
@@ -63,77 +63,77 @@ mutate("Queue.lua",
 
 # ------------------------------------------------------------ what is offered
 # Any time left will do.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\telseif debuff.expires - now <= scan.seconds then\n",
        "\t\telseif debuff.expires - now <= 0 then\n",
        "cures: a debuff about to run out is offered",
        expect="cures: a debuff about to run out is left alone", script=S)
 
 # The first of a kind in the list is the one read, however little it has left.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\t\t\telseif expires > found.expires then\n",
        "\t\t\t\t\telseif false then\n",
        "cures: a short debuff hides a long one of its kind",
        expect="cures: a debuff about to run out is left alone", script=S)
 
 # No timer read as a timer of nothing.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\t\telseif type(expires) ~= \"number\" or expires <= 0 then\n",
        "\t\t\t\telseif false then\n",
        "cures: no timer is not said",
        expect="cures: a debuff with no timer is never offered", script=S)
 
 # The deny list unread.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\t\tif type(id) == \"number\" and DENIED[id] then\n",
        "\t\t\t\tif false then\n",
        "cures: the deny list is not read",
        expect="cures: a debuff on the deny list is never offered", script=S)
 
 # A spell not learned is offered all the same.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\tif info.known and not state.byKind[cure.cure] and",
        "\t\tif not state.byKind[cure.cure] and",
        "cures: a cure not learned is offered",
        expect="cures: only a kind you have a spell for, and know", script=S)
 
 # Any kind answered with whatever cure there is.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\tlocal cure = type(kind) == \"string\" and byKind[kind] or nil\n",
        "\t\t\tlocal cure = type(kind) == \"string\" and (byKind[kind] or byKind.Curse) or nil\n",
        "cures: a kind you cannot remove is offered",
        expect="cures: only a kind you have a spell for, and know", script=S)
 
 # The client's own no ignored.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\tif cure and plain(aura.canActivePlayerDispel) ~= false then\n",
        "\t\t\tif cure then\n",
        "cures: the client's no is ignored",
        expect="cures: what the client says you cannot remove is left alone", script=S)
 
 # A passive a kind waits on is not asked for.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        " and (not cure.needs or ns.SpellKnown(cure.needs)) then\n",
        " then\n",
        "cures: a kind offered without its passive",
        expect="cures: mists: Cleanse lifts magic only with Sacred Cleansing", script=S)
 
 # Retail given no table.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "mists = MISTS, mainline = MAINLINE }\n",
        "mists = MISTS }\n",
        "cures: a client left without its table",
        expect="cures: every class with a cure on a client is offered one there", script=S)
 
 # ------------------------------------------------------------ never in a fight
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tif scan.fight then return nil end\n",
        "",
        "cures: offered in a fight",
        expect="cures: nothing is offered or read in a fight", script=S)
 
 # The pull's own repaint arms a cure for every press of the fight.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tif prompt and prompt.armedForFight == true then return true end\n",
        "",
        "cures: armed at the pull",
@@ -172,7 +172,7 @@ mutate("Queue.lua",
 # ------------------------------------------------------------ a cure and nothing else
 # No walk with no buff in hand, a cure or not.
 mutate("Queue.lua",
-       " and not ns.CureScanned() then\n",
+       " and not curesScanned then\n",
        " then\n",
        "cures: no walk for a cure alone",
        expect="cures: a class with a cure and no buff for others still walks", script=S)
@@ -199,7 +199,7 @@ mutate("Prompt/Press.lua",
        expect="cures: a press settles as a cure, and is not offered again at once", script=S)
 
 # Offered again on the reading from before the press.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\telseif ns.IsBlocked(full, cure.key, now) then\n",
        "\t\telseif false then\n",
        "cures: offered again the moment after the press",
@@ -226,45 +226,47 @@ mutate("Prompt/Button.lua",
        expect="cures: the reason line and the tooltip say what they are under", script=S)
 
 # ------------------------------------------------------------ ready to cast
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tif usable == false and noMana == true then answer = \"mana\" end\n",
        "",
        "cures: offered with no mana for it",
        expect="cures: a cure cooling down or unpaid for is not offered", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\t\tanswer = \"cooldown\"\n",
        "\t\t\t\tanswer = true\n",
        "cures: offered while it cools down",
        expect="cures: a cure cooling down or unpaid for is not offered", script=S)
 
 # The global cooldown taken for the spell's own.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        " and type(duration) == \"number\" and duration > 3\n",
        " and type(duration) == \"number\" and duration > 0\n",
        "cures: held back for the global cooldown",
        expect="cures: a cure cooling down or unpaid for is not offered", script=S)
 
 # ------------------------------------------------------------ passers-by, remembered
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\t\t\tif not inGroup and not pointed then Remember(entry, guid, now) end\n",
        "",
        "cures: a passer-by is not remembered",
        expect="cures: a passer-by under the cursor stays offered once it leaves them", script=S)
 
 mutate("Queue.lua",
-       "\tif opts.cures then ns.CuresRemembered(queue, seen, rejected, now, savingMana or notResting) end\n",
+       "\tif opts.cures and ns.CuresRemembered then\n"
+       "\t\tns.CuresRemembered(queue, seen, rejected, now, savingMana or notResting)\n"
+       "\tend\n",
        "",
        "cures: the remembered are not offered",
        expect="cures: a passer-by under the cursor stays offered once it leaves them", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\tor now - memo.seen >= LINGER_SECONDS\n",
        "",
        "cures: the remembered are never let go",
        expect="cures: a passer-by under the cursor stays offered once it leaves them", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\tif drop or not scan.strangers\n",
        "\t\tif drop\n",
        "cures: the remembered outlast their switch",
@@ -272,7 +274,7 @@ mutate("Cures.lua",
 
 # ------------------------------------------------------------ the reading
 # Read again on every scan: a raid's worth of protected calls 2.5 times a second.
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\tif record and now < record.trustedTo then return record end\n",
        "",
        "cures: every scan reads everybody again",
@@ -280,20 +282,21 @@ mutate("Cures.lua",
 
 # UNIT_AURA forgets nothing: a cure that landed is offered for three more seconds.
 mutate("Favours.lua",
-       "\tif ns.cureReads then ns.ForgetCureRead(unit) end\n",
+       "\tif ns.cureReads and ns.ModuleActive and ns.ModuleActive(\"combat\") then\n"
+       "\t\tns.ForgetCureRead(unit)\n\tend\n",
        "",
        "cures: UNIT_AURA leaves the reading standing",
        expect="cures: a reading is kept three seconds and forgotten at UNIT_AURA", script=S)
 
 # ------------------------------------------------------------ said
 mutate("Commands.lua",
-       "\t\tfor _, line in ipairs(ns.CureLines()) do self:Print(\"  \" .. line) end\n",
+       "\t\tfor _, line in ipairs(ns.CureLines and ns.CureLines() or {}) do self:Print(\"  \" .. line) end\n",
        "",
        "cures: /manners debug silent",
        expect="cures: /manners debug says what you cure, or that it is switched off", script=S)
 
 mutate("Options/Diagnostics.lua",
-       "\tpcall(function() Heard(ns.CureLines()) end)\n",
+       "\tpcall(function() Heard(ns.CureLines and ns.CureLines() or {}) end)\n",
        "",
        "cures: somebody left alone named in the check-up",
        expect="cures: the full check-up does not name somebody left alone", script=S)
@@ -306,36 +309,32 @@ mutate("Options/Diagnostics.lua",
        expect="cures: the bug report says how the switches are set", script=S)
 
 # ------------------------------------------------------------ the settings
-mutate("Options/Who.lua",
-       "\tAddCureControls(who.args)\n",
-       "",
+mutate("Modules/Combat/Options.lua",
+       "api:RegisterOptionsExtension(\"who\", function(_, args)\n",
+       "api:RegisterOptionsExtension(\"none\", function(_, args)\n",
        "cures: no controls on Who to buff",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)
 
 # Shown to a class with nothing to cure with.
-mutate("Options/Who.lua",
-       "\tlocal function NoCures() return not ns.ClassHasCures() end\n",
-       "\tlocal function NoCures() return false end\n",
+mutate("Modules/Combat/Options.lua",
+       "return not api:ModuleActive(\"combat\") or not ns.ClassHasCures()",
+       "return not api:ModuleActive(\"combat\")",
        "cures: the controls shown to a warrior",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)
 
 # Added before a class with nothing for others has the page cleared for it.
-mutate("Options/Who.lua",
-       "\t-- After it: the cures are for a class with nothing else for others too.\n"
-       "\tAddCureControls(who.args)\n",
-       "\tAddCureControls(who.args)\n"
-       "\tForOthersOnly(who.args)\n"
-       "\tPage.AddAskControls(who.args)\n",
+mutate("Modules/Combat/Options.lua",
+       "order = 14.93, width = \"full\", hidden = NoCures,\n",
+       "order = 14.93, width = \"full\", hidden = function() return true end,\n",
        "cures: the controls hidden from a shaman",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)
 
-mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t\"who.curesNote\",\n\t\t\t\t\t\"who.cures\",\n\t\t\t\t\t\"who.curesStrangers\",\n"
-       "\t\t\t\t\t-- Yourself too (Cures.lua, ns.CureSelf): a switch of its own,\n"
-       "\t\t\t\t\t-- not under the party's, which it does not wait on.\n"
-       "\t\t\t\t\t\"who.curesSelf\",\n"
-       "\t\t\t\t\t{ \"who.cureSeconds\", indent = true },\n",
-       "",
+mutate("Modules/Combat/Options.lua",
+       "api:InsertLayoutItems(\"who\", \"who.resStrangers\", {\n"
+       "\t\"who.curesNote\", \"who.cures\", \"who.curesStrangers\", \"who.curesSelf\",\n"
+       "\t{ \"who.cureSeconds\", indent = true }, \"who.curesFight\",\n"
+       "})\n",
+       "api:InsertLayoutItems(\"who\", \"who.missing\", {})\n",
        "cures: the window places no control",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)
 

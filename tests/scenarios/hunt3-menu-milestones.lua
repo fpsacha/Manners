@@ -67,7 +67,7 @@ do
 		ns.db.profile.sources.asked = false
 		ns.RefreshOptionsDisplay()
 		local hit = found(UI, ns.L["Portals, when my group asks"], "who.courtesyPortals")
-		if not (hit and hit.first and hit.ref.path == "who.asked") then
+		if not (hit and hit.first and hit.ref.path == "who.servicesAsked") then
 			fail(scenario, "SKIPPED -- a mage with the switch off is not led to it for the portals")
 		end
 		if found(UI, ns.L["Healthstones, when they ask"] or "Healthstone", "who.courtesyHealthstones") then

@@ -188,20 +188,24 @@ mutate("Ask.lua",
        expect=PALADIN, script=S)
 
 mutate("Ask.lua",
-       "\tif buff.talent or buff.optIn or buff.returnOnly",
+       "\tif (buff.talent and not explicitlyChosen) or buff.optIn or buff.returnOnly",
        "\tif buff.optIn or buff.returnOnly",
        "ask: asked for a talent",
        expect=TALENT, script=S)
 
 mutate("Ask.lua",
-       "\tif buff.talent or buff.optIn or buff.returnOnly",
-       "\tif buff.talent or buff.returnOnly",
+       "\tif (buff.talent and not explicitlyChosen) or buff.optIn or buff.returnOnly",
+       "\tif (buff.talent and not explicitlyChosen) or buff.returnOnly",
        "ask: asked for a buff that is off until switched on",
        expect=TALENT, script=S)
 
 mutate("Ask.lua",
-       "\t\t\tif not buff.oneTarget and Wearing(buff, now, true) ~= false then return nil end\n",
-       "",
+       "\t\t\t\t\telseif not AskedByOtherPaladin(name, buff.key, now) then\n"
+       "\t\t\t\t\t\treturn nil\n"
+       "\t\t\t\t\tend\n",
+       "\t\t\t\t\telseif false then\n"
+       "\t\t\t\t\t\treturn nil\n"
+       "\t\t\t\t\tend\n",
        "ask: a second blessing asked for over the one worn",
        expect=PALADIN, script=S)
 
@@ -333,7 +337,7 @@ mutate("Options/Who.lua",
        expect=RESET, script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"sources.ask\", \"ask.channel\", \"ask.line\", \"ask.inTowns\", \"ask.own\",\n",
+       "\t\t\"sources.ask\", \"ask.channel\", \"ask.line\", \"ask.paladin\", \"ask.inTowns\", \"ask.own\",\n",
        "",
        "ask: the page's reset leaves asking as it is",
        expect=RESET, script=S)

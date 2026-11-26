@@ -16,8 +16,8 @@ mutate("Queue.lua",
        "supplies: food stays on the prompt as well",
        expect="supplies: on, food leaves the prompt for the button", script=S)
 
-mutate("Prompt/Supplies.lua",
-       "\tif not ns.ItemsApart(db) then\n\t\tif button then\n",
+mutate("Modules/MyBuffs/Supplies.lua",
+       "\tif not ns.ModuleActive(\"mybuffs\") or not ns.ItemsApart(db) then\n\t\tif button then\n",
        "\tif false then\n\t\tif button then\n",
        "supplies: the button offers with the switch off",
        expect="supplies: on, food leaves the prompt for the button", script=S)
@@ -28,43 +28,43 @@ mutate("Queue.lua",
        "supplies: no family counts as items",
        expect="supplies: on, food leaves the prompt for the button", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tns.MarkAttempted(current.name, current.buff.key)\n\tns.NoteScrollPress(current.buff)\n",
        "\tns.NoteScrollPress(current.buff)\n",
        "supplies: a press writes no block",
        expect="supplies: a press holds the food back", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tns.SkipOwn(current.name, current.buff.key, ns.OwnSkipSeconds())\n",
        "\tns.SkipOwn(current.name, current.buff.key, 1)\n",
        "supplies: a right-click skips for a second",
        expect="supplies: a right-click skips it for the skip time", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tif not db.prompt.locked then\n\t\tDisarm()\n",
        "\tif not db.prompt.locked then\n",
        "supplies: armed while unlocked",
        expect="supplies: unlocked it shows, arms nothing, and a drag keeps its place", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\t\tself:StopMovingOrSizing()\n\t\tSavePosition()\n",
        "\t\tself:StopMovingOrSizing()\n",
        "supplies: a drag is not kept",
        expect="supplies: unlocked it shows, arms nothing, and a drag keeps its place", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tif macro == armedMacro and button:GetAttribute(\"macrotext1\") == macro then return end\n",
        "\tif macro == armedMacro then return end\n",
        "supplies: not armed again after a fight",
        expect="supplies: a fight takes it away, disarmed, and the end of it brings it back", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\t\tbutton:SetAttribute(\"macrotext1\", nil)\n\t\tbutton:SetAttribute(\"type\", nil)\n\t\tbutton:SetAttribute(\"macrotext\", nil)\n\t\tbutton:Hide(true)\n",
        "\t\tbutton:Hide(true)\n",
        "supplies: the snippet hides it still armed",
        expect="supplies: the fight's snippet disarms and hides it on its own", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\t\t\t_G.RegisterStateDriver(made, STATE, DRIVER)\n",
        "",
        "supplies: no driver for the fight",
@@ -82,7 +82,7 @@ mutate("Core.lua",
        "supplies: a size out of bounds kept",
        expect="supplies: the switch is under Myself", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.apart = value == true\n",
        "",
        "supplies: the switch stores nothing",

@@ -393,8 +393,7 @@ local EXPECTED = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly", "sources.owed", "sources.group",
 		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "filters.proximity",
-		-- A class's courtesies on request, resurrection and cures.
-		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
+		-- Resurrection and cures stay on Who; request services have their own page.
 		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight", "prompt.cureFightEach",
 		"filters.restingOnly", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
@@ -420,6 +419,10 @@ local EXPECTED = {
 		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
 		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
 	},
+	services = {
+		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
+		"sources.courtesyTarget", "sources.courtesyAmount",
+	},
 	skip = { "filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.skipGuilds", "filters.skipMuted", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel",
 		"timing.skipSeconds", "timing.ownSkipMinutes" },
 	when = {
@@ -441,7 +444,7 @@ local EXPECTED = {
 		"speech.onlyWhenReturning", "speech.firstNameOnly", "speech.mixedShare", "prompt.thankWhisper", "prompt.thankDelay",
 			"prompt.thankUnseen", "prompt.thankAsk",
 		-- Asking for a buff moved here from Who to buff: every class asks.
-		"sources.ask", "ask.channel", "ask.line", "ask.inTowns", "ask.own" },
+		"sources.ask", "ask.channel", "ask.line", "ask.paladin", "ask.inTowns", "ask.own" },
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",
@@ -459,7 +462,8 @@ local EXPECTED = {
 	-- In a fight: what the prompt does when a fight starts, and the buttons made for one.
 	fight = {
 		"prompt.fightRota",
-		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
+		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach",
+		"prompt.cureFightMods", "prompt.fightButtons",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the
 	-- window falls back to (Register.lua). Its reset is the old one's
@@ -481,6 +485,7 @@ local KEPT = {
 	when = { { "prompt.scale", 1.25 } },
 	self = { { "enabled", false } },
 	pet = { { "enabled", false } },
+	services = { { "enabled", false } },
 	quiet = { { "prompt.scale", 1.25 } },
 	click = { { "speech.phrases", "my very own line" }, { "speech.presetChoice", "polite" } },
 	appearance = { { "prompt.x", 41 }, { "prompt.y", 123 }, { "prompt.point", "TOP" },
@@ -496,6 +501,7 @@ local HOOKS = {
 	when = { "save", "scan", "style", "macro" },
 	self = { "style", "macro", "refresh", "broker" },
 	pet = { "style", "macro", "refresh" },
+	services = { "refresh" },
 	quiet = { "scan", "style", "macro", "refresh" },
 	click = { "macro", "broker", "refresh" },
 	appearance = { "clamp", "style", "macro" },
@@ -509,7 +515,7 @@ local function field(profile, path)
 	return profile, path
 end
 
-for _, pageId in ipairs({ "who", "skip", "when", "self", "pet", "quiet", "click", "fight", "appearance", "advanced" }) do
+for _, pageId in ipairs({ "who", "skip", "when", "self", "pet", "services", "quiet", "click", "fight", "appearance", "advanced" }) do
 	local scenario = "model: the reset puts " .. pageId .. " back"
 	with(scenario, nil, nil, function(ns)
 		local Page = ns.OptionsPage

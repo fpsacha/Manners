@@ -149,6 +149,8 @@ function ns.AskClamp(profile)
 	if type(ask) ~= "table" then return end
 	if ask.channel ~= "WHISPER" and ask.channel ~= "SAY" then ask.channel = "WHISPER" end
 	if Ask.LINES[ask.line] == nil and ask.line ~= "own" then ask.line = Ask.LINE_ORDER[1] end
+	local blessings = Ask.PaladinChoices()
+	if blessings[ask.paladin] == nil then ask.paladin = "auto" end
 	ask.own = Ask.CleanOwn(ask.own)
 end
 
@@ -196,6 +198,16 @@ local function NoteAsked(name, key, now)
 	end
 	asked[id] = now
 	Ask.lastAt = now
+end
+
+-- A key recently requested from another Paladin. An Automatic ask may move on
+-- to a different blessing rather than asking every Paladin for the same one.
+local function AskedByOtherPaladin(name, key, now)
+	for id, at in pairs(asked) do
+		local who, askedKey = id:match("^(.-)%z(.*)$")
+		if who ~= name and askedKey == key and now - at < Ask.PERSON_SECONDS then return true end
+	end
+	return false
 end
 
 ---------------------------------------------------------------------------
@@ -325,11 +337,11 @@ end
 -- The same rules that decide what suits somebody else (Core.lua, Castable),
 -- turned round on yourself. `me` is the scan's account of you; `grouped` and
 -- `unit` are theirs.
-local function Suits(buff, me, unit, grouped, level)
+local function Suits(buff, me, unit, grouped, level, explicitlyChosen)
 	-- Never what not everybody of the class has (a talent), what Manners itself
 	-- hands out only on request (optIn, returnOnly, neverAuto), what goes to
 	-- one person at a time or to a tank by choice, or a shout.
-	if buff.talent or buff.optIn or buff.returnOnly or buff.neverAuto or buff.oneTarget
+	if (buff.talent and not explicitlyChosen) or buff.optIn or buff.returnOnly or buff.neverAuto or buff.oneTarget
 		or buff.tankChoice or buff.selfCast then
 		return false
 	end
@@ -347,23 +359,76 @@ local function Suits(buff, me, unit, grouped, level)
 	return true
 end
 
+local PALADIN_ORDER = { "kings", "wisdom", "might", "salvation" }
+
+function Ask.PaladinChoices()
+	local values = { auto = L["Automatic"] }
+	local sorting = { "auto" }
+	for _, key in ipairs(PALADIN_ORDER) do
+		local buff = ns.FindBuff("PALADIN", key)
+		if buff then
+			values[key] = ns.BuffName(buff)
+			sorting[#sorting + 1] = key
+		end
+	end
+	return values, sorting
+end
+
 -- Which buff of their class to ask this person for, or nil.
 local function Want(name, class, unit, grouped, level, me, now)
 	local buffs = ns.BUFFS[class]
 	if type(buffs) ~= "table" then return nil end
 	if ns.EXCLUSIVE_BUFFS[class] then
-		-- One of theirs on you is all one of them gives: wearing any, or with
-		-- a reading nobody could take, there is nothing to ask for.
-		for _, buff in ipairs(buffs) do
-			if not buff.oneTarget and Wearing(buff, now, true) ~= false then return nil end
+		-- A Paladin's explicit choice may name a talent buff. Automatic keeps
+		-- the existing role-based choice and, once that choice is accounted
+		-- for by another Paladin, can ask this one for a different blessing.
+		local choice = class == "PALADIN" and Profile() and Profile().ask
+			and Profile().ask.paladin or "auto"
+		local unknown = false
+		-- An explicit request is a statement of intent: a different blessing
+		-- already on the player does not cancel it. The chosen one itself must
+		-- still be plainly missing and not recently asked of this Paladin.
+		if class == "PALADIN" and choice ~= "auto" then
+			local first = ns.FindBuff(class, choice)
+			if first and Suits(first, me, unit, grouped, level, true)
+				and Wearing(first, now) == false and not AskedByOtherPaladin(name, choice, now)
+				and not AskedLately(name, class, first, now) then
+				return first
+			end
+			return nil
 		end
+		for _, buff in ipairs(buffs) do
+			if not buff.oneTarget then
+				local worn = Wearing(buff, now, true)
+				if worn ~= false then
+					if worn == nil then
+						unknown = true
+					elseif not AskedByOtherPaladin(name, buff.key, now) then
+						return nil
+					end
+				end
+			end
+		end
+		if unknown then return nil end
 		local auto = ns.CLASS_AUTO[class]
-		local key = auto and (me.hasMana and auto.mana or auto.other)
-		local first = key and ns.FindBuff(class, key)
-		if first and Suits(first, me, unit, grouped, level) and Wearing(first, now) == false then
-			if AskedLately(name, class, first, now) then return nil end
+		local preferred = auto and (me.hasMana and auto.mana or auto.other)
+		local first = preferred and ns.FindBuff(class, preferred)
+		if first and Suits(first, me, unit, grouped, level) and Wearing(first, now) == false
+			and not AskedByOtherPaladin(name, first.key, now)
+			and not AskedLately(name, class, first, now) then
 			return first
 		end
+		if class == "PALADIN" then
+			for _, key in ipairs(PALADIN_ORDER) do
+				local other = ns.FindBuff(class, key)
+				if other and key ~= preferred and Suits(other, me, unit, grouped, level)
+					and Wearing(other, now) == false and not AskedByOtherPaladin(name, key, now)
+					and not AskedLately(name, class, other, now) then
+					return other
+				end
+			end
+		end
+		if class == "PALADIN" then return nil end
 	end
 	for _, buff in ipairs(buffs) do
 		if Suits(buff, me, unit, grouped, level) and Wearing(buff, now) == false

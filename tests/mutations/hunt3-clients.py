@@ -20,12 +20,12 @@ mutate("Resurrect.lua",
 
 # Mists: the level a refreshment asks.
 LEVEL = "hunt3-clients: mists: nobody is handed a refreshment above their level"
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\tif needs and (needs[item] or 0) > level then count = 0 end\n",
        "",
        "hunt3-clients: mists: a refreshment traded to somebody too low for it",
        expect=LEVEL, script=S)
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\t\t\t\tif (needs[item] or 0) > level then return nil, \"level\" end\n",
        "",
        "hunt3-clients: mists: a conjure for somebody too low for what it makes",
@@ -34,22 +34,25 @@ mutate("Courtesy.lua",
 # A courtesy's own cooldown.
 COOL = "hunt3-clients: mists: a summon or a Soulwell still cooling down is not offered"
 CONJURE = "hunt3-clients: a conjure still cooling down is not offered"
-mutate("Courtesy.lua",
-       "\t\tif Cooling(kind.spell) then return nil, \"cooldown\" end\n",
-       "",
+mutate("Modules/Services/Courtesy.lua",
+       "\t\tif Cooling(spell) then return nil, \"cooldown\" end\n"
+       "\t\tif not Usable(spell) then return nil, \"unusable\" end\n"
+       "\t\tif kind.targeted and InRange(spell, unit) ~= true then return nil, \"range\" end\n",
+       "\t\tif not Usable(spell) then return nil, \"unusable\" end\n"
+       "\t\tif kind.targeted and InRange(spell, unit) ~= true then return nil, \"range\" end\n",
        "hunt3-clients: a summon offered while the ritual cools down",
        expect=COOL, script=S)
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\tif Cooling(spell) then return nil, \"cooldown\" end\n",
        "",
        "hunt3-clients: a Soulwell or a portal offered while it cools down",
        expect=COOL, script=S)
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\tif Cooling(conjure.spell) then return nil, \"cooldown\" end\n",
        "",
        "hunt3-clients: a conjure offered while it cools down",
        expect=CONJURE, script=S)
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "and duration > 3\n\t\tand start + duration > GetTime()\n",
        "and duration > 0\n\t\tand start + duration > GetTime()\n",
        "hunt3-clients: the global cooldown takes a courtesy off the prompt",

@@ -17,7 +17,7 @@ import maketocs
 # Manners.toc is the hand-edited source and the fallback for a client that does
 # not honour a suffixed name; every per-flavour toc (tools/maketocs.py's
 # FLAVOURS, one for each client) is generated from it.
-TOCS = [maketocs.SOURCE] + sorted(maketocs.expected())
+TOCS = [maketocs.SOURCE] + [source for source, _ in maketocs.MODULES] + sorted(maketocs.expected())
 
 # Our own Lua files, in the order Manners.toc loads them: every .lua it names
 # directly (the translations come in through Locales.xml and are counted on
@@ -26,6 +26,11 @@ TOCS = [maketocs.SOURCE] + sorted(maketocs.expected())
 OURS = [l.strip().replace("\\", "/")
         for l in open(os.path.join(ROOT, maketocs.SOURCE), encoding="utf-8")
         if not l.startswith("#") and l.strip().lower().endswith(".lua")]
+for _source, _name in maketocs.MODULES:
+    _base = os.path.dirname(_source).replace(os.sep, "/")
+    for _line in open(os.path.join(ROOT, _source), encoding="utf-8"):
+        if not _line.startswith("#") and _line.strip().lower().endswith(".lua"):
+            OURS.append((_base + "/" + _line.strip().replace("\\", "/")).lstrip("/"))
 
 L = lupa.LuaRuntime()
 # loadstring: 5.1's load takes a reader function, not source text.
@@ -245,7 +250,14 @@ else:
 # Every page of the options window has its own "### <title>" part in the
 # README (the page list there follows Layout.lua), and no listing names a
 # label the menu pass renamed.
-_layout_src = open(os.path.join(ROOT, "Options", "Window", "Layout.lua"), encoding="utf-8").read()
+_layout_src = "\n".join(
+    open(os.path.join(ROOT, path), encoding="utf-8").read()
+    for path in (
+        os.path.join("Options", "Window", "Layout.lua"),
+        os.path.join("Modules", "MyBuffs", "Layout.lua"),
+        os.path.join("Modules", "Pets", "Options.lua"),
+    )
+)
 _page_titles = re.findall(r'\n\t\t\ttitle = L\["([^"]+)"\],\n\t\t\tblurb = ', _layout_src)
 _missing = [x for x in _page_titles if "\n### %s\n" % x not in readme_src]
 if len(_page_titles) < 12 or _missing:
@@ -294,6 +306,37 @@ tocs = {name: open(os.path.join(ROOT, name), encoding="utf-8").read()
         for name in TOCS if os.path.exists(os.path.join(ROOT, name))}
 toc = tocs.get(maketocs.SOURCE, "")
 
+print("\n== optional modules are their own addons ==")
+_states = {
+    "Manners_Combat": "disabled",
+    "Manners_Achievements": "disabled",
+    "Manners_Pets": "enabled",
+    "Manners_MyBuffs": "disabled",
+    "Manners_Services": "disabled",
+}
+_pkg = open(os.path.join(ROOT, ".pkgmeta"), encoding="utf-8").read()
+for _source, _name in maketocs.MODULES:
+    _text = tocs.get(_source, "")
+    _move = "%s: %s" % (_source.removesuffix("/" + _name + ".toc"), _name)
+    if "## Dependencies: Manners" not in _text:
+        print("  %s does not depend on Manners" % _name)
+        fail += 1
+    if "## DefaultState: %s" % _states[_name] not in _text:
+        print("  %s is not DefaultState %s" % (_name, _states[_name]))
+        fail += 1
+    if _move not in _pkg:
+        print("  %s is not moved to the zip by .pkgmeta" % _name)
+        fail += 1
+    if not re.search(r"^## Title: Manners", _text, re.M):
+        print("  %s has no Manners title" % _name)
+        fail += 1
+if "## SavedVariables: MannersAchievementsDB" not in tocs.get(
+        "Modules/Achievements/Manners_Achievements.toc", ""):
+    print("  Manners_Achievements has no own SavedVariables")
+    fail += 1
+if fail == 0:
+    print("  ok  %d modules, dependencies/default states and package moves" % len(maketocs.MODULES))
+
 print("\n== file references ==")
 # A file list with a typo in it is the other way to ship an addon that is
 # simply dead: the client loads what it can find, the missing file's chunk
@@ -309,7 +352,8 @@ refs = [r if isinstance(r, tuple) else ("embeds.xml", r) for r in refs]
 
 missing = []
 for where, r in refs:
-    p = os.path.join(ROOT, r.replace("\\", os.sep))
+    base = os.path.dirname(where) if where != "embeds.xml" else ""
+    p = os.path.join(ROOT, base, r.replace("\\", os.sep))
     # embeds.xml points into Libs/, which a checkout does not have. When there
     # is one it is checked like everything else: skipping Libs/ unconditionally
     # is how a path one folder too shallow went out in a release, with a copy
@@ -1114,6 +1158,39 @@ finally:
     sys.path.pop(0)
 if fail == _before:
     print("  clean")
+
+print("\n== package install keeps the release and its libraries ==")
+_package = subprocess.run(
+    [sys.executable, os.path.join(ROOT, "tools", "install_package.py"), "--selftest"],
+    capture_output=True, text=True, encoding="utf-8", errors="replace")
+if _package.returncode:
+    for _line in (_package.stdout + _package.stderr).splitlines():
+        if "package-install:" in _line or "libraries:" in _line:
+            print("  " + _line)
+    fail += 1
+else:
+    print("  " + _package.stdout.strip())
+
+_services = subprocess.run(
+    [sys.executable, os.path.join(ROOT, "tools", "audit_services.py"), "--selftest"],
+    capture_output=True, text=True, encoding="utf-8", errors="replace")
+if _services.returncode:
+    print("  " + (_services.stdout + _services.stderr).strip())
+    fail += 1
+else:
+    print("  " + _services.stdout.strip())
+
+print("\n== shipped Lua has no new unused locals ==")
+_unused = subprocess.run(
+    [sys.executable, os.path.join(ROOT, "tools", "unused_lua.py")],
+    capture_output=True, text=True, encoding="utf-8", errors="replace")
+if _unused.returncode:
+    for _line in (_unused.stdout + _unused.stderr).splitlines():
+        if "unused local" in _line or "unused-lua:" in _line:
+            print("  " + _line)
+    fail += 1
+else:
+    print("  " + _unused.stdout.strip())
 
 print("\n== stale names ==")
 allsrc = "\n".join(open(os.path.join(ROOT, f), encoding="utf-8").read() for f in OURS) + toc

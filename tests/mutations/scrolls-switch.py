@@ -48,32 +48,32 @@ mutate("Core.lua",
 
 # --- the page -------------------------------------------------------------------------
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tif ns.ScrollsOff(family) then return true end\n",
        "",
        "scrolls-switch: a stat scroll's row stays with the switch off",
        expect="scrolls-switch: era: off, no stat scroll is offered or shown", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.scrolls = value == true\n",
        "",
        "scrolls-switch: the switch writes nothing",
        expect="scrolls-switch: forever: off, a mage's familiar and a stat scroll are gone and kept", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t-- The bags are counted again for the scrolls switched on.\n"
        "\t\t\t\t\tif ns.ForgetScrolls then ns.ForgetScrolls() end\n",
        "",
        "scrolls-switch: the bags not counted again when it is turned on",
        expect="scrolls-switch: era: off, no stat scroll is offered or shown", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\tif ns.db.profile.ownBuffs.scrolls == false then return true end\n",
        "",
        "scrolls-switch: the switch hides itself once off",
        expect="scrolls-switch: the switch shows only with a scroll about", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\tfor _, family in ipairs(ns.KnownOwnFamilies()) do\n\t\tif family.isScroll then return true end\n\tend\n\treturn false\n",
        "\treturn true\n",
        "scrolls-switch: the switch shown with no scroll about",
@@ -85,7 +85,7 @@ mutate("Core.lua",
        "scrolls-switch: retail said to have scrolls",
        expect="scrolls-switch: retail has no scroll and no switch", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.ownScrolls\",\n",
        "",
        "scrolls-switch: the switch not placed on the page",

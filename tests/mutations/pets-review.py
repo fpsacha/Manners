@@ -7,7 +7,7 @@
 S = "runscenarios.py"
 
 # The scan brings a pet out while the player's own call is still to be judged.
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif session.asked then return end\n",
        "",
        "pets-review: a pet summoned before the putting away is judged",
@@ -28,14 +28,14 @@ mutate("Queue.lua",
        expect="pets-review: a pet of the group named as your own pet is left out", script=S)
 
 # The owner is never asked whether they are in a vehicle, either way.
-mutate("Core.lua",
-       "if type(riding) == \"function\" and plain(riding(pet)) == true then return false end\n\t\triding = _G.UnitInVehicle",
-       "riding = _G.UnitInVehicle",
+mutate("Context.lua",
+       "if (type(ownerVehicle) == \"function\" and plain(ownerVehicle(owner)) == true)\n",
+       "if false\n",
        "pets-review: a vehicle with its own bar is a pet",
        expect="pets-review: a member's vehicle is no pet of theirs (UnitHasVehicleUI)", script=S)
 
-mutate("Core.lua",
-       "\t\triding = _G.UnitInVehicle\n\t\tif type(riding) == \"function\" and plain(riding(pet)) == true then return false end\n",
-       "",
+mutate("Context.lua",
+       "\t\t\tor (type(selfVehicle) == \"function\" and plain(selfVehicle(owner)) == true) then\n",
+       "\t\t\tor false then\n",
        "pets-review: a vehicle ridden is a pet",
        expect="pets-review: a member's vehicle is no pet of theirs (UnitInVehicle)", script=S)

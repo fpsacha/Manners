@@ -29,14 +29,14 @@ mutate("Buffs.lua",
        expect="shamanimbue: Automatic takes the first you know", script=S)
 
 # the page's description is a scroll's.
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tif family.imbue and not family.spells[1].item then\n",
        "\t\t\t\t\tif false then\n",
        "shamanimbue: the page describes scrolls",
        expect="shamanimbue: the page says what an imbue reminder is", script=S)
 
 # the control placed on the page.
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.own_shamanimbue\",\n",
        "",
        "shamanimbue: the control not placed on the page",

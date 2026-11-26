@@ -1,5 +1,12 @@
 package-as: Manners
 
+move-folders:
+  Manners/Modules/Combat: Manners_Combat
+  Manners/Modules/Achievements: Manners_Achievements
+  Manners/Modules/Pets: Manners_Pets
+  Manners/Modules/MyBuffs: Manners_MyBuffs
+  Manners/Modules/Services: Manners_Services
+
 enable-nolib-creation: no
 
 # This release's section of CHANGELOG.md, written by the release workflow via

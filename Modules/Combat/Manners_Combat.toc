@@ -1,0 +1,17 @@
+## Interface: 16001, 11509, 20506, 50504, 120105
+## Title: Manners: Combat
+## Notes: Optional in-fight cure, break-free and Mend Pet buttons for Manners.
+## Author: Sacha
+## Version: 1.12.1
+## Dependencies: Manners
+## DefaultState: disabled
+## X-License: MIT
+
+Bindings.xml
+Cures.lua
+CureNeed.lua
+BreakFree.lua
+MendPet.lua
+CureFight.lua
+Options.lua
+Init.lua

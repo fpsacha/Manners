@@ -113,7 +113,8 @@ CLIENTS = (("vanilla", "era.lua"), ("tbc", "tbc.lua"), ("mists", "mists.lua"),
 # Queue.lua and Favours.lua. Before this, no check ran unverified.lua as anything
 # but Forever.
 ALSO = (("mainline", "unverified.lua"), ("mainline", "hunt23-queue.lua"),
-        ("mainline", "hunt23-favours.lua"))
+        ("mainline", "hunt23-favours.lua"), ("mainline", "curefight.lua"),
+        ("mainline", "combat-module.lua"), ("mainline", "modules-migrations.lua"))
 
 # The scenario files of fixes: every one is run as each client besides Forever.
 # It was *-fixes.lua alone, so the thirteen files of 1.11.25's two review hunts

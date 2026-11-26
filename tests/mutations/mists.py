@@ -61,6 +61,13 @@ mutate("Buffs.lua",
        expect="mists: Arcane Brilliance is offered to a warrior and a hunter, who have no mana",
        script=S)
 
+mutate("Core.lua",
+       "if flavour == \"mists\" or flavour == \"mainline\" then MANA_CLASSES.HUNTER = nil end\n",
+       "if flavour == \"mainline\" then MANA_CLASSES.HUNTER = nil end\n",
+       "mists: the tokenless hunter fallback says mana",
+       expect="mists: Arcane Brilliance is offered to a warrior and a hunter, who have no mana: the class fallback says a Mists hunter has a mana bar",
+       script=S)
+
 # A paladin's blessings taken to stack on Mists: the walk replaces the Kings
 # you gave with your Might.
 mutate("Buffs.lua",

@@ -67,6 +67,16 @@ local function OwnSpellGone(entry)
 		and not ns.FindOwnSpell(entry.buff.key)
 end
 
+-- A module entry cannot remain pressable through the prompt's empty-queue fuse
+-- or cursor hold after that module was switched off.
+local function ModuleRetired(entry)
+	if not entry or not ns.ModuleActive then return false end
+	if entry.cure and not ns.ModuleActive("combat") then return true end
+	if entry.courtesy and not ns.ModuleActive("services") then return true end
+	if (entry.care or entry.bond) and not ns.ModuleActive("pets") then return true end
+	return entry.reason == "self" and not entry.cure and not ns.ModuleActive("mybuffs")
+end
+
 -- Whether this entry was deliberately retired: blocked (the retry cooldown a
 -- click wrote, or a right-press refusal), on the never-offer list with
 -- nothing owed, or held back for PvP -- flagged since the paint, or in a
@@ -75,6 +85,7 @@ end
 -- queue otherwise casts at whoever the panel still names.
 local function Retired(entry, now)
 	if ns.HeldForPvP(entry) then return true end
+	if ModuleRetired(entry) then return true end
 	if OwnSpellGone(entry) then return true end
 	-- One of your own that moving would cut short (Core.lua, ns.StillCut).
 	if ns.StillCut(entry, now) then return true end
@@ -124,6 +135,7 @@ end
 -- inside HOLD_SECONDS, which a press may land in.
 local function HoldStillStands(now)
 	if not (S.heldEntry and S.heldAt) then return false end
+	if ModuleRetired(S.heldEntry) then return false end
 	if OwnSpellGone(S.heldEntry) then return false end
 	if ns.StillCut(S.heldEntry, now) then return false end
 	-- Longer while the cursor is on the panel (see CursorHolds).

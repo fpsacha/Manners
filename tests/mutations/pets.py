@@ -30,36 +30,36 @@ mutate("Core.lua",
 # --- whether one is out ---
 
 mutate("Core.lua",
-       "\t\tif family.pet then return ns.ReadPet(family) end\n",
+       "\t\tif family.pet then\n\t\t\treturn ns.ReadPet and ns.ReadPet(family) or false\n\t\tend\n",
        "",
        "pets: read as an aura",
        expect="pets: its use puts it out", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif mine.out == spell.key then\n\t\tmine.out, mine.dismissed = nil, true\n",
        "\tif false then\n\t\tmine.out, mine.dismissed = nil, true\n",
        "pets: the same use again read as putting it out",
        expect="pets: its use puts it out, the same use again puts it away", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif unit == \"player\" then self:Cast(spellId) end\n",
        "\t\tself:Cast(spellId)\n",
        "pets: anybody's cast counted as yours",
        expect="pets: its use puts it out, the same use again puts it away", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\telseif event == \"PLAYER_DEAD\" then\n\t\tself:Gone(false)\n",
        "\telseif event == \"PLAYER_DEAD\" then\n",
        "pets: death leaves the pet counted out",
        expect="pets: death and a loading screen take the pet", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif reload == true then\n",
        "\t\tif false then\n",
        "pets: a reload takes the pet",
        expect="pets: death and a loading screen take the pet, a reload does not", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif settle then session.quietUntil = GetTime() + SETTLE end\n",
        "",
        "pets: no settling after a loading screen",
@@ -67,19 +67,19 @@ mutate("Companion.lua",
 
 # --- the holds ---
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif Yes(_G.IsMounted) then return \"mounted\" end\n",
        "",
        "pets: offered mounted",
        expect="pets: not mounted, in an instance or stealthed", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif Instanced() then return \"instance\" end\n",
        "",
        "pets: offered in an instance",
        expect="pets: not mounted, in an instance or stealthed", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tor Yes(_G.IsStealthed) then\n",
        "\t\tthen\n",
        "pets: offered stealthed",
@@ -91,7 +91,7 @@ mutate("Core.lua",
        "pets: the holds ignored",
        expect="pets: not mounted, in an instance or stealthed", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif mine and mine.dismissed then return \"dismissed\" end\n",
        "",
        "pets: a pet put away brought back",
@@ -105,61 +105,61 @@ mutate("Core.lua",
        "pets: the journal never asked",
        expect="pets: Forever brings a pet out of the journal itself", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif choice == \"last\" and mine and Summonable(mine.guid) then return mine.guid end\n",
        "",
        "pets: the pet out last forgotten",
        expect="pets: Forever brings a pet out of the journal itself", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif choice == \"random\" then return \"random\" end\n",
        "",
        "pets: any pet read as a favourite",
        expect="pets: Which pet brings out a favourite, or any pet", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif InCombatLockdown() then return end\n",
        "",
        "pets: summoned in a fight",
        expect="pets: the journal is not touched with the switch off, in a fight", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\treturn family ~= nil and family.journal == true and ns.OwnPick(family) ~= \"off\"\n",
        "\treturn family ~= nil and family.journal == true\n",
        "pets: the journal asked with the switch off",
        expect="pets: the journal is not touched with the switch off", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif mine and JournalOut() == false and (asked.guid == nil or asked.guid == mine.guid) then\n",
        "\tif mine then\n",
        "pets: another pet chosen read as put away",
        expect="pets: a summon of another pet is no putting away", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tsession.asked = { guid = plain(guid), at = GetTime() }\n",
        "",
        "pets: the player's putting away unheard",
        expect="pets: a pet the player puts away from the journal stays away", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\t\tif session.failures >= GIVE_UP and not session.refused then\n",
        "\t\t\tif false then\n",
        "pets: a refusing journal asked for ever",
        expect="pets: a journal that brings nothing out three times", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif who == \"Manners\" and type(what) == \"string\" and what:find(\"Pet\", 1, true) then\n",
        "\t\tif type(what) == \"string\" and what:find(\"Pet\", 1, true) then\n",
        "pets: another addon's refusal taken for Manners'",
        expect="pets: the game naming Manners for a pet call stops the journal", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif type(n) == \"number\" and n > 0 then return false end\n",
        "",
        "pets: the journal over a bag pet used last",
        expect="pets: on Forever a bag pet used last is offered before the journal", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif JournalOut() then\n\t\t\tsession.failures = 0\n",
        "\t\tif false then\n\t\t\tsession.failures = 0\n",
        "pets: a summon that worked counted as refused",
@@ -167,14 +167,14 @@ mutate("Companion.lua",
 
 # --- what the page and the debug lines say ---
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tif family.pet then return pick() == \"off\" and not Page.BaggedHeld(family) end\n",
        "\t\t\t\t\tif family.pet then return true end\n",
        "pets: the switch never shown",
        expect="pets: off by default, the bags unread, and a switch shown", script=S)
 
 mutate("Options/Shared.lua",
-       "\tif family.journal and ns.PetJournalOwned() then return true end\n",
+       "\tif family.journal and ns.PetJournalOwned and ns.PetJournalOwned() then return true end\n",
        "",
        "pets: the journal's pets not counted for the switch",
        expect="pets: Forever shows the switch for a pet in the journal", script=S)
@@ -219,43 +219,43 @@ mutate("Core.lua",
        "pets: a pet picked by name thrown out as a damaged setting",
        expect=BYNAME, script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif Summonable(picked) then return picked, \"picked\" end\n",
        "",
        "pets: the pet picked by name never the one brought out",
        expect=BYNAME, script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif Summonable(picked) then return picked, \"picked\" end\n\t\tchoice = \"last\"\n",
        "\t\tif Summonable(picked) then return picked, \"picked\" end\n",
        "pets: a pet picked and gone not read as the one out last",
        expect="with the pet picked gone", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif type(guid) == \"string\" and guid ~= \"\" and Summonable(guid) then\n",
        "\t\tif type(guid) == \"string\" and guid ~= \"\" then\n",
        "pets: a pet that cannot be brought out listed",
        expect="a pet that cannot be brought out is listed", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\t\tlocal shown = type(custom) == \"string\" and custom ~= \"\" and custom or name\n",
        "\t\t\tlocal shown = name\n",
        "pets: a pet the player named listed under its kind's name",
        expect="a pet the player named reads", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\t\tif n > 1 then pet.label = (\"%s (%d)\"):format(pet.name, n) end\n",
        "",
        "pets: two pets of a name not told apart",
        expect="two of a name read", script=S)
 
-mutate("Companion.lua",
+mutate("Modules/MyBuffs/Companion.lua",
        "\tif type(ids) ~= \"table\" then return out end\n",
        "",
        "pets: an answer that is no list of pets walked as one",
        expect=BYNAME, script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\t\treturn \"last\"\n\t\t\t\t\tend\n\t\t\t\t\treturn choice\n",
        "\t\t\t\t\t\treturn choice\n\t\t\t\t\tend\n\t\t\t\t\treturn choice\n",
        "pets: a pet no longer in the journal left as the page's blank choice",

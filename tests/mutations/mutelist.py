@@ -128,13 +128,13 @@ mutate("Resurrect.lua",
        "mutelist: a muted player is offered a resurrection",
        expect="mutelist: nobody muted is offered a resurrection", script=S)
 
-mutate("Courtesy.lua",
+mutate("Modules/Services/Courtesy.lua",
        "\t\telseif not st.pointed and ns.MuteListed(full, unit, now) then\n",
        "\t\telseif false and ns.MuteListed(full, unit, now) then\n",
        "mutelist: a courtesy for a muted player is offered",
        expect="mutelist: a courtesy asked for by somebody muted waits, and debug says why", script=S)
 
-mutate("Cures.lua",
+mutate("Modules/Combat/Cures.lua",
        "\t\t\tor ns.MuteListed(name, nil, now)\n",
        "",
        "mutelist: a cure is offered from memory to a muted player",

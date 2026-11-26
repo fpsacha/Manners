@@ -12,8 +12,10 @@ mutate("Options/Window/Layout.lua",
        expect="menupass-fight: in combat the page says", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
-       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
+       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\",\n"
+       "\t\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
+       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\",\n"
+       "\t\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
        "menupass-fight: RESET.fight loses prompt.breakFree",
        expect="menupass-fight: In a fight's reset", script=S)
 
@@ -48,7 +50,7 @@ mutate("Core.lua",
        expect="menupass-fight: a tooltip points only at a control that is shown", script=S)
 
 mutate("Options/Look.lua",
-       "\t\thidden = function()\n\t\t\treturn not HasPrompt() and ns.caps.breakFree == nil\n\t\t\t\tand not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())\n\t\tend,\n",
+       "\t\thidden = function()\n\t\t\treturn not HasPrompt() and ns.caps.breakFree == nil\n\t\t\t\tand not (ns.MendPet and ns.MendPet.KnowsMend())\n\t\tend,\n",
        "\t\thidden = function() return not HasPrompt() end,\n",
        "menupass-fight: Look is shut to a Forsaken character with no prompt",
        expect="menupass-fight: a Forsaken rogue with no prompt can reach", script=S)

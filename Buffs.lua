@@ -521,7 +521,8 @@ do
 	}
 	-- A lure by its enchant: the Fishing it adds. Automatic takes the strongest
 	-- your Fishing allows, whatever its minutes.
-	local LURE = { [263] = 25, [264] = 50, [265] = 75, [266] = 100, [3868] = 100, [4225] = 150, [4264] = 15 }
+	local LURE = { [263] = 25, [264] = 50, [265] = 75, [266] = 100, [3868] = 100, [4225] = 150,
+		[4264] = 15, [8773] = 60 }
 	-- A warlock's stone by item (Forever): its school and its rank's power.
 	local STONE_SCHOOL = {
 		[13701] = { "fire", 21 }, [13700] = { "fire", 17 }, [13699] = { "fire", 14 }, [1254] = { "fire", 10 },
@@ -844,6 +845,7 @@ do
 			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
 		},
 		lure = {
+			{ 291005, 0, 8773, 1331725, POLE, 71091, fishing = 50 }, -- Camper's Lure
 			{ 6532, 0, 265, 8090, POLE, fishing = 100 }, -- Bright Baubles
 			{ 6533, 0, 266, 8089, POLE, fishing = 100 }, -- Aquadynamic Fish Attractor
 			{ 7307, 0, 265, 9092, POLE, fishing = 100 }, -- Flesh Eating Worm
@@ -3691,7 +3693,7 @@ do
 		{ 1800, 25122, 25123, 25121, 25120, 25119, 25118, 25117, 3595, 3594 }, -- oils and coatings (30 min)
 		{ 3600, 28898 }, -- oils and coatings: Blessed Wizard Oil (1 h)
 		{ 600, 8090, 9092, 8088, 8532, 8087 }, -- fishing lures (10 min)
-		{ 300, 8089 }, -- fishing lures: Aquadynamic Fish Attractor (5 min)
+		{ 300, 1331725, 8089 }, -- fishing lures: Camper's Lure, Aquadynamic Fish Attractor (5 min)
 		{ 1800, 20906, 20905, 19506, 1299348, 1299346 }, -- Trueshot Aura (30 min)
 		{ 1800, 10220, 10219, 7320, 7302, 7301, 7300, 168 }, -- Ice Armor / Frost Armor (30 min)
 		{ 1800, 22783, 22782, 6117 }, -- Mage Armor (30 min)

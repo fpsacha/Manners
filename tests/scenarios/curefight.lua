@@ -41,7 +41,7 @@ local DRUID = { MOTW, CURE_POISON, REMOVE_CURSE }
 local NAMES = {
 	[1126] = "Mark of the Wild", [8946] = "Cure Poison", [2782] = "Remove Curse",
 	[475] = "Remove Lesser Curse", [988] = "Dispel Magic", [528] = "Cure Disease",
-	[4987] = "Cleanse", [526] = "Cure Poison", [2870] = "Cure Disease",
+	[4987] = "Cleanse", [1152] = "Purify", [526] = "Cure Poison", [2870] = "Cure Disease",
 }
 
 local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "UnitInParty", "C_UnitAuras", "C_Spell", "UnitIsUnit",
@@ -1130,6 +1130,26 @@ with("curefight: a debuff never removed that goes lets the cure show", { class =
 	local alpha, _, name = shows(ns)
 	if alpha ~= 1 then fail(scenario, "not shown once Unstable Affliction was gone: alpha " .. tostring(alpha)) return end
 	if not name:find("Cleanse", 1, true) or not name:find("Poisoned", 1, true) then fail(scenario, "its name line reads " .. name) end
+	release(ns)
+end)
+
+with("curefight: paladin poison uses Purify when Cleanse would take a debuff never removed", {
+	class = "PALADIN", known = { 4987, 1152 },
+}, function(ns, world)
+	local scenario = "curefight: paladin poison uses Purify when Cleanse would take a debuff never removed"
+	world.debuffs.party1 = {
+		debuff("Magic", 30, 427717, nil, "Unstable Affliction"),
+		debuff("Poison", 30),
+	}
+	pull(ns)
+	settle()
+	local _, _, firstName = shows(ns, 1)
+	local secondAlpha, _, secondName = shows(ns, 2)
+	if (shows(ns, 1)) ~= 0 then fail(scenario, "Cleanse was shown for a dangerous mixed debuff: " .. tostring(firstName)) end
+	if secondAlpha ~= 1 or not secondName:find("Purify", 1, true)
+		or not secondName:find("Poisoned", 1, true) then
+		fail(scenario, "the safe Purify button did not show: " .. tostring(secondAlpha) .. " " .. secondName)
+	end
 	release(ns)
 end)
 

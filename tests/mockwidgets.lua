@@ -126,6 +126,10 @@ end
 local function addGeometry(f)
 	f.SetClipsChildren = function(self, on) self._clips = on and true or false end
 	f.SetToplevel = function(self, on) self._toplevel = on and true or false end
+	f.SetPassThroughButtons = function(self, ...)
+		self._pass = {}
+		for _, b in ipairs({ ... }) do self._pass[b] = true end
+	end
 	f.Raise = function(self) self._raised = (self._raised or 0) + 1 end
 	f.Lower = function(self) self._lowered = (self._lowered or 0) + 1 end
 	f.EnableKeyboard = function(self, on) self._keyboard = on and true or false end
@@ -187,18 +191,21 @@ local function addVisibility(f)
 		local was = self._shown ~= false
 		show(self, ...)
 		if not was then fire(self, "OnShow") end
+		if Mock.auraBoxes then Mock.auraSweep() end
 		return self
 	end
 	f.Hide = function(self, ...)
 		local was = self._shown ~= false
 		hide(self, ...)
 		if was then fire(self, "OnHide") end
+		if Mock.auraBoxes then Mock.auraSweep() end
 		return self
 	end
 	f.SetShown = function(self, on, ...)
 		local was = self._shown ~= false
 		shown(self, on, ...)
 		if was and not on then fire(self, "OnHide") elseif on and not was then fire(self, "OnShow") end
+		if Mock.auraBoxes then Mock.auraSweep() end
 		return self
 	end
 end
@@ -386,11 +393,16 @@ widen = function(f, frameType, parent)
 	f._widened = true
 	f._frameType = f._frameType or frameType
 	f._parentFrame = f._parentFrame or parent
+	if parent and parent ~= f then
+		parent._kids = parent._kids or {}
+		parent._kids[#parent._kids + 1] = f
+	end
 	addGeometry(f)
 	addVisibility(f)
 	addText(f)
 	addEditBox(f)
 	addButton(f)
+	f.SetHighlightTexture = function(self, texture) self._highlightTexture = texture or true return self end
 	addSlider(f)
 	addScroll(f)
 	-- The client refuses to anchor a protected frame (one made from a secure
@@ -422,8 +434,117 @@ Mock.newFrame = function() return widen(base()) end
 
 local makeHeader
 
+-- The game's CustomAuraContainerTemplate on Forever: slots are drawn by the
+-- client from hidden debuff data, and addon code only dresses the template.
+local function hiddenFor(unit)
+	if Mock.hiddenFor then return Mock.hiddenFor(unit) end
+	return Mock.hiddenDebuffs and Mock.hiddenDebuffs[unit] or nil
+end
+
+local function redrawAuraBox(box)
+	local drawn = {}
+	for i, debuff in ipairs(hiddenFor(box._unit) or {}) do drawn[i] = debuff end
+	box._drawn = drawn
+end
+
+local function boxVisible(box)
+	local frame = box
+	while frame do
+		if frame._shown == false then return false end
+		frame = frame._parentFrame
+	end
+	return true
+end
+
+function Mock.auraSweep()
+	for _, box in ipairs(Mock.auraBoxes or {}) do
+		local visible = boxVisible(box)
+		if visible ~= box._visible then
+			box._visible = visible
+			redrawAuraBox(box)
+		end
+	end
+end
+
+function Mock.auraEvent(unit)
+	for _, box in ipairs(Mock.auraBoxes or {}) do
+		if box._unit == unit and boxVisible(box) then redrawAuraBox(box) end
+	end
+end
+
+local function slotAura(box, slot)
+	if box._filter ~= "HARMFUL|RAID" then return nil end
+	local include = slot.filters and slot.filters.includeDispelTypes
+	for _, debuff in ipairs(box._drawn or {}) do
+		if debuff.can ~= false and (include == nil or include[debuff.kind]) then return debuff end
+	end
+	return nil
+end
+
+function Mock.auraShows(box)
+	local slot = box._slot
+	if not slot then return false end
+	local frame = box
+	while frame do
+		if frame._shown == false then return false end
+		frame = frame._parentFrame
+	end
+	return slotAura(box, slot) ~= nil
+end
+
+function Mock.auraShowing()
+	local out = {}
+	for _, box in ipairs(Mock.auraBoxes or {}) do
+		if Mock.auraShows(box) then out[#out + 1] = box._unit end
+	end
+	return out
+end
+
+local function makeAuraContainer(frame)
+	Mock.auraBoxes = Mock.auraBoxes or {}
+	Mock.auraBoxes[#Mock.auraBoxes + 1] = frame
+	frame.SetUnit = function(self, unit)
+		assert(type(unit) == "string", "unitToken must be a string")
+		if self._unit ~= unit then
+			self._unit = unit
+			redrawAuraBox(self)
+		end
+	end
+	frame.GetUnit = function(self) return self._unit end
+	frame.UpdateAllAuras = function(self) redrawAuraBox(self) end
+	frame.AddAuraSlot = function(self, key, filter, options)
+		assert(type(key) == "string" and key ~= "", "slotKey must be a non-empty string.")
+		assert(self._slot == nil, "aura slot already exists with this key.")
+		self._filter = filter
+		local slotFrame = CreateFrame("Button", nil, self)
+		slotFrame._auraSlot = true
+		slotFrame.SetIcon = function(child, texture) child._icon = texture end
+		slotFrame.AddDispelTypeTexture = function(child, texture) child._edge = texture end
+		local slot = { key = key, frame = slotFrame, filters = options and options.candidateFilters }
+		self._slot = slot
+		if options and type(options.initializeFrame) == "function" then options.initializeFrame(slotFrame) end
+		for _, method in ipairs({ "IsShown", "IsVisible", "GetAlpha" }) do
+			local real = slotFrame[method]
+			slotFrame[method] = function(child, ...)
+				if Mock.inCombat then error("Auras cannot be accessed when secret while tainted", 2) end
+				return real(child, ...)
+			end
+		end
+		return slotFrame
+	end
+	frame.SetAuraSlotCandidateFilters = function(self, key, filters)
+		assert(self._slot and self._slot.key == key, "aura slot was not found with this key.")
+		self._slot.filters = filters
+		self._filtersSet = (self._filtersSet or 0) + 1
+	end
+end
+
 function CreateFrame(frameType, name, parent, template)
+	if frameType == "AuraContainer" and not Mock.auraContainer then
+		error("CreateFrame: Unknown frame type 'AuraContainer'", 2)
+	end
 	local f = widen(base(), frameType or "Frame", parent)
+	if frameType == "AuraContainer" then makeAuraContainer(f) end
 	f._name, f._template = name, template
 	-- What the client's secure handler and /click need: whether the frame is
 	-- a secure action button, and the frame a name finds (GetClickFrame).
@@ -756,6 +877,32 @@ function Mock.mouseClickOn(frame, which)
 	if registered("Up") then frame:Click(which, false) end
 end
 
+function Mock.clickAt(button, which)
+	which = which or "LeftButton"
+	local top, topLevel
+	local function consider(frame)
+		if frame._pass and frame._pass[which] then return end
+		if frame._mouse == true and frame:IsVisible() then
+			local level = frame._level or 1
+			if frame == button then level = level - 0.5 end
+			if not topLevel or level >= topLevel then top, topLevel = frame, level end
+		end
+	end
+	consider(button)
+	for _, child in ipairs(button._kids or {}) do
+		if child._frameType ~= "Texture" and child._frameType ~= "FontString" then consider(child) end
+	end
+	if not top then return "world" end
+	if top == button then
+		Mock.mouseClickOn(button, which)
+		return button
+	end
+	local down = top.scripts and top.scripts.OnMouseDown
+	if down then down(top, which) end
+	if Mock.coverLeaks and button._mouse == true and button:IsVisible() then Mock.mouseClickOn(button, which) end
+	return top
+end
+
 -- A key bound to "CLICK Name:Button" pressed: the down click, and with
 -- `opts.release` the up click the key's release sends.
 function Mock.pressBinding(command, opts)
@@ -796,6 +943,7 @@ end
 function Mock.frameEvent(event, ...)
 	-- The state driver manager listens too: its next frame answers at once.
 	if DRIVER_EVENTS[event] then driverTimer = 0 end
+	if event == "UNIT_AURA" and Mock.auraBoxes then Mock.auraEvent((...)) end
 	local heard = 0
 	for f in pairs(eventFrames) do
 		local fn = f._events and f._events[event] and f.scripts and f.scripts.OnEvent
@@ -805,6 +953,33 @@ function Mock.frameEvent(event, ...)
 		end
 	end
 	return heard
+end
+
+function Mock.deliver(frame, event, unit, ...)
+	local plainReg = frame.events and frame.events[event]
+	local units = frame.unitEvents and frame.unitEvents[event]
+	if not (plainReg or units) then return false end
+	if units and not plainReg then
+		local found = false
+		for _, token in ipairs(units) do if token == unit then found = true end end
+		if not found then return false end
+	end
+	local fn = frame.scripts and frame.scripts.OnEvent
+	if not fn then return false end
+	fn(frame, event, unit, ...)
+	return true
+end
+
+function Mock.shownAlpha(frame)
+	local product, parent = 1, frame
+	while parent do
+		if parent._shown == false then return 0 end
+		local alpha = parent._alpha
+		if alpha == nil then alpha = 1 end
+		product = product * Mock.reveal(alpha)
+		parent = parent._parentFrame
+	end
+	return product
 end
 
 -- A key pressed in a focused box: "ENTER", "ESCAPE", "TAB", or an arrow
@@ -1050,8 +1225,12 @@ local function install()
 	driverTimer = 0
 	Mock.secureCode, Mock.snippetRuns, Mock.affectingCombat = nil, 0, nil
 	Mock.screenWidth = 1365
+	Mock.auraContainer, Mock.auraBoxes, Mock.hiddenDebuffs, Mock.hiddenFor = nil, nil, nil, nil
 	if installedMenu and rawget(_G, "MenuUtil") == installedMenu then MenuUtil = nil end
 	installedMenu = nil
+	for _, root in ipairs({ UIParent, GameTooltip }) do
+		if type(root) == "table" then root._kids = nil end
+	end
 	ColorPickerFrame = newColourPicker()
 end
 

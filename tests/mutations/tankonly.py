@@ -29,8 +29,8 @@ mutate("Queue.lua",
        expect="tankonly: held to tanks, somebody who asks for Thorns is offered it", script=S)
 
 mutate("Queue.lua",
-       "\t\topts.isTank = tanksOnly and inGroup and ns.IsTankUnit(unit) or nil\n",
-       "\t\topts.isTank = tanksOnly and inGroup and true or nil\n",
+       "\t\topts.isTank = (tanksOnly or opts.forTank) and inGroup and ns.IsTankUnit(unit) or nil\n",
+       "\t\topts.isTank = (tanksOnly or opts.forTank) and inGroup and true or nil\n",
        "tankonly: everybody is a tank",
        expect="tankonly: held to tanks, somebody with no role is not a tank", script=S)
 

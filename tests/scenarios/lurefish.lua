@@ -22,7 +22,7 @@ local ROUGH_STONE, ROUGH_WEIGHT, COARSE_STONE, COARSE_WEIGHT = 2862, 3239, 2863,
 local DENSE_STONE, DENSE_WEIGHT, ELEMENTAL = 12404, 12643, 18262
 local ELEMENTAL_NEW, ROUGH_NEW = 287980, 287978
 local MINOR_OIL, WIZARD_OIL = 20744, 20750
-local SHINY_BAUBLE = 6529
+local SHINY_BAUBLE, CAMPER_LURE = 6529, 291005
 local ADAMANTITE, ANESTHETIC = 23529, 21835
 local RAT = 275069
 -- Their enchants (the enchant on the weapon says which item made it).
@@ -51,7 +51,8 @@ local ITEM_NAMES = {
 	[DENSE_STONE] = "Dense Sharpening Stone", [DENSE_WEIGHT] = "Dense Weightstone",
 	[ELEMENTAL] = "Elemental Sharpening Stone", [ELEMENTAL_NEW] = "Elemental Sharpening Stone",
 	[ROUGH_NEW] = "Rough Sharpening Stone",
-	[MINOR_OIL] = "Minor Wizard Oil", [WIZARD_OIL] = "Wizard Oil", [SHINY_BAUBLE] = "Shiny Bauble", [6532] = "Bright Baubles",
+	[MINOR_OIL] = "Minor Wizard Oil", [WIZARD_OIL] = "Wizard Oil", [SHINY_BAUBLE] = "Shiny Bauble",
+	[CAMPER_LURE] = "Camper's Lure", [6532] = "Bright Baubles",
 	[ADAMANTITE] = "Adamantite Sharpening Stone", [ANESTHETIC] = "Anesthetic Poison",
 	[3776] = "Crippling Poison II",
 	[RAT] = "Scroll of Rat Familiar",
@@ -264,5 +265,36 @@ do
 		if entry and key(entry) == "w6532m" then fail(scenario, "Bright Baubles was offered with no Fishing") end
 		local again = mine(ns)
 		if key(again) ~= "w6532m" then fail(scenario, "with no skill API the lure was held back: " .. key(again)) end
+	end)
+end
+
+do
+	local scenario = "lurefish: Camper's Lure is complete and waits for Fishing 50"
+	with(scenario, { class = "WARRIOR", level = 60, bags = { [CAMPER_LURE] = 1, [SHINY_BAUBLE] = 1 },
+		hands = { [16] = POLE } }, function(ns)
+		local lure = family(ns, "lure")
+		local camper
+		for _, spell in ipairs(lure and lure.spells or {}) do
+			if spell.item == CAMPER_LURE then camper = spell break end
+		end
+		if not camper then fail(scenario, "Forever's lure table has no Camper's Lure") return end
+		if camper.fishing ~= 50 or camper.bonus ~= 60 or camper.enchant ~= 8773
+			or camper.ranks[1] ~= 1331725 or camper.since ~= 71091 then
+			fail(scenario, "Camper's Lure is incomplete: Fishing " .. tostring(camper.fishing)
+				.. ", bonus " .. tostring(camper.bonus) .. ", enchant " .. tostring(camper.enchant)
+				.. ", use " .. tostring(camper.ranks[1]) .. ", since " .. tostring(camper.since))
+		end
+		if ns.OwnSeconds(camper) ~= 300 then
+			fail(scenario, "Camper's Lure lasts " .. tostring(ns.OwnSeconds(camper)) .. " seconds, not 300")
+		end
+		fishing(50)
+		if key(mine(ns)) ~= "w291005m" then
+			fail(scenario, "at Fishing 50 the pole was offered " .. key(mine(ns)))
+		end
+		fishing(49)
+		if key(mine(ns)) ~= "w6529m" then
+			fail(scenario, "at Fishing 49 the +25 lure was not the fallback: " .. key(mine(ns)))
+		end
+		unfished()
 	end)
 end

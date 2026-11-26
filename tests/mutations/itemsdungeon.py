@@ -35,13 +35,13 @@ mutate("Core.lua",
        "itemsdungeon: a poison is held",
        expect="itemsdungeon: the families it holds are oils, stones and food", script=S)
 
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.itemsInDungeons = value\n",
        "",
        "itemsdungeon: the switch writes nothing",
        expect="itemsdungeon: Who to buff has the switch, off by default, and it is kept", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t\"who.ownDungeons\",\n",
        "",
        "itemsdungeon: the switch is not placed on the page",

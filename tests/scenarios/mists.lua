@@ -686,6 +686,9 @@ do
 			fail(scenario, "SKIPPED -- \"Skip players it does nothing for\" is not on by default")
 			return
 		end
+		if ns.MANA_CLASSES.HUNTER then
+			fail(scenario, "the class fallback says a Mists hunter has a mana bar")
+		end
 		if ns.UnitHasMana("nameplate1") ~= false or ns.UnitHasMana("nameplate2") ~= false then
 			fail(scenario, "SKIPPED -- the warrior or the hunter reads as having mana")
 			return

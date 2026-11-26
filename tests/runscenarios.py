@@ -124,6 +124,8 @@ _ADDRESS = re.compile(r"\b(table|function|thread|userdata|cdata): (?:0x)?[0-9A-F
 _PATH = re.compile(r"[^\s'\"()\[\]]*[\\/]([^\\/\s'\"()\[\]]+\.lua)\b")
 _LINE_NO = re.compile(r"(\.lua\"?\]?):\d+\b")
 _TIMING = re.compile(r"\b\d+(?:\.\d+)?\s?(ms|s|seconds?)\b")
+_CLIENT_BUILD = re.compile(r"(\bbuild=)\d+(?:\.\d+)+")
+_CLIENT_REPORT_BUILD = re.compile(r"(\bclient \d+\.\d+\.\d+)\s+\(\d+\)")
 _HARNESS = ("SCENARIO HARNESS ERROR", "LOADFILE")
 
 
@@ -138,6 +140,8 @@ def normalise(line):
     line = _PATH.sub(r"\1", line.strip())
     line = _ADDRESS.sub(r"\1: ADDR", line)
     line = _LINE_NO.sub(r"\1:N", line)
+    line = _CLIENT_BUILD.sub(r"\1CLIENT_BUILD", line)
+    line = _CLIENT_REPORT_BUILD.sub(r"\1 (CLIENT_BUILD)", line)
     if _VERSION:
         line = _VERSION.sub("VERSION", line)
     return _TIMING.sub(r"T \1", line)
@@ -160,7 +164,7 @@ def read_baseline(path):
             current = line[3:].strip()
             sections.setdefault(current, [])
         elif line.strip() and not line.startswith("#"):
-            (sections[current] if current is not None else flat).append(line)
+            (sections[current] if current is not None else flat).append(normalise(line))
     return True, flat, sections
 
 

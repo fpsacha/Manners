@@ -458,7 +458,8 @@ end
 -- ------------------------------------------------------------------ what it says
 do
 	local scenario = "thank-unseen: the nameplates line says the emote thanks them"
-	with(scenario, { unseen = true, platesOff = true }, function(ns)
+	with(scenario, { unseen = true, platesOff = true,
+		names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bram", "Bold" } } }, function(ns)
 		land(ns, nil)
 		-- Every landing the game names nobody for waits for its window to close before
 		-- the nameplates line is said, so that it is said only when nobody was named.
@@ -473,7 +474,8 @@ end
 
 do
 	local scenario = "thank-unseen: the nameplates line names the switch to a player who thanks"
-	with(scenario, { unseen = false, platesOff = true }, function(ns)
+	with(scenario, { unseen = false, platesOff = true,
+		names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bram", "Bold" } } }, function(ns)
 		land(ns, nil)
 		Mock.runTimers(2)   -- the line waits for the window to close, as above
 		local text = said()

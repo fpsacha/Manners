@@ -75,13 +75,13 @@ mutate("Core.lua",
        expect="forever-tracking: Classic Era and Burning Crusade keep it in Tracking", script=S)
 
 # ------------------------------------------------ the options page
-mutate("Options/Who.lua",
+mutate("Modules/MyBuffs/Options.lua",
        "\t\t\t\t\tor family.onceUp\n\t\t\t\t\tand L[\"Reminds you when it is not up, once you have had it up yourself.\"]\n",
        "",
        "forever-tracking: the switch does not say it waits",
        expect="forever-tracking: the page has a switch for it", script=S)
 
-mutate("Options/Window/Layout.lua",
+mutate("Modules/MyBuffs/Layout.lua",
        "\t\t\t\t\t{ \"who.own_findtreasure\", indent = true },\n",
        "",
        "forever-tracking: the switch has no place in the window",

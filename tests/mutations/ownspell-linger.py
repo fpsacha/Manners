@@ -21,7 +21,7 @@ mutate("Prompt/Hold.lua",
        "ownspell-linger: the fuse re-arms a removed spell",
        expect=FUSE, script=S)
 
-mutate("OwnSpells.lua",
+mutate("Modules/MyBuffs/OwnSpells.lua",
        "\ttable.remove(Entries(), IndexOf(entry))\n\tlocal char = Char()\n\tif char and type(char.ownLast) == \"table\" then char.ownLast[PREFIX .. entry.id] = nil end\n",
        "\ttable.remove(Entries(), IndexOf(entry))\n",
        "ownspell-linger: the verdict leaves the last pick behind",

@@ -155,6 +155,28 @@ do
 	end)
 end
 
+-- Turning off a whispered thank-you is a separate choice. It must not make
+-- the hunter's In character voice choice disappear from the Manners menu.
+do
+	local scenario = "thanks-incharacter-class: turning off the whisper keeps hunter RP selected"
+	with(scenario, HUNTER, function(ns)
+		local db = ns.db.profile
+		local voice = findOption(ns.optionsTable, "quickVoice")
+		if not voice then fail(scenario, "SKIPPED -- no quickVoice control") return end
+		voice.set({ "quickVoice" }, "incharacter")
+		db.prompt.thankWhisper = false
+		if voice.get({ "quickVoice" }) ~= "incharacter" then
+			fail(scenario, ("turning off the whispered thank-you removed the In character choice (list=%s, whisper=%s, preset=%s, active=%s)")
+				:format(tostring(voice.get({ "quickVoice" })), tostring(db.prompt.thankWhisper),
+					tostring(db.speech.presetChoice),
+					tostring(ns.InCharacter and ns.InCharacter.Active(db.speech))))
+		end
+		if ns.InCharacter and not ns.InCharacter.Active(db.speech) then
+			fail(scenario, "turning off the whispered thank-you turned off In character")
+		end
+	end)
+end
+
 -- Stay silent and Just /thank them for such a class are about the thanks alone.
 for _, key in ipairs({ "silent", "thank" }) do
 	local scenario = "thanks-incharacter-class: a hunter's " .. key .. " leaves the line said with a cast alone"

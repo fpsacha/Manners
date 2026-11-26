@@ -29,13 +29,13 @@ of Pandaria Classic** and **retail**, in nine languages.
   buff is offered it, then the players near you who are. One group cast for
   the whole party when you carry the reagent, your group first at a ready
   check, and a top-up at the moment that suits each buff's length.
-- **Your own buffs and consumables.** Your armor, aura, aspect, shield or
-  form come up as "You" when they are missing; the extras (the poison, stone,
-  oil or lure for each weapon, food, flasks, elixirs, scrolls, tracking, a
-  companion pet) are each off until you tick them.
-- **Resurrection, cures and courtesies.** Your resurrection for the group's
-  dead, a cure for a poison or a curse, a mage's water and portals and a
-  warlock's healthstones and summons for whoever asks in chat.
+- **Optional own buffs and consumables.** Enable **Manners: My Buffs** for
+  your armor, aura, aspect, shield or form, plus weapon enhancements, food,
+  flasks, elixirs, scrolls, tracking and a companion pet.
+- **Resurrection, cures and optional services.** Your resurrection and cures
+  are in the core. **Manners: Services** adds courtesies and explicit-request utilities:
+  mage refreshments, named portals and Slow Fall; priest Levitate; shaman
+  Water Walking; and warlock healthstones, summons, Soulstones and Fire Shield.
 - **Asking.** When somebody near you could give you a buff you are missing,
   a press whispers them one polite line.
 - **Sharing a group.** Two Manners users of one class in a group split it
@@ -46,6 +46,8 @@ of Pandaria Classic** and **retail**, in nine languages.
   offered first: Wisdom for mages, say, where the order would give them Kings.
 - **The favour ledger.** Who buffed you, what you gave back, and who you
   buffed first.
+- **Optional achievements.** **Manners: Achievements** adds quiet bronze,
+  silver and gold goals as a tab of the ledger, with toasts off by default.
 - **Profiles that switch by themselves.** One for the open world, one for
   dungeons, raids or battlegrounds, chosen as you arrive, and a profile
   manager that can use, duplicate, rename or delete any of them, with *Undo*.
@@ -69,6 +71,12 @@ of Pandaria Classic** and **retail**, in nine languages.
   `Interface/AddOns`.
 
 All three carry the same build from the same tag.
+
+The zip also contains the optional addon folders. **Manners: Combat**,
+**Manners: Achievements**, **Manners: My Buffs** and **Manners: Services** are
+disabled until you enable them on Manners' *Optional modules* page.
+**Manners: Pets** is enabled by default for hunter pet care; on every other
+class it is inert and creates no pet frames, events or options page.
 
 > **Do not install from a clone of this repository.** `Libs/` is deliberately
 > not committed (the libraries are fetched at build time), so a zip made from
@@ -222,6 +230,12 @@ Nothing shows in a fight.
 
 ### In a fight
 
+The fight's rota is still part of Manners. Its optional buttons are in
+**Manners: Combat**, included in the same download but disabled by default.
+Enable it on *Optional modules* to show the cure, Will of the Forsaken and
+in-fight Mend Pet controls. With it disabled, Manners creates
+none of those frames and shows none of their settings.
+
 The game locks the prompt for as long as a fight lasts: an addon may not
 change what a button casts then. So as a fight begins Manners hands the prompt
 everybody who still needed a buff at that moment (a passer-by who walked off
@@ -295,6 +309,10 @@ moment after: somebody whose buffs cannot be read is offered marked
 *unverified*, and everybody is read again the moment the fight ends.
 
 ## Your own buffs
+
+This page and these reminders exist while **Manners: My Buffs** is enabled on
+*Optional modules*. Existing saved choices keep their places when the module
+is enabled.
 
 <img src=".github/media/manners-yourself.png" alt="Your own buffs on the prompt: a mage's armor, a rogue's poison for the main hand, your own Arcane Intellect" width="640">
 
@@ -504,7 +522,8 @@ once you carry one.
 - *Never remind me about*: a box for each spell of your families you know. A
   ticked spell is skipped by *Automatic* and never offered at all.
 
-**Your pet (hunters).** On *My pet*, under *Looking after my pet*, each on:
+**Your pet (hunters).** **Manners: Pets** is included and enabled by default.
+On *My pet*, under *Looking after my pet*, each on:
 
 - *Call my pet when none is out*: Call Pet when no pet is with you. On Mists
   and retail it is the Call Pet you used last. Never after you dismissed the
@@ -688,20 +707,26 @@ please or to stand alone, and never count in group chat; nobody of your own
 class counts as asking; and nothing said in a fight counts unless it was
 whispered.
 
-**Courtesies on request.** Four switches under *People who ask me in chat*,
-each off and shown to the class that has it, read from chat by the same
-rules. Never in a fight.
+**Services on request.** The optional **Manners: Services** addon has its own
+page. The module and every service start off. A service appears only for a
+class and client whose data contains the spell, and only a learned spell is
+offered. Every action stays on the secure prompt until you press it.
 
-- *Water and food, when they ask* (mages): "water pls" puts them on the
-  prompt. With none in your bags that suits their level, the first press
-  conjures it; the next targets them and opens a trade with it already in
-  the window. Accepting the trade stays yours.
-- *Portals, when my group asks* (mages): a member of your party or raid who
-  names a city ("port to Orgrimmar pls") is offered that portal.
-- *Healthstones, when they ask* (warlocks): as water, with a trade. On Mists
-  and retail it is a Soulwell for a member of your group.
-- *Summons, when my group asks* (warlocks): the press targets them and casts
-  Ritual of Summoning.
+- **Mage:** conjured water and food can be traded to a level-appropriate
+  target, named portal destinations remain explicit, and Slow Fall can be
+  requested for a friendly visible player.
+- **Warlock:** healthstones use a trade or a Soulwell where the client has
+  one; group summons, Soulstone preparation and Fire Shield from an imp are
+  separate switches.
+- **Priest and shaman:** Levitate and Water Walking are explicit requests.
+
+For each chat service, choose group chat, whispers and/or a visible player you
+can target. Requests made in a fight can be held until it ends or ignored.
+An optional outside-instances rule and explicit-name matching keep the scope
+narrow. Portal controls also choose the destinations that chat may name.
+Before an offer, Manners checks the learned spell, reagent or bag supply,
+target, friendliness, life, range, aura, spell usability and cooldown. It
+never accepts a trade or casts by itself.
 
 **Asking for a buff.** *Ask people for a buff I'm missing* (off). When
 somebody in your group, or right beside you, could cast a buff you would want
@@ -713,8 +738,11 @@ or `/ignore` list, nobody dead, fighting, away or busy. *Ask in* chooses a
 whisper (the default) or `/say`, *What the ask says* one of three lines or
 *My own words*, a line you write in the box under it (`{name}` their name,
 `{buff}` the spell, either left out; said even with In character on), and
-*Ask in cities and inns too* is off. The Manners macro on an action bar does
-not carry an ask.
+*Blessing to ask a paladin for* chooses Automatic, Kings, Might, Wisdom or
+Salvation where that client has it. Automatic keeps the choice suited to your
+class and role and can ask another reachable paladin for a different missing
+blessing. *Ask in cities and inns too* is off. The Manners macro on an action
+bar does not carry an ask.
 
 ## Battlegrounds and arenas
 
@@ -792,6 +820,14 @@ Open it with `/manners ledger`, a shift-click on the minimap button, or *Open
 the ledger* on Start here. It keeps the last 200 entries per character;
 *Clear* empties the list and today's count but keeps favours still owed, the
 all-time totals.
+
+With **Manners: Achievements** enabled, the same window gains an
+*Achievements* tab. Its four themes—Gratitude, Generosity, Fellowship and
+Courtesy—have bronze, silver and gold goals at 10, 100 and 1000, with progress
+kept separately per character and class. A few moments stay hidden until
+earned. Counts are capped once per person and goal each day, and a first enable
+seeds only the ledger's last 200 rows. Notifications are off by default; sound
+is off too, and there is no separate hall or share window.
 
 ## The prompt's look
 
@@ -930,8 +966,9 @@ it too.
   snooze is running, nothing can be offered, or the prompt is kept away while
   you are mounted.
 - On the left, the pages, each with a painted icon of its own: *Start here*;
-  *Who to buff*, *Who to skip*, *When to offer*; *My own buffs* and, for
-  hunters, *My pet*; *Quiet times*, *In a fight*, *What I say*, *Look*;
+  *Who to buff*, *Who to skip*, *When to offer*; pages supplied by enabled
+  modules, such as *My own buffs* and, for hunters, *My pet*; *Quiet times*,
+  *In a fight*, *What I say*, *Look*;
   *Profiles* and *Diagnostics*. When the pages do not fit the window's
   height they are drawn smaller. A page with
   nothing for your character is left out. A red dot beside a page means
@@ -1016,13 +1053,27 @@ no room for. Defaults are in brackets.
   the fixes last, then the three releases before it in brief. In English, as
   the changelog is.
 
+### Optional modules
+
+- **Available modules** lists each optional addon beside a short description
+  of what it adds: *Manners: Combat*, *Manners: Achievements*, *Manners: Pets*,
+  *Manners: My Buffs* and *Manners: Services*.
+- Tick or untick a module here. *Reload now* appears under **Apply changes**
+  only while a reload is needed; changing a switch back to the state of the
+  current session clears it.
+- A module's own page and controls appear only after that module is loaded.
+  Services has its own page in this group, with a module switch and separate
+  controls for every supported service.
+  The core menu, and every setting not owned by a module, works without it.
+
 ### Who to buff
 
 - ***Offer my buff to***: *People who buff me* (on); *My party and raid* (on)
   with *My group's pets too* (off) under it; *Passers-by (players near me,
   not in my group)* (on) with *Passers-by within* and *Only in cities and
   inns* (off) under it; *People who ask me in chat* (off) with your class's
-  courtesies under it.
+  courtesies are configured on the separate **Services** page when
+  **Manners: Services** is enabled.
   - *Passers-by within*: *Anywhere I can cast* (about thirty yards), *Nearby*
     (about ten, the default) or *Right beside me* (about five). Only
     passers-by are measured. The game gives no exact distance, so this lands
@@ -1168,6 +1219,10 @@ no room for. Defaults are in brackets.
 
 ### My own buffs
 
+This page is supplied by **Manners: My Buffs**. Without that module, its
+controls, supplies button, companion pet and custom own-spell feature do not
+exist.
+
 What Manners reminds you of for yourself: see *Your own buffs* above for the
 rules. Sections, top to bottom:
 
@@ -1194,7 +1249,8 @@ alone. Your own spells are kept.
 
 ### My pet
 
-For hunters; every other class has no such page. *Looking after my pet* has
+Supplied by **Manners: Pets**, which is enabled by default. For hunters; every
+other class, including warlocks, has no such page. *Looking after my pet* has
 *Everything for my pet* and, under it, a switch for each piece of care. *Mend
 Pet* and *Mend Pet in a fight* stand side by side: the first reminds you, the
 second is the button for a fight, and *In a fight* has it too. *Each moment
@@ -1314,7 +1370,8 @@ Everything here is off until you turn it on.
     whole name, and the prompt, your target and the ledger keep it too.
 - ***Asking for a buff***: *Ask people for a buff I'm missing* (off), then *Ask
   in*, *What the ask says* (three lines, or *My own words* with a box for
-  them) and *Ask in cities and inns too*. Every class has it, a rogue's
+  them), *Blessing to ask a paladin for* and *Ask in cities and inns too*.
+  Every class has it, a rogue's
   What I say included; the page's reset puts it back.
 - ***Lines***: *Line set* has four sets you can edit (Azeroth (general),
   Polite, Cheeky, Just their name) and a fifth, *In character (fits your race

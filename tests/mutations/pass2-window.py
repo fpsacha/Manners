@@ -66,7 +66,7 @@ mutate(ADV, '"beast.bond", "beast.fightMend",\n',
 
 # --- the cure in a fight needs a cure -------------------------------------------
 
-mutate("Cures.lua", "\treturn ns.CureFightSpells() ~= nil\n",
+mutate("Modules/Combat/Cures.lua", "\treturn ns.CureFightSpells() ~= nil\n",
        "\treturn true\n",
        "pass2-window: a cure switch offered with none learned",
        expect=P + "the cure's switch on Who to buff", script=S)
@@ -76,13 +76,15 @@ mutate(LOOK, "\t\t\t\t\t\tlocal spell = list and list[1] and list[1].name\n",
        "pass2-window: the cure's key line names no spell",
        expect=P + "the cure key's line never names an empty spell", script=S)
 
-mutate("Options/Who.lua", "hidden = function() return NoCures() or not ns.CureLearned() end,",
-       "hidden = NoCures,",
+mutate("Modules/Combat/Options.lua",
+       "hidden = function() return NoCures() or not ns.CureFight or not ns.CureLearned() end,",
+       "hidden = function() return NoCures() or not ns.CureFight end,",
        "pass2-window: Who's cure switch offered with none learned",
        expect=P + "the cure's switch on Who to buff", script=S)
 
-mutate(LOOK, "hidden = function() return not (ns.ClassHasCures() and ns.CureLearned()) end,",
-       "hidden = function() return not ns.ClassHasCures() end,",
+mutate(LOOK,
+       "hidden = function() return not ns.CureFight or not (ns.ClassHasCures() and ns.CureLearned()) end,",
+       "hidden = function() return not ns.CureFight or not ns.ClassHasCures() end,",
        "pass2-window: Look's cure switch offered with none learned",
        expect=P + "the cure's switch on Who to buff", script=S)
 

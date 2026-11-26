@@ -13,10 +13,16 @@ mutate("Options/Start.lua",
        expect="a class with nothing to give is offered more than the thanks", script=S)
 
 mutate("Options/Start.lua",
-       "\t\tlines = \"incharacter\", set = { [\"prompt.thankWhisper\"] = true }, applyOnly = {} }\n",
-       "\t\tlines = \"incharacter\", set = {}, applyOnly = {} }\n",
+       "\t\tlines = \"incharacter\", set = { [\"prompt.thankWhisper\"] = true },\n",
+       "\t\tlines = \"incharacter\", set = {},\n",
        "thanks-incharacter-class: In character does not turn the whispered thank-you on",
        expect=N + "a hunter picks In character and is whispered a thank-you", script=S)
+
+mutate("Options/Start.lua",
+       "\t\tif entry then\n\t\t\tif list == Quick.THANKS then\n\t\t\t\tSP().quickChoice = entry.key\n\t\t\telseif list == Quick.VOICE then\n\t\t\t\tSP().quickChoice = nil\n\t\t\tend\n",
+       "\t\tif entry then\n",
+       "thanks-incharacter-class: the quick hunter choice is not remembered",
+       expect=N + "turning off the whisper keeps hunter RP selected", script=S)
 
 mutate("Options/Start.lua",
        "\t\t[\"prompt.thankEmote\"] = true, [\"prompt.thankWhisper\"] = false,\n\t} },\n}\n",

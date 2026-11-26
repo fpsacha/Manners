@@ -3,16 +3,6 @@
 	     Manners. Under the shared ADDONS category the one line sat among every
 	     other addon's, with nothing on it saying whose it was. -->
 	<Binding name="CLICK MannersPrompt:LeftButton" category="Manners"/>
-	<!-- The consumables button (Prompt/Supplies.lua), when it is switched on. -->
-	<Binding name="CLICK MannersSupplies:LeftButton" category="Manners"/>
-	<!-- The break-free button (Prompt/BreakFree.lua): Will of the Forsaken, for a Forsaken. -->
-	<Binding name="CLICK MannersBreakFree:LeftButton" category="Manners"/>
-	<!-- The Mend Pet button (Prompt/MendPet.lua), for a hunter with a pet. -->
-	<Binding name="CLICK MannersMendPet:LeftButton" category="Manners"/>
-	<!-- The cure button for a fight (Prompt/CureFight.lua), for a class with a cure. -->
-	<Binding name="CLICK MannersCureFight:LeftButton" category="Manners"/>
-	<!-- The second cure's button, for a class with two cures (A button for each cure). -->
-	<Binding name="CLICK MannersCureFight2:LeftButton" category="Manners"/>
 	<!-- Mark this moment (Options/BugReport.lua): a plain button, so it works in a fight. -->
 	<Binding name="CLICK MannersMark:LeftButton" category="Manners"/>
 </Bindings>

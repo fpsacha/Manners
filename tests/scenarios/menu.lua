@@ -707,8 +707,9 @@ do
 					fail(scenario, class .. ": " .. id .. " does not say more is in the full view")
 				end
 			end
-			-- About a tenth: a few dozen at most of the several hundred.
-			if shown > 40 or shown * 5 > total then
+			-- About a quarter: the short list plus the always-visible module
+			-- toggles, with the detailed option pages still in the full view.
+			if shown > 45 or shown * 4 > total then
 				fail(scenario, ("%s: the simple view draws %d of %d controls"):format(class, shown, total))
 			end
 			-- The sidebar as drawn: the pages left with nothing are not on it.

@@ -115,6 +115,8 @@ local function HasPrompt()
 	if ns.caps.res and ns.Resurrect and ns.Resurrect.Wanted() then return true end
 	-- Or a hunter's pet care: Call and Revive Pet are all a retail hunter has.
 	if ns.Beast and ns.Beast.KnowsCare and ns.Beast.KnowsCare() then return true end
+	-- Or a learned optional class service, even with no class buff of its own.
+	if ns.Courtesy and ns.Courtesy.Active and ns.Courtesy.Active() then return true end
 	return ns.caps.hasClassBuffs == true or ns.OwnBuffsOnly()
 end
 
@@ -144,7 +146,7 @@ Page.HasPrompt, Page.OffersSelf, Page.NoSources = HasPrompt, OffersSelf, NoSourc
 -- shown -- food always, the rest while switched on or one is in the bags.
 function Page.BaggedHeld(family)
 	-- A companion pet in the journal counts as one in the bags (Companion.lua).
-	if family.journal and ns.PetJournalOwned() then return true end
+	if family.journal and ns.PetJournalOwned and ns.PetJournalOwned() then return true end
 	local count = C_Item and C_Item.GetItemCount
 	if type(count) ~= "function" then return false end
 	for _, spell in ipairs(family.spells) do
@@ -258,6 +260,7 @@ local TAB = {
 	quiet = L["Quiet times"],
 	fight = L["In a fight"],
 	appearance = L["Look"],
+	modules = L["Optional modules"],
 	diagnostics = L["Diagnostics"],
 }
 
@@ -282,6 +285,7 @@ local TITLE = {
 	quiet = function() return L["Quiet times"] end,
 	fight = function() return L["In a fight"] end,
 	appearance = function() return L["Look"] end,
+	modules = function() return L["Optional modules"] end,
 	profiles = function() return L["Profiles"] end,
 	diagnostics = function() return L["Diagnostics"] end,
 }

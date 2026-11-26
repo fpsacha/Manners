@@ -31,10 +31,12 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import audit_ids  # noqa: E402
 OUT = os.path.join(ROOT, "Talents.lua")
 CLIENT = "camelot"
 # The Forever build .claude/docs/data-sources.md's data line names.
-BUILD = "1.60.1.70790"
+BUILD = audit_ids.build_for(CLIENT)
 
 # Talent.csv's TabID per class, in the order a class's trees are listed.
 TABS = (

@@ -4,37 +4,37 @@
 
 S = "runscenarios.py"
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tif d and Painted and Painted.Socket and (not earlier",
        "\tif false and d and Painted and Painted.Socket and (not earlier",
        "supplieslook: never wears a socket",
        expect="supplieslook: the button wears the look's socket", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "(not earlier or (look and look.paintedOnly))",
        "true",
        "supplieslook: earlier art draws the socket too",
        expect="supplieslook: earlier art leaves it plain", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "(not earlier or (look and look.paintedOnly))",
        "(not earlier)",
        "supplieslook: a painted-only look loses its socket under earlier art",
        expect="supplieslook: a painted-only look stays painted", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tif style == woreStyle and earlier == woreEarlier and size == woreSize then return end",
        "\tif earlier == woreEarlier and size == woreSize then return end",
        "supplieslook: a new look is not noticed",
        expect="supplieslook: a new look reaches the button", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tif style == woreStyle and earlier == woreEarlier and size == woreSize then return end",
        "\tif false then return end",
        "supplieslook: the socket is redrawn on every scan",
        expect="supplieslook: an idle scan redraws nothing", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tif round and mask then",
        "\tif false and round and mask then",
        "supplieslook: the icon is never rounded",
@@ -46,7 +46,7 @@ mutate("Looks/Painted.lua",
        "supplieslook: the socket is cut from the wrong height",
        expect="supplieslook: the button wears the look's socket", script=S)
 
-mutate("Prompt/Supplies.lua",
+mutate("Modules/MyBuffs/Supplies.lua",
        "\tWear(db)\n\t-- Unlocked: shown, holding nothing, to be dragged where it goes.\n"
        "\tif not db.prompt.locked then\n\t\tDisarm()\n\t\ticon:SetTexture(PLACEHOLDER)\n\t\tbutton:Show()\n\t\treturn\n\tend\n",
        "\t-- Unlocked: shown, holding nothing, to be dragged where it goes.\n"
