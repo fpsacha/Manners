@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "1.12.3", date = nil, sections = {
+	{ version = "1.12.3", date = "26 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Optional modules.|r Combat, Achievements, Pets, My Buffs and Services live in separate addons in the same download.",
 			"|cffffd100A second blessing from a second paladin.|r |cffffffffBlessing to ask a paladin for|r keeps the 1.12.2 choice, and Automatic can ask another reachable paladin for a different missing blessing.",

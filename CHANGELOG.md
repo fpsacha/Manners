@@ -2,6 +2,8 @@
 
 ## 1.12.3
 
+*26 November 2026*
+
 ### Highlights
 - **Optional modules.** Combat, Achievements, Pets, My Buffs and Services live
   in separate addons in the same download. The core keeps its small,
