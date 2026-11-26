@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "1.12.4", date = nil, sections = {
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Optional-module bindings.|r Manners: My Buffs and Manners: Combat no longer load their Bindings.xml twice, which caused WoW Forever to report Unrecognized XML: Binding when a module was enabled.",
+		} },
+	} },
 	{ version = "1.12.3", date = "26 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Optional modules.|r Combat, Achievements, Pets, My Buffs and Services now live in separate addons in the same download.",
@@ -57,16 +62,6 @@ ns.WhatsNew = {
 			"|cff7cc4ffBlessings in a dungeon.|r New checks of a paladin's party in a dungeon.",
 			"|cff7cc4ffThorns on your target.|r |cffffffffAlso offer Thorns to my target|r (Who to buff, under Offer to) offers it to whoever you target, whatever Offer to says (thanks to tcurse).",
 			"|cff7cc4ffQuieter chat.|r |cffffffffShow what Manners is doing in my chat window|r is now off by default, and |cffffffffSend Manners messages to|r (Start here) puts the lines in a chat tab of your own (thanks to YourSin).",
-		} },
-	} },
-	{ version = "1.12.0", date = "24 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Back to the essentials.|r Manners now starts with only what it is for: returning favours, buffing your group and passers-by, and saying thanks.",
-			"|cffffd100Report a bug.|r A window that walks you through a report and opens the GitHub form already filled in (launcher menu, or /manners bug).",
-		} },
-		{ title = "Changes", accent = "7cc4ff", entries = {
-			"|cff7cc4ffRemoved:|r |cffffffffIn a fight, my key casts|r, |cffffffffHide the prompt in a fight|r, |cffffffffNo flashes in a fight|r and |cffffffffDim the prompt in combat|r.",
-			"|cff7cc4ffRighteous Fury alone.|r On Automatic, a Protection paladin playing alone is reminded of it, by talents (thanks to molnare).",
 		} },
 	} },
 }

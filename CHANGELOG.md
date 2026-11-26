@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.12.4
 
 ### Fixes
 - **Optional-module bindings.** Manners: My Buffs and Manners: Combat no longer
