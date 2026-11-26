@@ -4388,6 +4388,11 @@ do
 		if family.tracking then
 			local list = TrackingList()
 			if not list then return nil end
+			-- A death drops your tracking, but the minimap's list can go on
+			-- saying it is on (GitHub issue 55: Find Minerals not reminded
+			-- after dying). Until the list changes once you are back up, or
+			-- you cast it, it reads as off.
+			if ns.GoneWithDeath("own:" .. family.key, family.throughDeath) then return false end
 			for _, spell in ipairs(family.spells) do
 				if Known(spell) then
 					for _, id in ipairs(spell.ranks) do
@@ -6784,6 +6789,14 @@ local probeQueued = false
 function addon:MINIMAP_UPDATE_TRACKING()
 	ns.ForgetTrackingList()
 	ns.ownAurasChanged = true
+	-- Changed while you are alive: the list is current again after a death,
+	-- whatever it says (ReadOwnFamily, GitHub issue 55). Not while dead or a
+	-- ghost, when the change may be the death's own.
+	if plain(UnitIsDeadOrGhost("player")) ~= true then
+		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
+			if family.tracking then ns.NoteCastSinceDeath("own:" .. family.key) end
+		end
+	end
 end
 
 -- A mage's scrolls and every class's weapon enhancements (Core.lua's own

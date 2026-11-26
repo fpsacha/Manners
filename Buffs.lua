@@ -2231,7 +2231,10 @@ do
 	local spells = {}
 	for _, spell in ipairs(TRACKING.spells) do spells[#spells + 1] = { key = spell.key, ranks = spell.ranks } end
 	spells[#spells + 1] = { key = "findfish", ranks = { 43308 } }
-	local tracking = { key = TRACKING.key, label = TRACKING.label, tracking = true, toggle = true, spells = spells }
+	-- throughDeath: Core.lua reads a tracking the list shows on as off after a
+	-- death only where a death drops it (vanilla content, Forever); left as
+	-- the list says here.
+	local tracking = { key = TRACKING.key, label = TRACKING.label, tracking = true, toggle = true, throughDeath = true, spells = spells }
 	for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAMAN", "DRUID", "WARRIOR", "ROGUE" }) do
 		TBC_OWN[class] = TBC_OWN[class] or {}
 		table.insert(TBC_OWN[class], tracking)
