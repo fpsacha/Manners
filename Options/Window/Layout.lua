@@ -369,6 +369,9 @@ ns.WindowLayout = {
 					-- optional My own buffs page, which joins this sidebar group.
 					"general.modules",
 				} },
+				{ key = "modules.reload", title = L["Apply changes"], items = {
+					"general.modulesReload",
+				} },
 				{ key = "modules.list", title = L["Available modules"], items = {
 					"general.modulesCombat",
 					"general.modulesCombatHelp",
@@ -380,9 +383,6 @@ ns.WindowLayout = {
 					"general.modulesMyBuffsHelp",
 					"general.modulesServices",
 					"general.modulesServicesHelp",
-				} },
-				{ key = "modules.reload", title = L["Apply changes"], items = {
-					"general.modulesReload",
 				} },
 			},
 		},

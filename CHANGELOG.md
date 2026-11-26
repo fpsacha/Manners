@@ -6,6 +6,9 @@
 - **Optional-module bindings.** Manners: My Buffs and Manners: Combat no longer
   load their `Bindings.xml` twice, which caused WoW Forever to report
   `Unrecognized XML: Binding` when a module was enabled.
+- **Module reload feedback.** The Optional modules page now puts *Reload now*
+  before the module list, so a switch change immediately shows what must be
+  pressed to apply it.
 
 ## 1.12.3
 
