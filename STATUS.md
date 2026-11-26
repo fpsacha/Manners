@@ -8,66 +8,33 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*26 November 2026. Last release: 1.12.1 (live everywhere and in the owner's
-game folder). Read `.claude/docs/lessons.md` first: it holds the 1.11.41
-rollback, the scope rule, what Forever hides and what is open.*
+*26 November 2026. Last release: 1.12.3 (GitHub, CurseForge, Wago and installed
+in WoW Forever). The six-folder ZIP SHA-256 is
+`a9871c6427a134cdf3f9d0106ea18d40c94eefaeb0a881d42050d40fa5ab922b`.*
 
-- **In flight (branch `fix-44`, worktree `Manners-wt-44`):** issue #44 is
-  implemented with the caster's addon whisper, one-candidate fallback and a
-  quiet verbose-only hint. The module API, package plumbing and disabled
-  `Manners: Combat` folder are implemented. The remaining modules are also
-  migrated: disabled Achievements, My Buffs and Services, plus enabled
-  `Manners: Pets` (hunter-only behaviour; inert elsewhere). Combat carries the
-  Forever cure workaround, break-free and in-fight Mend Pet. Services now has a
-  dedicated page and independently controlled, exact-client request services:
-  refreshments and named portals, Slow Fall, Levitate, Water Walking,
-  healthstones/Soulwell, summons, Soulstones and Fire Shield where supported.
-  Disabled services create no event frame or queue entry, and the exact
-  `tools/audit_services.py` matrix is clean on all five builds.
-- **Context audit:** bag items now obey the client's usability and cooldown
-  answers before they are offered; Camper's Lure is modeled on the player's
-  Forever 1.60.1.71091 build at +60 Fishing for five minutes. The death,
-  resurrection and unghost tracking-cache bug has a focused scenario and is
-  installed in the owner's game. GitHub issue #55 records that report.
-- **Bug-fix pass:** the final review closed Services-only prompt detection,
-  saved Fire Shield lifecycle, combat-rota leakage, whisper/focus scope errors,
-  ignored or conflicting caster claims, unreadable caster levels and
-  disabled-module resets. All 126 performance-budget loads pass, every new
-  mutation is caught, and `check.py --lint --anchors --quick` passes all 8
-  steps with 8,044 live anchors. The verified core and all five module folders
-  were copied to WoW Forever and hash-checked against this worktree.
-- **Paladin cure report:** Forever's secret-aura fallback now draws a
-  visible ring at the game-owned poison/disease indicator; a Paladin's
-  dangerous Cleanse is replaced by learned Purify when a never-removed debuff
-  is beside the ailment. Combat, Pets and My Buffs now suspend their queue
-  paths, event frames and visible secure controls when disabled and resume
-  them without changing saved settings. All focused cases and the 126
-  performance loads pass; the quick gate is 8/8 with 8,051 live anchors. The
-  exact build was copied and hash-checked in WoW Forever, with `Libs`
-  preserved.
-- **Cure ownership moved:** `Modules/Combat/Cures.lua`, the Who-to-buff cure
-  controls and their layout now load only from Manners: Combat. The core has
-  guarded absent-module queue/report paths, and a pending Combat disable clears
-  cure caches, scans and queue work without changing saved switches or duration.
-  Disabled Combat settings are also excluded from core-page resets. Focused
-  cure/module scenarios, four ownership/reset mutations, 126 performance loads
-  and the 8-step quick gate pass; 8,055 anchors are live. WoW Forever is
-  hash-matched to the move and its `Libs` remain intact.
-- **Architecture backlog complete:** every module suspends immediately and
-  resumes without rebuilding secure frames; one safe context decision feeds
-  buffs, cures, own items and Services; `/manners debug` keeps the last twenty
-  rejected decisions without printing secrets; and `tools/install_package.py`
-  stages all six addon folders, preserves source-install libraries and verifies
-  every installed byte with SHA-256. Its seven checks include a complete release
-  ZIP round trip, unsafe paths, missing libraries, source-library preservation,
-  byte checks and rollback. Focused lifecycle/context scenarios, performance
-  budgets and package-install mutations pass.
-- **Player requests and data gates complete:** asking for a paladin blessing has
-  an Automatic/Kings/Might/Wisdom/Salvation choice where supported, and Automatic
-  can ask another reachable paladin for another missing blessing. Every cited
-  client is on its current upstream build and `audit_ids.py` has zero findings;
-  the old 18 Forever shaman-imbue findings are resolved. Mists' Focus fallback
-  and consumable-slot audit are fixed, retail fight/module scenarios run in CI
+- **In flight:** `fix-44` / `Manners-wt-44` is merged through 25ab5ffe;
+  later release/CI metadata commits are on `master`. The exact released commit
+  has GitHub Selftest running at
+  `https://github.com/fpsacha/Manners/actions/runs/45894521559`; the local
+  machine is not waiting on it. Historical merged worktrees are `features-1.11.41`,
+  `look-fel`, `look-wild`, `feedback-20261125`, `r112-paladin`, `release-1.12.1`,
+  `rollback-1.11.42`, `relcheck`, `ci-112`; older unmerged experiments remain in
+  `ci-diag-generators`, `logo`, `r112-achieve`, `r112-simple`, `r112-water`,
+  `release-1.12`, and the detached `wt112-head` check.
+- **Validated:** the complete Forever suite passes, all cross-client baselines
+  and 120 fuzz runs pass, and CI passed the released commit. #44, #53 and #58
+  are closed for 1.12.3. CurseForge replies for Mr_Bowman, the in-fight cure
+  report and broodwave's second-paladin request are visible on the page.
+- **Waiting on the owner:** nothing for this pass.
+- **Waiting on players:** #21 needs the player's game/client log; #33 needs the
+  client and settings; Kinnaj has not supplied `/manners debug` for the chat
+  report. Leave #21 and #33 open.
+- **Next:** read the completed Selftest result; then keep the nightly client/
+  workflow results on the next checklist. The release ZIP is already verified
+  and installed, so no local copy step remains.
+- **Watch out:** do not use old 1.12 worktrees as active branches. `Libs` is
+  ignored but present in the live checkout; `tools/unused_lua_known.txt` now
+  records the pinned vendored declarations so a live release validates cleanly.
   and release checks, and nightly runs strict client-build, Services and ID
   audits. New shipped Lua locals fail `lint.py` unless deliberately listed in
   the reviewed historical baseline.
