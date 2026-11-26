@@ -4725,6 +4725,10 @@ do
 		if spell.item then
 			local ready, why = ScrollReady(spell)
 			if not ready then return nil, up, left, why, spell end
+		elseif family.imbue and HandWeapon(family.slot or 16) == 20 then
+			-- A weapon imbue, with a fishing pole (weapon subclass 20) in that
+			-- hand: the game takes none on it (GitHub issue 56).
+			return nil, up, left, "noweapon", spell
 		elseif spell.needsWeapon and HandWeapon(family.slot or 16) == false then
 			-- What goes on a weapon (Buffs.lua, `needsWeapon`), with none in that hand.
 			return nil, up, left, "noweapon", spell
