@@ -493,8 +493,16 @@ function api:IsModuleEnabled(id)
 	return loaded[id] ~= nil
 end
 
+-- Enabling an unloaded addon only changes what the next reload starts, so it is
+-- safe in combat. A loaded addon's immediate suspension can involve secure
+-- frames, which waits until combat ends.
+function api:CanToggleModule(id)
+	if type(id) ~= "string" or not MODULE_FOLDERS[id] then return false end
+	return not InCombatLockdown() or loaded[id] == nil
+end
+
 function api:SetModuleEnabled(id, enabled)
-	if InCombatLockdown() then return false end
+	if not api:CanToggleModule(id) then return false end
 	local folder = MODULE_FOLDERS[id]
 	if not folder then return false end
 	local wasActive = api:ModuleActive(id)
@@ -505,13 +513,14 @@ function api:SetModuleEnabled(id, enabled)
 		if active ~= wasActive then
 			SetModuleActive(id, active)
 		end
+		if ns.RepaintOptions then ns.RepaintOptions() end
 		return false
 	end
 	local chat = _G.C_AddOns
 	local changed = false
 	if enabled then
 		if type(chat) == "table" and type(chat.EnableAddOn) == "function" then
-			chat.EnableAddOn(folder)
+			chat.EnableAddOn(folder, ns.plain(UnitName and UnitName("player") or nil))
 			changed = true
 		elseif type(EnableAddOn) == "function" then
 			EnableAddOn(folder)
@@ -519,7 +528,7 @@ function api:SetModuleEnabled(id, enabled)
 		end
 	else
 		if type(chat) == "table" and type(chat.DisableAddOn) == "function" then
-			chat.DisableAddOn(folder)
+			chat.DisableAddOn(folder, ns.plain(UnitName and UnitName("player") or nil))
 			changed = true
 		elseif type(DisableAddOn) == "function" then
 			DisableAddOn(folder)

@@ -109,10 +109,24 @@ mutate("Modules.lua",
        expect="modules: the Manners menu enables and disables addon folders", script=S)
 
 mutate("Modules.lua",
-       "\tif InCombatLockdown() then return false end\n",
+       "\tif not api:CanToggleModule(id) then return false end\n",
        "",
-       "modules-plumbing: module addon state changes in combat",
-       expect="modules: combat locks every module switch and the API", script=S)
+       "modules-plumbing: module addon state changes for loaded modules in combat",
+       expect="modules: combat locks every loaded module switch and the API", script=S)
+
+mutate("Modules.lua",
+       "return not InCombatLockdown() or loaded[id] == nil\n",
+       "return not InCombatLockdown()\n",
+       "modules-plumbing: an unloaded module cannot be enabled in combat",
+       expect="modules: an unloaded module can be enabled in combat and repaints",
+       script=S)
+
+mutate("Modules.lua",
+       "chat.EnableAddOn(folder, ns.plain(UnitName and UnitName(\"player\") or nil))\n",
+       "chat.EnableAddOn(folder)\n",
+       "modules-plumbing: C_AddOns enable ignores the current character",
+       expect="modules: an unloaded module can be enabled in combat and repaints",
+       script=S)
 
 mutate("Modules/Combat/Cures.lua",
        "function ns.CuresWanted(db)\n"
