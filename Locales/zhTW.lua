@@ -4807,7 +4807,6 @@ L["Who buffed you, whether you returned it, and who you buffed first."] = "誰�
 L["Turn optional modules on or off here. Their changes take effect after Reload UI."] = "可在此開啟或關閉選用模組。變更會在介面重載後生效。"
 L["All optional modules start on in 1.12.5. Choose what you want to keep: Combat adds fight buttons, My Buffs reminds you of your own buffs and consumables, Services answers requests, Pets cares for pets, and Achievements adds optional ledger goals. Changes take effect after Reload UI."] = "1.12.5 中所有選用模組預設開啟。請選擇要保留的模組：戰鬥新增戰鬥按鈕，我的增益提醒自身增益與消耗品，服務回應請求，寵物照顧寵物，成就新增選用帳簿目標。變更會在介面重載後生效。"
 L["Keep these modules"] = "保留這些模組"
-L["Choose your optional modules"] = "選擇選用模組"
 L["Manners: Combat"] = "Manners：戰鬥"
 L["Cure, break-free and Mend Pet buttons in a fight."] = "戰鬥中的驅散、掙脫和治療寵物按鈕。"
 L["Manners: Achievements"] = "Manners：成就"

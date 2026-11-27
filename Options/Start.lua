@@ -1510,13 +1510,6 @@ function Page.BuildStartTab()
 				end,
 				order = 68,
 			},
-			modulesWelcomeHeader = {
-				type = "header", name = L["Choose your optional modules"], order = 68.001,
-				hidden = function()
-					local api = _G.MannersAPI
-					return not (api and api:ModuleWelcomeOpen())
-				end,
-			},
 			modulesWelcome = {
 				type = "description",
 				name = L["All optional modules start on in 1.12.5. Choose what you want to keep: Combat adds fight buttons, My Buffs reminds you of your own buffs and consumables, Services answers requests, Pets cares for pets, and Achievements adds optional ledger goals. Changes take effect after Reload UI."],
