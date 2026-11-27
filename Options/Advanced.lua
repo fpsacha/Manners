@@ -49,6 +49,7 @@ local RESET_MODULE_PATH = {
 	["prompt.cureFight"] = "combat",
 	["prompt.cureFightEach"] = "combat",
 	["prompt.cureFightMods"] = "combat",
+	["prompt.reactiveWards"] = "combat",
 	["prompt.fightButtons"] = "combat",
 	["supplies.size"] = "mybuffs",
 }
@@ -271,7 +272,7 @@ Page.RESET.services = {
 Page.RESET.fight = {
 	"prompt.fightRota",
 	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach",
-	"prompt.cureFightMods", "prompt.fightButtons",
+	"prompt.cureFightMods", "prompt.reactiveWards", "prompt.fightButtons",
 	keep = ModuleKeeps,
 	after = function()
 		restyleAndMacro()
@@ -283,6 +284,9 @@ Page.RESET.fight = {
 		end
 		if ModuleActive("combat") and ns.CureFight then
 			ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight)
+		end
+		if ModuleActive("combat") and ns.ReactiveWards then
+			ns.Guard("reactive wards", ns.ReactiveWards.Refresh, ns.ReactiveWards)
 		end
 		ns.Prompt:Refresh()
 	end,

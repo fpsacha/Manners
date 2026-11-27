@@ -109,6 +109,7 @@ local ns = assert(MannersAPI:ModuleContext("combat"), "Manners module API is mis
 local L = ns.L
 local Prompt = ns.Prompt
 local R = Prompt.regions
+local Layout = assert(ns.CombatLayout, "Manners Combat layout API is missing")
 local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 local plain, caps = ns.plain, ns.caps
@@ -126,9 +127,6 @@ _G["BINDING_NAME_CLICK MannersCureFight2:LeftButton"] = L["Second cure in a figh
 
 local STATE = "mannerscurefight"
 local DRIVER = "[combat] fight; peace"
--- Between the prompt's (or the break-free button's) right edge and this button,
--- and between the two cure buttons.
-local GAP = 10
 -- Reads are coalesced: one flush each tenth of a second, ten units at most.
 local FLUSH = 0.1
 -- While anybody needs a cure: reach and time asked again this often.
@@ -359,7 +357,7 @@ end
 -- icon. The second button goes below the first.
 local function Place(p)
 	placedIcon, placedScale = p.iconSize, p.scale
-	local size = math.floor(math.max(24, math.min(48, tonumber(p.iconSize) or 30)) * (tonumber(p.scale) or 1) + 0.5)
+	local size = Layout.Size(p)
 	local bf = ns.BreakFree
 	local beside = bf and bf.Applies() and bf:Button() or nil
 	placedBeside = beside ~= nil
@@ -367,15 +365,11 @@ local function Place(p)
 	local key = size .. ":" .. tostring(placedBeside)
 	if key ~= first.placedKey then
 		first.placedKey = key
-		first.button:ClearAllPoints()
-		first.button:SetPoint("LEFT", beside or R.button, "RIGHT", GAP, 0)
-		first.button:SetSize(size, size)
+		Layout.PlaceRight(first.button, beside or R.button, p)
 	end
 	if second.button and tostring(size) ~= second.placedKey then
 		second.placedKey = tostring(size)
-		second.button:ClearAllPoints()
-		second.button:SetPoint("TOP", first.button, "BOTTOM", 0, -GAP)
-		second.button:SetSize(size, size)
+		Layout.PlaceBelow(second.button, first.button, p)
 	end
 end
 

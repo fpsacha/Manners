@@ -2,7 +2,7 @@
 # Vanilla client. Everything but the interface number comes from Modules/Combat/Manners_Combat.toc.
 ## Interface: 11509
 ## Title: Manners: Combat
-## Notes: Optional in-fight cure, break-free and Mend Pet buttons for Manners.
+## Notes: Optional in-fight ward, cure, break-free and Mend Pet buttons for Manners.
 ## Author: Sacha
 ## Version: 1.12.4
 ## Dependencies: Manners
@@ -11,8 +11,10 @@
 
 Cures.lua
 CureNeed.lua
+Layout.lua
 BreakFree.lua
 MendPet.lua
 CureFight.lua
+Wards.lua
 Options.lua
 Init.lua

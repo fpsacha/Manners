@@ -75,3 +75,26 @@ api:InsertLayoutItems("who", "who.resStrangers", {
 	"who.curesNote", "who.cures", "who.curesStrangers", "who.curesSelf",
 	{ "who.cureSeconds", indent = true }, "who.curesFight",
 })
+
+api:RegisterOptionsExtension("appearance", function(_, args)
+	args.reactiveWards = {
+		type = "toggle",
+		name = L["Show a matching ward button when fire or frost hits me in a fight"],
+		desc = L["The matching Fire Ward or Frost Ward is armed on a secure button before the fight. After a fire or frost damage read in the fight, one click casts it. The button hides after a ward is cast, while either ward is active, and when the fight ends. Off until you turn it on."],
+		order = 32.493,
+		width = "full",
+		hidden = function()
+			return not ns.ReactiveWards or not ns.ReactiveWards.Supported()
+				or not ns.ReactiveWards.Knows()
+		end,
+		get = Page.pGet,
+		set = function(info, value)
+			Page.pSet(info, value)
+			if value == true then
+				ns.Guard("reactive wards", ns.ReactiveWards.Refresh, ns.ReactiveWards)
+			else
+				ns.Guard("reactive wards off", ns.ReactiveWards.Release, ns.ReactiveWards)
+			end
+		end,
+	}
+end)

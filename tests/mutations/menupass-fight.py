@@ -13,9 +13,9 @@ mutate("Options/Window/Layout.lua",
 
 mutate("Options/Advanced.lua",
        "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\",\n"
-       "\t\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
+       "\t\"prompt.cureFightMods\", \"prompt.reactiveWards\", \"prompt.fightButtons\",\n",
        "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\",\n"
-       "\t\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
+       "\t\"prompt.cureFightMods\", \"prompt.reactiveWards\", \"prompt.fightButtons\",\n",
        "menupass-fight: RESET.fight loses prompt.breakFree",
        expect="menupass-fight: In a fight's reset", script=S)
 

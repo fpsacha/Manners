@@ -8,7 +8,8 @@ local function Suspend()
 	if ns.BreakFree then api:Guard("combat break free off", ns.BreakFree.Release, ns.BreakFree) end
 	if ns.MendPet then api:Guard("combat mend pet off", ns.MendPet.Release, ns.MendPet) end
 	if ns.CureFight then api:Guard("combat cure off", ns.CureFight.Release, ns.CureFight) end
-	for _, component in ipairs({ ns.BreakFree, ns.MendPet, ns.CureFight }) do
+	if ns.ReactiveWards then api:Guard("combat wards off", ns.ReactiveWards.Release, ns.ReactiveWards) end
+	for _, component in ipairs({ ns.BreakFree, ns.MendPet, ns.CureFight, ns.ReactiveWards }) do
 		local frame = component and component.frame
 		if frame and type(frame.UnregisterAllEvents) == "function" then
 			frame:UnregisterAllEvents()
@@ -22,6 +23,7 @@ local function Refresh()
 	if ns.BreakFree and ns.BreakFree:Wanted(db) then api:Guard("combat break free", ns.BreakFree.Refresh, ns.BreakFree) end
 	if ns.MendPet and ns.MendPet:Wanted(db) then api:Guard("combat mend pet", ns.MendPet.Refresh, ns.MendPet) end
 	if ns.CureFight and ns.CureFight:Wanted(db) then api:Guard("combat cure", ns.CureFight.Refresh, ns.CureFight) end
+	if ns.ReactiveWards and ns.ReactiveWards:Wanted(db) then api:Guard("combat wards", ns.ReactiveWards.Refresh, ns.ReactiveWards) end
 end
 
 api:RegisterCallback("ProfileChanged", function() Refresh() end)

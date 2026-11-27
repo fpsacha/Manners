@@ -711,6 +711,7 @@ ns.WindowLayout = {
 					{ "appearance.cureFightPlain", indent = true },
 					{ "appearance.cureFightShift", indent = true },
 					{ "appearance.cureFightCtrl", indent = true },
+					"appearance.reactiveWards",
 				} },
 			},
 		},
