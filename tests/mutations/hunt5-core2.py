@@ -6,7 +6,8 @@
 
 # A late refusal putting back the debt of somebody just never-offered.
 mutate("Clicks.lua",
-       "\tlocal listed = settled.owed and not settled.listedAtSettle and ListedAs(settled.name)\n",
+       "\tlocal listed = settled.owed and settled.cleared\n"
+       "\t\tand not settled.listedAtSettle and ListedAs(settled.name)\n",
        "\tlocal listed = false\n",
        "late refusal ignores the never-offer list",
        expect="core2: a late refusal does not bring back somebody just never-offered (listed after the settle)",
@@ -15,8 +16,10 @@ mutate("Clicks.lua",
 # A late refusal letting go the debt of somebody listed before the favour,
 # which the list never applied to.
 mutate("Clicks.lua",
-       "settled.owed and not settled.listedAtSettle and ListedAs(settled.name)",
-       "settled.owed and ListedAs(settled.name)",
+       "settled.owed and settled.cleared\n"
+       "\t\tand not settled.listedAtSettle and ListedAs(settled.name)",
+       "settled.owed and settled.cleared\n"
+       "\t\tand ListedAs(settled.name)",
        "late refusal lets go somebody listed before",
        expect="core2: a late refusal does not bring back somebody just never-offered (listed before the favour)",
        script="runscenarios.py")

@@ -3445,8 +3445,8 @@ mutate("Queue.lua",
 
 # A shout nothing measured taken as repaying the person named.
 mutate("Clicks.lua",
-       "\tif not unheard then ns.SettleFavour(pending.name) end\n",
-       "\tns.SettleFavour(pending.name)\n",
+       "\tif not unheard then cleared = ns.SettleFavour(pending.name, wasOwed) end\n",
+       "\tcleared = ns.SettleFavour(pending.name, wasOwed)\n",
        "an unmeasured shout counted as repaid",
        expect="a shout nothing could say reached them counted as repaying",
        script="runscenarios.py")

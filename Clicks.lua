@@ -344,17 +344,20 @@ end
 local function SettleMembers(names, pending, covered, spellId)
 	local records, repaid = {}, {}
 	for _, name in ipairs(names) do
-		local debt = owed[name]
+		local debt = pending.debts and pending.debts[name] or owed[name]
+		local snapshot = pending.debts ~= nil
+		if snapshot and pending.debts[name] == nil then debt = nil end
 		ns.MarkAttempted(name, pending.buffKey)
 		-- Reached by it: covers a reading the game hides (ns.CoveredByCast).
 		ns.NoteCover(name, pending.buffKey, GetTime())
+		local cleared = false
 		if debt then
-			ns.SettleFavour(name)
+			cleared = ns.SettleFavour(name, debt)
 			TellLedger("Settled", name, debt, covered, spellId)
 			repaid[#repaid + 1] = ns.ShortName(name)
 		end
 		ns.ServeRequest(name, pending.buffKey)
-		records[#records + 1] = { name = name, owed = debt,
+		records[#records + 1] = { name = name, owed = debt, cleared = cleared,
 			listedAtSettle = debt ~= nil and ListedAs(name) ~= nil }
 	end
 	return records, repaid
@@ -423,10 +426,10 @@ local function UnsettleGroup(settled)
 		if not settled.group then ns.MarkAttempted(member.name, settled.buffKey, 2) end
 		if member.owed then
 			TellLedger("Refused", member.name, settled.at)
-			if not member.listedAtSettle and ListedAs(member.name) then
+			if member.cleared and not member.listedAtSettle and ListedAs(member.name) then
 				-- Listed since: let go, as the anchor's is (see below).
 				TellLedger("LetGo", member.name, "never")
-			else
+			elseif member.cleared then
 				local standing = owed[member.name]
 				if not standing or LiveExpiry(standing) < LiveExpiry(member.owed) then
 					owed[member.name] = member.owed
@@ -701,7 +704,8 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 
 	-- Read before SettleFavour clears it: an undo puts back the entry that
 	-- stood, including when the favour was done, which the grace window reads.
-	local wasOwed = owed[pending.name]
+	local wasOwed = pending.debts and pending.debts[pending.name] or owed[pending.name]
+	if pending.debts and pending.debts[pending.name] == nil then wasOwed = nil end
 	-- A cure (Cures.lua) is no buff: the press is answered and its cooldown
 	-- written like any other, and nothing is returned, served, given or filed
 	-- for it, whatever they may be owed.
@@ -745,7 +749,8 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	if not unheard then ns.NoteGave(pending.name, pending.buffKey, not wasOwed) end
 	if not unheard and not pending.cure then ns.NoteCover(pending.name, pending.buffKey, GetTime()) end
 
-	if not unheard then ns.SettleFavour(pending.name) end
+	local cleared = false
+	if not unheard then cleared = ns.SettleFavour(pending.name, wasOwed) end
 	if not unheard then ns.ServeRequest(pending.name, pending.buffKey) end
 	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
 	if not unheard then ns.NoteBuffedAuthor(pending.name) end
@@ -765,7 +770,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- Whether they were on the never-offer list already, which a favour owed
 	-- ignores (STATUS.md); only a listing after the settle lets it go.
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
-		gave = pending.gave, at = GetTime(), owed = wasOwed, castGUID = castGUID,
+		gave = pending.gave, at = GetTime(), owed = wasOwed, cleared = cleared, castGUID = castGUID,
 		listedAtSettle = ListedAs(pending.name) ~= nil, spoke = pending.spoke,
 		-- A shout nothing measured them inside of is not a cast on them.
 		landed = not unheard,
@@ -814,7 +819,8 @@ local function UnsettleLateRefusal(castGUID)
 	-- A shift-right-click since the settle let this favour go, and a refusal
 	-- must not bring it back: owed people are exempt from the list. The row
 	-- goes from returned back to let go, and nothing claims a debt still kept.
-	local listed = settled.owed and not settled.listedAtSettle and ListedAs(settled.name)
+	local listed = settled.owed and settled.cleared
+		and not settled.listedAtSettle and ListedAs(settled.name)
 	if listed then
 		TellLedger("Refused", settled.name, settled.at)
 		TellLedger("LetGo", settled.name, "never")
@@ -824,7 +830,7 @@ local function UnsettleLateRefusal(castGUID)
 
 	-- Written to disk, as SettleFavour's clearing was. A newer favour filed
 	-- since is kept if it lasts longer: the refusal only means you still owe.
-	if settled.owed then
+	if settled.owed and settled.cleared then
 		local standing = owed[settled.name]
 		if not standing or LiveExpiry(standing) < LiveExpiry(settled.owed) then
 			owed[settled.name] = settled.owed
