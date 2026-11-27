@@ -8,31 +8,29 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*26 November 2026. Last release: 1.12.3, published everywhere and installed in
-WoW Forever. ZIP SHA-256: `a9871c6427a134cdf3f9d0106ea18d40c94eefaeb0a881d42050d40fa5ab922b`.*
+*27 November 2026. Last release: 1.12.5, published to GitHub, CurseForge and
+Wago and installed in WoW Forever. ZIP SHA-256:
+`62BFE39B96AC86F759551ED2F8EB0F315FF89C3CE4EB1E92C45AD9FEFE9B7725`.*
 
-- **In flight:** `fix-44` is merged through 25ab5ffe; later CI/release commits
-  are on `master`. The released commit is running GitHub Selftest at
-  [run 45894521559](https://github.com/fpsacha/Manners/actions/runs/45894521559).
-  Merged old worktrees: `features-1.11.41`, `look-fel`, `look-wild`,
-  `feedback-20261125`, `r112-paladin`, `release-1.12.1`, `rollback-1.11.42`,
-  `relcheck`, `ci-112`. Unmerged historical experiments: `ci-diag-generators`,
-  `logo`, `r112-achieve`, `r112-simple`, `r112-water`, `release-1.12`, and
-  detached `wt112-head`; none feeds this release.
-- **Validated:** Forever's full suite, four client baselines, 120 fuzz runs,
-  CI and package verification pass. #44, #53 and #58 are closed for 1.12.3.
-  Mr_Bowman, the cure report and broodwave were answered on CurseForge.
+- **In flight:** nothing on the release commit. The completed swarm branches
+  are merged; their worktrees are historical until removed. 1.12.5 CI and the
+  release workflow both passed, and the installed six-folder package verified
+  878 files with the bundled libraries.
+- **Validated:** the focused scenarios, their mutations, the full Forever
+  adversarial suite, Retail module scenarios, quick checks and package install
+  all pass. #33, #59, #60, #62, #63 and #64 are closed for 1.12.5.
 - **Waiting on the owner:** nothing.
-- **Waiting on players:** #21 needs a client/log; #33 needs client/settings;
-  Kinnaj still owes `/manners debug`. Leave #21 and #33 open.
-- **Next:** read the Selftest result, then keep only nightly failures that
-  remain; the released package is already verified and installed.
-- **Watch out:** old 1.12 worktrees are historical. The live checkout has
-  ignored `Libs`, now covered by the pinned vendored-unused baseline.
+- **Waiting on players:** #21 still needs the player's client and log. #65 is
+  an enhancement request for Battle Shout reminders, not a release blocker.
+- **Next:** watch nightly selftest; then implement #65 separately if approved.
+- **Watch out:** all optional folders now start enabled. 1.12.5's one-time
+  login chooser lets players turn individual modules off; existing saved-off
+  choices remain off. Reactive wards are Classic Era/TBC only because Forever
+  withholds the in-fight values they need.
 
 ## State
 
-- **Released:** 1.12.1 (24 November 2026), on all five clients through
+- **Released:** 1.12.5 (27 November 2026), on all five clients through
   CurseForge, Wago and GitHub. `CHANGELOG.md` says what each version brought.
 - **The owner does not test in the game** (21 November). The code is taken as
   working once the suites pass; players' reports find the rest, with
