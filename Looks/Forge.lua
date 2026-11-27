@@ -69,7 +69,6 @@ local Forge = ns.Looks.Register("forge", {
 	order = 7,
 	-- The plate holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
-	classSoften = 0.55,
 	-- The words stand on the iron whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,

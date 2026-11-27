@@ -49,13 +49,10 @@ mutate(LETTER,
 
 # The outcome's headline taken to the lettering's gold like a class colour.
 mutate(RIBBON,
-       "\tif self.headline then\n"
-       "\t\tself.mixedText = text\n"
-       "\t\treturn\n"
-       "\tend\n",
-       "",
-       "looks-redrawn-review2: Ribbon takes the headline's red and green to the gold",
-       expect="looks-redrawn-review2: Ribbon's one-line headline keeps", script=S)
+       "function Ribbon:Fitted() end\n",
+       "function Ribbon:Fitted(fs) fs:SetText((fs:GetText()):gsub(\"|cff40c7eb\", \"|cffffd100\")) end\n",
+       "looks-redrawn-review2: Ribbon takes a later name's red to gold",
+       expect="looks-redrawn-review2: Ribbon keeps a class colour after a headline", script=S)
 
 # The whole entrance, its settle included, read as the panel coming up.
 mutate(RIBBON,

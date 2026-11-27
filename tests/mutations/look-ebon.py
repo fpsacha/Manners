@@ -33,8 +33,8 @@ mutate("Looks/Ebon.lua",
        expect="ebon is not after Frost and before Glass", script=S)
 
 mutate("Looks/Ebon.lua",
-       "\tcombatArtAlpha = 1,\n\tclassSoften = 0.5,\n\t-- The words stand on the blued steel whatever the panel colour says.\n",
-       "\tclassSoften = 0.5,\n\t-- The words stand on the blued steel whatever the panel colour says.\n",
+       "\tcombatArtAlpha = 1,\n\t-- The words stand on the blued steel whatever the panel colour says.\n",
+       "\t-- The words stand on the blued steel whatever the panel colour says.\n",
        "look-ebon: the art dimmed twice in a fight",
        expect="Prompt is told to dim the art as well", script=S)
 

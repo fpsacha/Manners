@@ -1346,7 +1346,6 @@ function Ribbon:Hide()
 	self.combat, self.hovered, self.outcomeOn = nil, nil, nil
 	self.listShown, self.countMode, self.keyLane, self.keyUp = nil, nil, nil, false
 	self.dyeNow, self.ringNow = nil, nil
-	self.mixedText = nil
 end
 
 ---------------------------------------------------------------------------
@@ -1519,40 +1518,7 @@ function Ribbon:PlaceLines(right)
 	sub:SetPoint("RIGHT", -subInset, self.subY)
 end
 
--- The name's class colour (when "Colour names by class" is on) is taken most
--- of the way to the warm gold the lettering is in, or to the colour the player
--- chose: the gold is the look, and no class colour reads on every dye.
-local CLASS_SHARE = 0.30
-
-function Ribbon:Fitted(fs)
-	local kit = self.kit
-	if fs ~= kit.name then return end
-	local text = fs:GetText()
-	if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return end
-	if not text:find("|c%x%x%x%x%x%x%x%x") then return end
-	-- An outcome's headline (PaintOutcome, with no second line to hold the
-	-- verdict) keeps its own colours: the refusal's red and the landing's
-	-- green are what the words say, and the gold would make one pale ink of
-	-- both. Remembered like a line already mixed, so a refit leaves it too.
-	if self.headline then
-		self.mixedText = text
-		return
-	end
-	-- A line refitted (the tags came or went) is the text this look wrote
-	-- itself: taken to the gold once, not again.
-	if text == self.mixedText then return end
-	local to = self.nameInk or GOLD_INK
-	local mixed = text:gsub("|c(%x%x)(%x%x)(%x%x)(%x%x)", function(a, r, g, b)
-		local function mix(hex, target)
-			local v = (tonumber(hex, 16) or 255) / 255
-			return math.floor((target + (v - target) * CLASS_SHARE) * 255 + 0.5)
-		end
-		return ("|c%s%02x%02x%02x"):format(a, mix(r, to[1]), mix(g, to[2]), mix(b, to[3]))
-	end)
-	-- Colour codes have no width: what FitLine measured still holds.
-	self.mixedText = mixed
-	fs:SetText(mixed)
-end
+function Ribbon:Fitted() end
 
 -- Whether the name, even at its smallest, fits beside `room` at the right.
 -- Its width is taken once a paint, by Chip.

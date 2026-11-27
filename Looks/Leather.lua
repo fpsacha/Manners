@@ -96,9 +96,6 @@ local Leather = ns.Looks.Register("leather", {
 	order = 6,
 	-- The tag holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
-	-- Held to 3:1 against the leather at its lightest by tests/scenarios/look-leather.lua:
-	-- a dark class colour taken this far towards white reads on brown.
-	classSoften = 0.70,
 	-- Every line sits on leather whatever the panel colour says.
 	subOnDark = true,
 	inkOnDark = true,

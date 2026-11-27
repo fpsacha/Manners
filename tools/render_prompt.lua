@@ -509,8 +509,7 @@ R.states = {
 		tick(ns)
 		fight(ns)
 	end },
-	-- A mage on the panel, and a mage's own buff: the class colour, softened
-	-- on the looks that ask, must not land on a reason's colour.
+	-- A mage on the panel, and a mage's own buff, in the client's class colour.
 	{ key = "mage-target", title = "A mage as your target, names by class", at = 0.85, setup = function(ns)
 		Mock.unitClass = "MAGE"
 		boot(ns, { target = { "Tamsin", "Reed" } })

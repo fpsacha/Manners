@@ -13,7 +13,7 @@
 --   2. The text has a dark ground. Under the name line and the reason line,
 --      over a world of luminance 0.30 and of 0.85 (a snowfield), every colour
 --      the text can be -- white, the look's ivory, the |cffffd100 gold of the
---      preview and several lines, each class colour as the look softens it,
+--      preview and several lines, each Blizzard class colour,
 --      and the reason line in every reason of both palettes and every verdict
 --      -- clears 4.5:1. An ADD layer counts at twice its alpha: the client
 --      draws them brighter than the preview does.
@@ -53,10 +53,6 @@ local FAINT = 0.02
 -- How far inside the icon's drawn edge its frame may reach, in UI units.
 local LIP_UNITS = 2
 
--- The game's class colours, as RAID_CLASS_COLORS gives them (the mock carries
--- two), for the names a softened class colour paints.
-local CLASS_CODES = { "ffc41e3a", "ffa330c9", "ffff7c0a", "ff33937f", "ffaad372", "ff3fc7eb",
-	"ff00ff98", "fff48cba", "ffffffff", "fffff468", "ff0070dd", "ff8788ee", "ffc69b6d" }
 local WHITE, GOLD = { 1, 1, 1 }, { 1, 0xd1 / 255, 0 }
 
 local function withTree(scenario, names, body, before)
@@ -128,15 +124,6 @@ end
 local function greyOf(l)
 	if l <= 0.0031308 then return l * 12.92 end
 	return 1.055 * l ^ (1 / 2.4) - 0.055
-end
-
-local function soften(code, by)
-	local out = {}
-	for i = 1, 3 do
-		local v = tonumber(code:sub(1 + 2 * i, 2 + 2 * i), 16) / 255
-		out[i] = math.floor((v + (1 - v) * by) * 255 + 0.5) / 255
-	end
-	return out
 end
 
 ---------------------------------------------------------------------------
@@ -640,14 +627,12 @@ local function checkChips(ns, scenario, what)
 	end
 end
 
--- Every colour the name can be here: the one it is, white, the look's ivory,
--- the gold, and each class colour as the look softens it.
+-- Every non-class colour the name can be here: the one it is, white, the
+-- look's ivory and the gold. Class colours are exact rather than contrast-tuned.
 local function nameColours(ns, look)
 	local r = ns.Prompt:Regions()
 	local list = { WHITE, GOLD }
 	if r.name._textColor then list[#list + 1] = r.name._textColor end
-	local by = look.classSoften or 0
-	for _, code in ipairs(CLASS_CODES) do list[#list + 1] = soften(code, by) end
 	return list
 end
 

@@ -59,14 +59,7 @@ local function greyOf(l)
 	return 1.055 * l ^ (1 / 2.4) - 0.055
 end
 
--- Every class's colour as the game gives it, for the softened names.
-local CLASSES = {
-	DEATHKNIGHT = "c41e3a", DEMONHUNTER = "a330c9", DRUID = "ff7c0a", EVOKER = "33937f",
-	HUNTER = "aad372", MAGE = "3fc7eb", MONK = "00ff98", PALADIN = "f48cba", PRIEST = "ffffff",
-	ROGUE = "fff468", SHAMAN = "0070dd", WARLOCK = "8788ee", WARRIOR = "c69b6d",
-}
 
-local function hex(code, at) return tonumber(code:sub(at, at + 1), 16) / 255 end
 
 -- ------------------------------------------------------------------ the art
 
@@ -408,20 +401,10 @@ local function colourOf(fs, name)
 	return out
 end
 
--- What the name line can be drawn in: white, the gold the preview and the
--- hints use, and every class colour taken as far towards white as the look
--- takes it; and whatever colour the line itself is set to.
+-- What the name line can be drawn in apart from class-coloured text, whose
+-- exact Blizzard colours are checked in tint.lua.
 local function nameColours(ns, look)
 	local out = { { 1, 1, 1, name = "white" }, { 1, 0xd1 / 255, 0, name = "gold |cffffd100" } }
-	local soften = look.classSoften or 0
-	for class, code in pairs(CLASSES) do
-		local c = { name = "a " .. class .. "'s softened colour" }
-		for i, at in ipairs({ 1, 3, 5 }) do
-			local v = hex(code, at)
-			c[i] = math.floor((v + (1 - v) * soften) * 255 + 0.5) / 255
-		end
-		out[#out + 1] = c
-	end
 	for _, c in ipairs(colourOf(ns.Prompt:Regions().name, "the name's own colour")) do out[#out + 1] = c end
 	return out
 end

@@ -71,7 +71,6 @@ local Fel = ns.Looks.Register("fel", {
 	order = 9.5,
 	-- The slab holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
-	classSoften = 0.5,
 	-- The words stand on the felsteel whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,

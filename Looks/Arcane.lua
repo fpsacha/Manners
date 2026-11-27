@@ -51,9 +51,6 @@
 --     works as it does everywhere -- the rim is this look's stripe and always
 --     carries the reason unless the marker is off; the ring and the runes are
 --     its icon marker -- and "Round icon" is the player's own;
---   * a class-coloured name is taken 55% of the way to white, as on Luxe, so
---     a rogue's yellow never reads as the owed gold on the rim; the preview's
---     and the hints' gold is taken off the name, which is white;
 --   * about thirty fewer regions: the list shares the card's shadow, and the
 --     flare, the breath and the hover share their light;
 --   * since 1.5.1 the lens has no highlight or shade over the icon, the glass
@@ -75,7 +72,6 @@ local Arcane = ns.Looks.Register("arcane", {
 	order = 3,
 	-- The glass holds in a fight; the ink dims itself (Combat).
 	combatArtAlpha = 1,
-	classSoften = 0.55,
 	-- The painted frame (Looks/Painted.lua, art/looks/arcane): what of this
 	-- look the painting replaces -- the smoked glass, its shadow, its second
 	-- coat of smoke and top edge, the lens's dark well and the keycap. What

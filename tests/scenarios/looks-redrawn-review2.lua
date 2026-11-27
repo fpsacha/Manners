@@ -423,19 +423,19 @@ for _, case in ipairs({
 	end)
 end
 
--- The class colour of a name is still taken to the gold, before and after.
-withTree("looks-redrawn-review2: Ribbon still takes a class colour to the gold after a headline", ANNA, function(ns, scenario)
+-- A headline does not teach Ribbon to recolour the next class-coloured name.
+withTree("looks-redrawn-review2: Ribbon keeps a class colour after a headline", ANNA, function(ns, scenario)
 	local r, look = oneLineRibbon(ns, scenario)
 	if not r then return end
 	local kit = ns.Prompt:LookKit()
-	local raw = "|cffff0000Anna|r"
+	local raw = "|cff40c7ebAnna|r"
 	ns.Prompt:ShowOutcome("cast", "Anna Aim")
 	Mock.advance(1)
 	tick(ns)
 	kit.SetLine(kit.name, raw)
 	local text = tostring(r.name:GetText())
-	if text:lower():find("|cffff0000", 1, true) then
-		fail(scenario, "after a headline a coloured name is no longer taken to the gold")
+	if not text:lower():find("|cff40c7eb", 1, true) then
+		fail(scenario, "after a headline a coloured name was changed")
 	end
 end)
 

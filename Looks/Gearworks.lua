@@ -72,7 +72,6 @@ local Gearworks = ns.Looks.Register("gearworks", {
 	order = 9.9,
 	-- The housing holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
-	classSoften = 0.5,
 	-- The words stand on the enamel whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,

@@ -252,25 +252,26 @@ _m(RIBBON,
    "\tkit.name:SetTextColor(GOLD_INK[1], GOLD_INK[2], GOLD_INK[3], Clamp(alpha, 0, 1))\n\t\tself.nameInk = GOLD_INK",
    "\tkit.name:SetTextColor(1, 1, 1, 1)\n\t\tself.nameInk = GOLD_INK",
    "the name white, not warm gold",
-   expect="look-ribbon: a class colour is taken to the gold")
+   expect="look-ribbon: a class colour stays Blizzard's colour, and the chosen font colour wins")
 
 _m(RIBBON,
    "local PEACH = { 1.00, 0.88, 0.80 }",
    "local PEACH = { 0.60, 0.60, 0.60 }",
    "the reason in grey, not pale peach",
-   expect="look-ribbon: a class colour is taken to the gold")
+   expect="look-ribbon: a class colour stays Blizzard's colour, and the chosen font colour wins")
 
 _m(RIBBON,
-   "local CLASS_SHARE = 0.30",
-   "local CLASS_SHARE = 1.0",
-   "a class colour left as it is on the cloth",
-   expect="look-ribbon: a class colour is taken to the gold")
+   "function Ribbon:Fitted() end\n",
+   "function Ribbon:Fitted(fs) fs:SetText(\"|cffffd100Anna|r\") end\n",
+   "a class colour changed by refitting",
+   expect="look-ribbon: a class colour stays Blizzard's colour, and the chosen font colour wins")
 
-_m(RIBBON,
-   "\tfs:SetText(mixed)\n",
-   "\tfs:SetText(text)\n",
-   "the class colour never mixed in",
-   expect="look-ribbon: a class colour is taken to the gold")
+mutate("Prompt/Paint.lua",
+       "\treturn string.format(\"|c%s%s|r\", c.colorStr, text)\n",
+       "\treturn \"|cffffd100\" .. text .. \"|r\"\n",
+       "the class colour changed to gold before Ribbon draws it",
+       expect="look-ribbon: a class colour stays Blizzard's colour, and the chosen font colour wins",
+       script="runscenarios.py")
 
 _m(RIBBON,
    "local TAG_INK = { 0.27, 0.05, 0.04 }",

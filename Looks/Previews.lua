@@ -168,7 +168,7 @@ ns.Looks.previewText = {
 		reason = { l = 0.23653, t = 0.53468, r = 0.72177, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
 	},
 	ribbon = {
-		name = { l = 0.3347, t = 0.28918, r = 0.76849, b = 0.52123, h = "LEFT", v = "MIDDLE", size = 0.23205, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.0145, y = -0.0145, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		name = { l = 0.3347, t = 0.28918, r = 0.76849, b = 0.52123, h = "LEFT", v = "MIDDLE", size = 0.23205, color = { 1, 1, 1, 1 }, shadow = { x = 0.0145, y = -0.0145, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 		reason = { l = 0.3347, t = 0.54009, r = 0.76849, b = 0.68512, h = "LEFT", v = "MIDDLE", size = 0.14503, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.0145, y = -0.0145, color = { 0.16, 0.02, 0.03, 0.95 } } },
 	},
 	rogue = {
@@ -299,7 +299,7 @@ ns.Looks.previewTextEarlier = {
 		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.909, 0.8385, 0.703, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
 	},
 	ribbon = {
-		name = { l = 0.25, t = 0.27177, r = 0.86694, b = 0.52984, h = "LEFT", v = "MIDDLE", size = 0.25806, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		name = { l = 0.25, t = 0.27177, r = 0.86694, b = 0.52984, h = "LEFT", v = "MIDDLE", size = 0.25806, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 		reason = { l = 0.25, t = 0.55081, r = 0.86694, b = 0.7121, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
 	},
 	stormcaller = {
@@ -319,4 +319,4 @@ ns.Looks.previewTextEarlier = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "4d434a55350871000e0a8a9fb89fbb68df5ced0c25c643ee34bec8e4edf1f89a"
+ns.Looks.previewHash = "0b290354cb13093b308a9d915b7e1883559c5940c6dd5cf58679279d46e429dc"

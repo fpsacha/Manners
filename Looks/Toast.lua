@@ -62,7 +62,6 @@
 --     "both" here: a squared icon in a round medallion sat in a dark hole,
 --     the ring round only its corners, and read as a square dropped into a
 --     porthole. Round, it fills the ring, which hugs it;
---   * a class-coloured name is taken a third of the way to white.
 
 local _, ns = ...
 local Colour, Dim = ns.Looks.Colour, ns.Looks.Dim
@@ -77,7 +76,6 @@ local Toast = ns.Looks.Register("toast", {
 	order = 2,
 	-- The banner holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
-	classSoften = 0.35,
 	-- The painted frame (Looks/Painted.lua, art/looks/toast): what of this
 	-- look's own art the painting replaces -- the banner, its rails and shadow,
 	-- the medallion's gold, rope, seam and shade, and the key's chip (the

@@ -92,10 +92,10 @@ mutate("Looks/Luxe.lua",
 
 # A class colour as it is, on Luxe.
 mutate("Prompt/Paint.lua",
-       "\tlocal soften = S.activeLook and S.activeLook.classSoften\n",
-       "\tlocal soften = nil\n",
-       "class colours not softened on Luxe",
-       expect="in the full class colour on Luxe",
+       "\treturn string.format(\"|c%s%s|r\", c.colorStr, text)\n",
+       "\treturn \"|cfff0f0f0\" .. text .. \"|r\"\n",
+       "class colours softened on Luxe",
+       expect="Luxe keeps Blizzard class colours",
        script="runscenarios.py")
 
 # --- motion ---------------------------------------------------------------
@@ -279,12 +279,12 @@ mutate("Looks/Luxe.lua",
        expect="a frame of light is drawn over the spine",
        script="runscenarios.py")
 
-# Class colours only half softened: a mage's name lands on the target colour.
-mutate("Looks/Luxe.lua",
-       "\tclassSoften = 0.85,\n",
-       "\tclassSoften = 0.55,\n",
-       "Luxe's class colours half softened",
-       expect="more than a tint on white",
+# Luxe still keeps Blizzard's code when it is refitted.
+mutate("Prompt/Paint.lua",
+       "\treturn string.format(\"|c%s%s|r\", c.colorStr, text)\n",
+       "\treturn \"|cffd0f0f0\" .. text .. \"|r\"\n",
+       "Luxe's class colour check catches recolouring",
+       expect="Luxe keeps Blizzard class colours",
        script="runscenarios.py")
 
 # The name kept on one line, where no tag says the verdict.

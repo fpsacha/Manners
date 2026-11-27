@@ -72,7 +72,6 @@ local Warchief = ns.Looks.Register("warchief", {
 	order = 9.9,
 	-- The slab holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
-	classSoften = 0.5,
 	-- The words stand on the iron whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,

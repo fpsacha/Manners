@@ -603,28 +603,19 @@ withTree("Luxe lights up under the cursor", ANNA, function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 10
--- A class colour is taken towards white, so it never reads as a reason.
-withTree("Luxe softens class-coloured names", { nameplate1 = { "Mira", "Vale" } }, function(ns, scenario)
+-- A dark look keeps the client's class colour.
+withTree("Luxe keeps Blizzard class colours", { nameplate1 = { "Mira", "Vale" } }, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	ns.db.profile.prompt.style = "luxe"
 	ns.Prompt:ApplyStyle()
 	local entry = { name = "Mira Vale", short = "Mira", class = "MAGE", reason = "nearby" }
 	local text = ns.Prompt:RenderPrimary(entry, 0)
-	if text:find("ff40c7eb", 1, true) then
-		fail(scenario, "a mage's name is drawn in the full class colour on Luxe: " .. text)
+	if not text:find("ff40c7eb", 1, true) then
+		fail(scenario, "a mage's name is not drawn in the full class colour on Luxe: " .. text)
 	end
-	-- Only a tint on white: every channel at 0.8 or more, so a mage's cyan
-	-- never lands on the target reason's.
-	local code = text:match("|cff(%x%x%x%x%x%x)")
-	for i = 1, 5, 2 do
-		if not code or tonumber(code:sub(i, i + 1), 16) < 0xcc then
-			fail(scenario, "a mage's name on Luxe is more than a tint on white: " .. text)
-			break
-		end
-	end
-	-- The same answer again, from the cache.
+	-- Repaints keep the same code.
 	if ns.Prompt:RenderPrimary(entry, 0) ~= text then
-		fail(scenario, "a class colour softened twice came out different")
+		fail(scenario, "a class colour came out different on repaint")
 	end
 	ns.db.profile.prompt.style = "glass"
 	ns.Prompt:ApplyStyle()

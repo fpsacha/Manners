@@ -298,11 +298,11 @@ _m(LEATHER,
    "the name inked in a tan too dark for the leather",
    expect=S_TEXT)
 
-_m(LEATHER,
-   "\tclassSoften = 0.70,\n",
-   "\tclassSoften = 0.20,\n",
-   "class colours left dark on brown",
-   expect=S_TEXT)
+mutate("Prompt/Paint.lua",
+       "\treturn string.format(\"|c%s%s|r\", c.colorStr, text)\n",
+       "\treturn \"|cffffffff\" .. text .. \"|r\"\n",
+       "class colours replaced on brown",
+       expect="tint: dark looks keep Blizzard class colours", script=S)
 
 # --- the fonts -------------------------------------------------------------
 

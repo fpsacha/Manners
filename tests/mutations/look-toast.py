@@ -139,8 +139,8 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tcombatArtAlpha = 1,\n\tclassSoften = 0.35,\n",
-       "\tclassSoften = 0.35,\n",
+       "\tcombatArtAlpha = 1,\n",
+       "",
        "the toast dimmed whole in a fight",
        expect="art dimmed whole in a fight",
        script="runscenarios.py")

@@ -75,7 +75,6 @@ local Archmage = ns.Looks.Register("archmage", {
 	order = 8,
 	-- The crystal holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
-	classSoften = 0.5,
 	-- The words stand on the crystal whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
