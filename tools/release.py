@@ -672,6 +672,10 @@ def tag_and_release(version, tag, title, sha, total, head):
         say("    git tag -d %s" % tag)
         say("If anything was uploaded, release the next version instead.")
         return 1
+    if PACKAGE_STEP not in log_steps(log.stdout):
+        say("The release build reported success without the '%s' step; no release success"
+            " can be confirmed." % PACKAGE_STEP)
+        return 1
     game = [l for l in report if l.startswith("Game version:")]
     say("Released %s. %s" % (version, game[0] if game else "(no Game version line in the log)"))
     return 0

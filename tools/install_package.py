@@ -19,7 +19,8 @@ import sys
 import tempfile
 import uuid
 import zipfile
-from pathlib import Path
+import xml.etree.ElementTree as ElementTree
+from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parent.parent
 PKGMETA = ROOT / ".pkgmeta"
@@ -73,13 +74,71 @@ def files(root):
     }
 
 
+def package_path(root, relative, reference, kind):
+    pure = PurePosixPath(reference.replace("\\", "/"))
+    if pure.is_absolute() or not pure.parts or ".." in pure.parts:
+        raise InstallError("%s has unsafe %s reference: %s"
+                           % (relative, kind, reference))
+    target = root.joinpath(*pure.parts)
+    if not target.is_file():
+        raise InstallError("%s references missing %s: %s"
+                           % (relative, kind, reference))
+    return target
+
+
+def validate_toc(addon, toc):
+    try:
+        lines = toc.read_text(encoding="utf-8").splitlines()
+    except UnicodeError as error:
+        raise InstallError("%s is not UTF-8: %s" % (toc.name, error))
+    references = []
+    for number, raw in enumerate(lines, 1):
+        reference = raw.strip()
+        if not reference or reference.startswith("#"):
+            continue
+        package_path(addon, "%s:%d" % (toc.name, number), reference, "TOC file")
+        references.append(reference)
+    return references
+
+
+def validate_xml(root, xml_file, visited):
+    resolved = xml_file.resolve()
+    if resolved in visited:
+        return set()
+    visited.add(resolved)
+    try:
+        parsed = ElementTree.fromstring(xml_file.read_text(encoding="utf-8"))
+    except (ElementTree.ParseError, UnicodeError) as error:
+        raise InstallError("%s is malformed XML: %s" % (xml_file.relative_to(root), error))
+    referenced = set()
+    includes = []
+    for element in parsed.iter():
+        if element.tag.rsplit("}", 1)[-1] not in ("Script", "Include"):
+            continue
+        reference = element.get("file")
+        if not reference:
+            raise InstallError("%s has a %s without a file"
+                               % (xml_file.relative_to(root), element.tag.rsplit("}", 1)[-1]))
+        target = package_path(xml_file.parent, xml_file.relative_to(root),
+                              reference, "XML file")
+        referenced.add(target.resolve())
+        if target.suffix.lower() == ".xml":
+            includes.append(target)
+    for include in includes:
+        referenced.update(validate_xml(root, include, visited))
+    return referenced
+
+
 def validate_tree(stage, layout, require_package_libs):
     package, moves, externals, _ = layout
     roots = [package] + list(moves.values())
+    addon_tocs = {}
     for addon in roots:
         root = stage / addon
-        if not root.is_dir() or not list(root.glob("*.toc")):
+        tocs = list(root.glob("*.toc")) if root.is_dir() else []
+        if not root.is_dir() or not tocs:
             raise InstallError("%s has no addon folder and toc" % addon)
+        addon_tocs[root] = tocs
     main = stage / package
     if not (main / "embeds.xml").is_file():
         raise InstallError("%s/embeds.xml is missing" % package)
@@ -92,6 +151,22 @@ def validate_tree(stage, layout, require_package_libs):
         raise InstallError("package is missing libraries: %s" % ", ".join(missing))
     if missing:
         raise InstallError("installation would remove libraries: %s" % ", ".join(missing))
+    referenced = set()
+    for root, tocs in addon_tocs.items():
+        for toc in tocs:
+            for reference in validate_toc(root, toc):
+                reference = reference.replace("\\", "/")
+                if reference.lower().endswith(".xml"):
+                    xml_file = package_path(root, toc.name, reference, "TOC file")
+                    referenced.update(validate_xml(root, xml_file, set()))
+    unused = [
+        external for external in externals
+        if not any(path == (main / external).resolve()
+                   or (main / external).resolve() in path.parents
+                   for path in referenced)
+    ]
+    if unused:
+        raise InstallError("package libraries are not referenced: %s" % ", ".join(unused))
     return roots
 
 
@@ -229,13 +304,18 @@ def selftest():
         source.mkdir()
         (source / ".pkgmeta").write_bytes(PKGMETA.read_bytes())
         (source / "Manners.lua").write_text("return 1\n", encoding="utf-8")
-        (source / "embeds.xml").write_text("<Ui />\n", encoding="utf-8")
-        (source / "Manners.toc").write_text("## Interface: 16001\n", encoding="utf-8")
+        (source / "Manners.toc").write_text(
+            "## Interface: 16001\nembeds.xml\nManners.lua\n", encoding="utf-8")
         (source / "Libs").mkdir()
+        embedded = []
         for external in externals:
             target = source / external
             target.mkdir(parents=True, exist_ok=True)
             (target / "Lib.lua").write_text("library\n", encoding="utf-8")
+            embedded.append('  <Script file="%s/Lib.lua"/>' % external)
+        (source / "embeds.xml").write_text(
+            "<Ui xmlns=\"http://www.blizzard.com/wow/ui/\">\n%s\n</Ui>\n"
+            % "\n".join(embedded), encoding="utf-8")
         for old in moves:
             prefix = package + "/"
             local = old[len(prefix):] if old.startswith(prefix) else old

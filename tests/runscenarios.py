@@ -326,8 +326,10 @@ if (JOBS > 1 or baseline) and names is None and files is None and shard is None 
     per_task = {}
     for n, (text, code) in enumerate(results):
         mine = per_task.setdefault(keys[n], []) if keys else None
+        saw_result = False
         for line in text.splitlines():
             if line.startswith("failures:"):
+                saw_result = True
                 failures += int(line.split(":", 1)[1] or 0)
             elif line in ("=== scenarios ===", "all scenarios clean") or line.startswith("narrowed:") \
                     or line == "  (narrowed run): no scenario matched the selection" or not line.strip():
@@ -338,6 +340,14 @@ if (JOBS > 1 or baseline) and names is None and files is None and shard is None 
                     mine.append(line)
                 if line.startswith(_HARNESS) or "Traceback" in line:
                     broken = True
+        if not saw_result or code not in (0, 1):
+            label = keys[n] if keys else " ".join(tasks[n])
+            detail = "signal %d" % -code if code < 0 else "exit code %d" % code
+            line = "SCENARIO HARNESS ERROR: worker %s ended with %s and no result" % (label, detail)
+            lines.append(line)
+            if mine is not None:
+                mine.append(line)
+            broken = True
     if baseline:
         sys.exit(compare_with_baseline(per_task, part is None))
     print("=== scenarios ===")
