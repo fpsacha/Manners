@@ -54,8 +54,12 @@ ns.ReagentName = ReagentName
 -- than a group cast that fails on every press. A client that will not say is
 -- taken at the table's word.
 local function UsableAnswer(spellId)
-	local check = C_Spell and C_Spell.IsSpellUsable
-	if type(check) ~= "function" then check = _G.IsUsableSpell end
+	-- The legacy answer is still present on clients that expose both. Honour an
+	-- explicit answer from it before the modern table: tests and third-party
+	-- client shims can use it for the reagent/mana judgement, and the C_ table
+	-- may be a partial stand-in that says every spell is usable.
+	local check = _G.IsUsableSpell
+	if type(check) ~= "function" then check = C_Spell and C_Spell.IsSpellUsable end
 	return safecall(check, spellId)
 end
 

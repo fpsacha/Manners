@@ -23,7 +23,10 @@ do
 	Mock.knownSpells = { [10225] = true, [28609] = true }
 	Mock.secureActions = true
 	local original = _G.C_UnitAuras
-	Mock.spellUsable = {}
+	Mock.spellUsable = {
+		[10225] = { usable = true, noMana = false },
+		[28609] = { usable = true, noMana = false },
+	}
 	local aura = nil
 	rawset(_G, "C_UnitAuras", setmetatable({
 		GetAuraDataByIndex = function(unit, index, filter)
@@ -158,6 +161,10 @@ do
 	Mock.setFlavour("tbc")
 	Mock.class = "MAGE"
 	Mock.knownSpells = { [27128] = true, [32796] = true }
+	Mock.spellUsable = {
+		[27128] = { usable = true, noMana = false },
+		[32796] = { usable = true, noMana = false },
+	}
 	local ns = load(scenario, true)
 	if ns then
 		drive(scenario, ns)

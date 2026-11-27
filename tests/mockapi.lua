@@ -484,6 +484,9 @@ function Mock.reset()
 	Mock.spellCooldowns = nil
 	-- The client's IsSpellUsable answer by id: { usable, noMana }, or nil for
 	-- the ordinary ready spell.
+	-- Nil means the API will not say, distinct from "usable": a default yes
+	-- would make an empty reagent bag look like Reagent Economy in every
+	-- group-buff scenario.
 	Mock.spellUsable = nil
 
 	-- Whether the client loads Blizzard_Deprecated*'s shims, the
@@ -2230,7 +2233,7 @@ setmetatable(_G, { __index = function(_, key)
 			IsSpellUsable = function(id)
 				local answer = Mock.spellUsable and Mock.spellUsable[id]
 				if type(answer) == "table" then return answer.usable, answer.noMana end
-				return true, false
+				return nil
 			end,
 			IsSpellInRange = function(spell, unit)
 				Mock.counts.range = Mock.counts.range + 1
