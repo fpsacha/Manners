@@ -330,6 +330,8 @@ function Page.TabOf(path)
 	return page and page.title or nil
 end
 
+function Page.ForgetPageMap() pageOfPath = nil end
+
 -- A control's name in gold and the page it is on, for text beside it.
 function Page.RefTo(label, path)
 	return Ref(label, Page.TabOf(path) or "")

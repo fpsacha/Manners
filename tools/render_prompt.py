@@ -524,6 +524,11 @@ class Canvas:
         # remedy that only works on white is caught too.
         # "cave" is the dark half taken further: near black, a few dim rocks.
         bright = kind == "bright"
+        # Flat black or white, nothing on it: two pictures of the same look on
+        # these give its true alpha (tools/make_card_cutouts.py).
+        if kind in ("black", "white"):
+            self.rgb[:] = 0.0 if kind == "black" else 1.0
+            return
         yy = np.linspace(0, 1, self.h, dtype=np.float32)[:, None, None]
         if bright:
             top = np.array([0.80, 0.86, 0.94], np.float32)

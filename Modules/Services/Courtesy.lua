@@ -831,16 +831,20 @@ end
 -- `courtesy` is what ns.BuffInfo answers from (its `info`), and `alone` says
 -- the cast lands on nobody else (Buffs.lua).
 local buffs = {}
-local function BuffFor(key, spell)
-	local buff = buffs[key]
+local function BuffFor(key, spell, item)
+	local cache = key .. "\0" .. tostring(item or 0)
+	local buff = buffs[cache]
 	if not buff then
 		buff = { key = key, courtesy = true, alone = true, info = { key = key, known = true } }
 		buff.info.buff = buff
-		buffs[key] = buff
+		buffs[cache] = buff
 	end
 	local info = buff.info
 	info.name = ns.SpellNameFor(spell) or "?"
-	info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, spell)
+	info.itemName = item and ns.ReagentName(item) or nil
+	info.icon = (item and (safecall(C_Item and C_Item.GetItemIconByID, item)
+		or safecall(_G.GetItemIcon, item))) or safecall(C_Spell and C_Spell.GetSpellTexture, spell)
+	info.item = item
 	info.topRank = spell
 	return buff
 end
@@ -1092,6 +1096,17 @@ local function CastText(spell, rows)
 	return name
 end
 
+local function PlanItem(row, level)
+	local mine = plain(UnitLevel("player"))
+	for _, item in ipairs(type(row) == "table" and row.items or {}) do
+		local need = row.needs and row.needs[item]
+		if not need or ((not level or need <= level) and (type(mine) ~= "number" or need <= mine)) then
+			return item
+		end
+	end
+	return row and row.item or nil
+end
+
 -- What a press would do for this key at this person, or nil and why not.
 -- { stage, spell, text, item }: "conjure" (cast, nobody targeted), "trade"
 -- (target and /trade), "cast" (a portal or a Soulwell, nobody targeted),
@@ -1176,7 +1191,8 @@ local function Plan(key, set, unit, inGroup, st)
 		if Lacks(kind.reagent, conjure.spell) then return nil, "reagent", kind.reagent end
 		if Cooling(conjure.spell) then return nil, "cooldown" end
 		if not Usable(conjure.spell) then return nil, "unusable" end
-		return { stage = "conjure", spell = conjure.spell, text = CastText(conjure.spell, kind.rows) }
+		return { stage = "conjure", spell = conjure.spell, item = PlanItem(conjure),
+			text = CastText(conjure.spell, kind.rows) }
 	end
 
 	if kind.spell then
@@ -1254,7 +1270,8 @@ local function Plan(key, set, unit, inGroup, st)
 	if Lacks(kind.reagent, conjure.spell) then return nil, "reagent", kind.reagent end
 	if Cooling(conjure.spell) then return nil, "cooldown" end
 	if not Usable(conjure.spell) then return nil, "unusable" end
-	return { stage = "conjure", spell = conjure.spell, text = CastText(conjure.spell, kind.rows), level = level }
+	return { stage = "conjure", spell = conjure.spell, item = PlanItem(conjure, level),
+		text = CastText(conjure.spell, kind.rows), level = level }
 end
 
 -- The queue's hook: one entry for each person with a courtesy standing whom a
@@ -1436,7 +1453,7 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 							targetName = ns.TargetName(full),
 							unit = unit,
 							class = plain(select(2, UnitClass(unit))),
-							buff = BuffFor(plan.buffKey, plan.spell),
+							buff = BuffFor(plan.buffKey, plan.spell, plan.item),
 							inGroup = inGroup,
 							priority = decision.priority,
 							reason = decision.reason,

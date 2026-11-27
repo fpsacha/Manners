@@ -1268,7 +1268,8 @@ all four, what `kit.RingArt` is told).
 | `make_gearworks_textures.py` | `Textures/Gearworks/`, 31 files: the brass housing and its enamel plate, the gauge, its needle and dial, three cogs, steam, the round mask (`Gearworks_Mask`) | numpy, Pillow | |
 | `make_ebon_textures.py` | `Textures/Ebon/`, 32 files: the runeblade, the guard and its skull, the eight-sided mask (`Ebon_Mask`), three runes, soulfire and vapour for `Flow` | numpy, Pillow, scipy (`figures.py`) | |
 
-After any of them: `python tools/make_look_previews.py` (the picker's card)
+After any of them: `python tools/make_look_previews.py` (the picker's card),
+`python tools/make_card_cutouts.py` (the combat prompt's transparent card)
 and `python tools/audit_look_contrast.py --looks <key>`.
 
 ## make_painted_look.py
@@ -1485,6 +1486,13 @@ python tools/make_look_previews.py              # write the pictures and Looks/P
 python tools/make_look_previews.py --out DIR    # the same files, into DIR
 python tools/make_look_previews.py --check      # current? exit 1 and say what is not
 ```
+
+The pictures are framed on the gallery's slate backdrop. The combat prompt
+(Manners: Combat) stands over the world, so it wears `Textures/Cards/Card_<key>[_earlier].tga`
+instead: the same picture, same size and layout, made by
+`python tools/make_card_cutouts.py` (`--check`: every look has one), which draws
+each look over flat black and flat white (`render_prompt.py`'s `black` and `white`
+backdrops) and works out each pixel's alpha and colour from the two.
 
 Each picture holds a tile where the look draws the spell icon (the renderer has no game
 art), and the card lays the real icon over it, drawn live by the client: no spell art is
@@ -1826,6 +1834,25 @@ It holds the weapon enhancement items (poisons, stones, oils, lures) on the four
 It also holds Buffs.lua's table of how long each id lasts (`ns.SPELL_SECONDS`, in seconds, which a top-up's lead is worked out from) to the client's SpellMisc.DurationIndex and SpellDuration.Duration (a cast that only triggers its aura is the aura's; a weapon enhancement or scroll is its use spell's, else SpellItemEnchantment.Duration on Forever, else the length its tooltip names, since the Classic builds' enchantment table has no duration column, and for a spell with no SpellDuration row the `$<id>d` its tooltip cites): a FINDING for a number that differs, an id with no entry, an entry for an id the set does not hold, and ranks of one spell that differ. An id the client gives no length has no entry.
 
 `python tools/audit_ids.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## audit_combat.py and make_combat_actions.py
+
+```
+python tools/audit_combat.py --out <directory>
+python tools/make_combat_actions.py
+python tools/make_combat_actions.py --check
+```
+
+`audit_combat.py` reads every class-owned spell in the exact DB2 build for
+all five clients and writes the effect, target, passive flag, cooldown, power
+cost and conservative trigger for each row. `make_combat_actions.py` uses the
+same tables to write `Modules/Combat/ActionsData.lua`: only active learned
+spells with a concrete runtime signal are included. Passives, internal test
+spells, proc/rotation-only rows and context-only effects do not reach the
+options menu. Rank chains are kept separate when the same display name has
+different triggers, and the runtime learns at most one localized name so the
+one combat prompt never gets duplicate rows. The generated file is shipped;
+the audit cache and full JSON reports remain outside the repository.
 
 ## audit_services.py
 

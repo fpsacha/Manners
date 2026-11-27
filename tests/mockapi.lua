@@ -539,7 +539,7 @@ local frameMethods = {
 	"SetFromAlpha", "SetToAlpha", "SetDuration", "SetOrder", "SetSmoothing",
 	"SetOffset", "SetLooping", "Play", "Stop", "SetBackdrop",
 	"SetBackdropBorderColor", "UnregisterEvent", "SetFrameStrata",
-	"SetHighlightTexture", "EnableMouse", "StartMoving", "StopMovingOrSizing",
+	"SetHighlightTexture", "EnableMouse", "SetHitRectInsets", "StartMoving", "StopMovingOrSizing",
 	"SetGradient", "AddMaskTexture", "SetAtlas", "SetUserPlaced",
 	"RegisterForClicks", "SetGradientAlpha", "EnableMouseWheel",
 	-- A look from Looks/ reshapes the shared icon and moves the reason line
@@ -562,8 +562,11 @@ for _, e in ipairs({
 	-- The look picker's: a look tried under the pointer is never the one saved.
 	"PLAYER_LOGOUT",
 	-- Registered on this client by an addon's Forever build.
-	"UNIT_SPELLCAST_START", "UNIT_SPELLCAST_INTERRUPTED", "SPELL_UPDATE_COOLDOWN",
-	"UNIT_SPELLCAST_DELAYED",
+	"UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_INTERRUPTED",
+	"UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP",
+	"UNIT_SPELLCAST_EMPOWER_START", "UNIT_SPELLCAST_EMPOWER_STOP",
+	"UNIT_SPELLCAST_INTERRUPTIBLE", "UNIT_SPELLCAST_NOT_INTERRUPTIBLE",
+	"SPELL_UPDATE_COOLDOWN", "UNIT_SPELLCAST_DELAYED",
 	-- The default target frame runs on it, in every client since the first.
 	"PLAYER_TARGET_CHANGED",
 	-- Registered on this client by addons' chat and ignore modules.
@@ -728,6 +731,12 @@ local function newFrame()
 		return font.path, font.size, font.flags
 	end
 	f.SetShown = function(self, shown) self._shown = shown and true or false return self end
+	f.EnableMouse = function(self, on) self._mouse = on and true or false return self end
+	f.IsMouseEnabled = function(self) return self._mouse == true end
+	f.SetHitRectInsets = function(self, left, right, top, bottom)
+		self._hitRect = { left, right, top, bottom }
+		return self
+	end
 	-- Kept as the raw argument list: SetPoint is called with three arguments in
 	-- some places and five in others, and which anchor a queue row hangs from
 	-- is the whole of what the flip test reads.
@@ -1960,6 +1969,13 @@ local SPELL_NAMES = {
 	[19979] = "Blessing of Light",
 	[20914] = "Blessing of Sanctuary",
 	[5697] = "Unending Breath",
+	[72] = "Shield Bash",
+	[1671] = "Shield Bash",
+	[1672] = "Shield Bash",
+	[6552] = "Pummel",
+	[6554] = "Pummel",
+	[19244] = "Spell Lock",
+	[19647] = "Spell Lock",
 	[25289] = "Battle Shout",
 	[2947] = "Fire Shield",
 	[8316] = "Fire Shield",
@@ -2004,6 +2020,10 @@ local SPELL_NAMES = {
 	-- know one that is not Arcane Intellect.
 	[116] = "Frostbolt",
 	[5504] = "Conjure Water",
+	-- A mage's combat actions, named so the options window shows them truly.
+	[2139] = "Counterspell",
+	[543] = "Fire Ward",
+	[11958] = "Cold Snap",
 
 	-- Season of Discovery's rune, on Classic Era's client (wago.tools SpellName).
 	[403619] = "Fel Armor",

@@ -1,6 +1,6 @@
 ## Interface: 16001, 11509, 20506, 50504, 120105
 ## Title: Manners: Combat
-## Notes: Optional in-fight ward, cure, break-free and Mend Pet buttons for Manners.
+## Notes: Optional detected class actions, ward, cure, break-free and Mend Pet buttons in a fight.
 ## Author: Sacha
 ## Version: 1.12.6
 ## Dependencies: Manners
@@ -14,5 +14,11 @@ BreakFree.lua
 MendPet.lua
 CureFight.lua
 Wards.lua
+MomentsData.lua
+ActionsData.lua
+MomentsSense.lua
+MomentCardArt.lua
+MomentsCard.lua
+Moments.lua
 Options.lua
 Init.lua

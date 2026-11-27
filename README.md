@@ -47,8 +47,9 @@ of Pandaria Classic** and **retail**, in nine languages.
   offered first: Wisdom for mages, say, where the order would give them Kings.
 - **The favour ledger.** Who buffed you, what you gave back, and who you
   buffed first.
-- **Optional achievements.** **Manners: Achievements** adds quiet bronze,
-  silver and gold goals as a tab of the ledger, with toasts off by default.
+- **Optional achievements.** **Manners: Achievements** adds thirty-one quiet
+  achievements, medals, points and ranks for good manners, all on its own
+  options page, with toasts off by default.
 - **Profiles that switch by themselves.** One for the open world, one for
   dungeons, raids or battlegrounds, chosen as you arrive, and a profile
   manager that can use, duplicate, rename or delete any of them, with *Undo*.
@@ -236,6 +237,25 @@ The fight's rota is still part of Manners. Its optional buttons are in
 Enable it on *Optional modules* to show the cure, Will of the Forsaken and
 in-fight Mend Pet controls. With it disabled, Manners creates
 none of those frames and shows none of their settings.
+
+With Manners: Combat on, its own **Combat** page (under *Optional modules*)
+lists the detected combat actions for this character: interrupts,
+defensives, hostile dispels, and the other reactions this client can actually
+read. It opens with how many are on, and *Turn all on* / *Turn all off* sit
+over the list. Every action has its own switch, all off by default. Manners keeps one
+combat prompt: when a need is detected, that prompt changes to the most urgent
+spell, with its icon and reason, and pulses for attention. There are no
+per-spell keys or piles of cards. Manners arms enabled actions before combat;
+it never rewrites a secure cast during lockdown. A need the client withholds is
+either read through a safe game-provided signal or left dark rather than
+guessed. Interrupts are immediate after a target-cast event even when the client
+withholds the interruptible flag; a plainly uninterruptible cast stays dark.
+The prompt's entire panel is clickable. Under *Look and alerts* you can give it
+any Manners Look, resize it, choose a quiet, pulse or strong-pulse alert and add
+a sound (heard once as you turn it on). *Show and move the combat prompt* keeps
+it on screen until you press *Done moving* or right-click it, and a look or size
+changed meanwhile shows on it at once. Its default position is the usual Manners
+prompt's position.
 
 The game locks the prompt for as long as a fight lasts: an addon may not
 change what a button casts then. So as a fight begins Manners hands the prompt
@@ -717,7 +737,8 @@ offered. Every action stays on the secure prompt until you press it.
 
 - **Mage:** conjured water and food can be traded to a level-appropriate
   target, named portal destinations remain explicit, and Slow Fall can be
-  requested for a friendly visible player.
+  requested for a friendly visible player. The prompt uses the resulting
+  water or food item icon for both the conjure and trade steps.
 - **Warlock:** healthstones use a trade or a Soulwell where the client has
   one; group summons, Soulstone preparation and Fire Shield from an imp are
   separate switches.
@@ -824,13 +845,18 @@ the ledger* on Start here. It keeps the last 200 entries per character;
 *Clear* empties the list and today's count but keeps favours still owed, the
 all-time totals.
 
-With **Manners: Achievements** enabled, the same window gains an
-*Achievements* tab. Its four themes—Gratitude, Generosity, Fellowship and
-Courtesy—have bronze, silver and gold goals at 10, 100 and 1000, with progress
-kept separately per character and class. A few moments stay hidden until
-earned. Counts are capped once per person and goal each day, and a first enable
-seeds only the ledger's last 200 rows. Notifications are off by default; sound
-is off too, and there is no separate hall or share window.
+With **Manners: Achievements** enabled, the options sidebar gains an
+*Achievements* page that holds everything: your rank and points, what you
+earned lately, every achievement with its icon, progress bar and medal goals,
+and the counts behind them. Thirty-one achievements in five kinds (Gratitude,
+Generosity, Fellowship, Courtesy and Devotion) each have goals of their own:
+one for a single medal, or bronze, silver and gold. A few stay hidden until
+earned. *Kind*, *Show* and *Sort by* narrow and order the list. Progress is
+kept separately per character and class, counts are capped once per person
+and goal each day, and a first enable seeds only the ledger's last 200 rows.
+Notifications are off by default (*Show an example* tries the one you pick);
+sound is off too. *Start this character over* clears one character's
+achievements.
 
 ## The prompt's look
 

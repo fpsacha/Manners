@@ -98,6 +98,19 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   usable with enough mana and ready off cooldown. They never infer a school
   from secrets, names or the combat log. On clients with secret combat values
   the feature makes no runtime frame and no options control.
+  The detected combat prompt (`Modules/Combat/Moments*.lua`, Manners: Combat)
+  covers every class through the client's action catalog. Every action has an
+  independent switch (off by default) and learned-spell gate, but the player
+  sees one prompt: the most urgent detected spell replaces its icon, name and
+  reason. The player may choose any look, size, quiet/pulse/strong-pulse alert
+  and optional sound in *In a fight*; the whole panel is the click target. Its
+  secure slots all share that place and no per-action binding is exposed.
+  Macros, points, size and mouse state are armed before combat; during lockdown
+  only the selected slot's visual z-order and the unprotected art change. A
+  target-cast event is the safe positive for an interrupt, so a secret
+  interruptible flag never inserts a reveal click; an explicit uninterruptible
+  cast is still dark. Other withheld reads are never treated as a need without
+  a safe positive signal.
   Gone in 1.12, when Manners went back to its essentials: the fight key (*In a
   fight, my key casts*, `Prompt/FightKey.lua`), *Hide the prompt in a fight*
   (the hide snippet in `Prompt/Fight.lua`), *No flashes in a fight* and *Dim

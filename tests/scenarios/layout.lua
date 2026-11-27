@@ -74,7 +74,7 @@ local STAND_IN = {
 }
 
 local function ExpectedGroups()
-	local modules = { "modules" }
+	local modules = { "modules", "combat", "achievements" }
 	if Mock.class == "HUNTER" then modules[#modules + 1] = "pet" end
 	modules[#modules + 1] = "self"
 	modules[#modules + 1] = "services"

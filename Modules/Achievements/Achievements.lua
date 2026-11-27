@@ -1,4 +1,13 @@
--- Manners: Achievements -- quiet, read-only manners achievements.
+-- Manners: Achievements -- quiet rewards for good manners, shown in full on the
+-- module's own options page (no separate window, no ledger tab).
+--
+-- Every achievement reads one count ("metric") kept per character and class,
+-- and has its own goals: one goal for a single medal, three for bronze, silver
+-- and gold. Counting is capped once per metric, person and day, so holding the
+-- prompt at a nameplate can never manufacture progress. The page draws the
+-- summary (rank, points, medals), what was earned last, every achievement as a
+-- row that can be filtered, sorted and narrowed to one kind, the counts behind
+-- them, and the notification settings.
 
 local api = assert(MannersAPI, "Manners is required")
 local ns = assert(api:ModuleContext("achievements"), "Manners module API is missing")
@@ -6,9 +15,9 @@ local L = ns.L
 local A = {}
 local initialized = false
 local recent = {}
-local pane
 local toast
 local toastEpoch = 0
+local version = 0
 local ShowToast
 
 local function Active()
@@ -20,54 +29,112 @@ api:RegisterModuleLifecycle("achievements", function()
 	if toast then toast:Hide() end
 end, function() end)
 
-local TIERS = { 10, 100, 1000 }
-local TIER_NAMES = { L["Bronze"], L["Silver"], L["Gold"] }
+-- The saved data's shape: 2 reads goals per achievement (1 had 10/100/1000 for all).
+local DATA_VERSION = 2
+local MEDALS = {
+	{ name = L["Bronze"], colour = "cd8a4a", points = 10 },
+	{ name = L["Silver"], colour = "c8ccd4", points = 25 },
+	{ name = L["Gold"], colour = "ffd100", points = 50 },
+}
+-- A single-goal achievement is worth this; a hidden one this more.
+local SINGLE_POINTS, HIDDEN_BONUS = 15, 10
+local ICONS = "Interface\\Icons\\"
+local LOCKED_ICON = ICONS .. "INV_Misc_QuestionMark"
+
 local THEMES = {
-	{ id = "gratitude", name = L["Gratitude"], colour = { 0.96, 0.73, 0.35 } },
-	{ id = "generosity", name = L["Generosity"], colour = { 0.35, 0.75, 0.92 } },
-	{ id = "fellowship", name = L["Fellowship"], colour = { 0.50, 0.82, 0.55 } },
-	{ id = "courtesy", name = L["Courtesy"], colour = { 0.78, 0.58, 0.92 } },
+	{ id = "gratitude", name = L["Gratitude"], colour = "f5ba59" },
+	{ id = "generosity", name = L["Generosity"], colour = "59bfeb" },
+	{ id = "fellowship", name = L["Fellowship"], colour = "80d18c" },
+	{ id = "courtesy", name = L["Courtesy"], colour = "c794eb" },
+	{ id = "devotion", name = L["Devotion"], colour = "eb8f8f" },
+}
+local THEME = {}
+for i, theme in ipairs(THEMES) do theme.order = i THEME[theme.id] = theme end
+
+-- The ranks the points earn, low to high.
+local RANKS = {
+	{ at = 0, name = L["Newcomer"] },
+	{ at = 50, name = L["Polite Stranger"] },
+	{ at = 150, name = L["Courteous Adventurer"] },
+	{ at = 350, name = L["Gracious Companion"] },
+	{ at = 700, name = L["Pillar of Good Manners"] },
+	{ at = 1200, name = L["Paragon of Courtesy"] },
 }
 
--- The thirteen earlier ideas, expanded into three tiers each, plus hidden
--- moments. The same set is kept independently for every character/class.
 local DEFS = {
-	{ id = "first", theme = "gratitude", metric = "returns",
+	-- Gratitude: returning what others gave you.
+	{ id = "first", theme = "gratitude", metric = "returns", goals = { 1 }, icon = "Spell_Holy_HolyBolt",
 		name = L["Much Obliged"], desc = L["Return your first favour."] },
-	{ id = "hundred", theme = "gratitude", metric = "returns",
-		name = L["A Hundred Thank-Yous"], desc = L["Return a hundred favours."] },
-	{ id = "swift", theme = "gratitude", metric = "quick", hidden = true,
-		name = L["Quick to Thank"], desc = L["Return a favour within ten seconds."] },
-	{ id = "week", theme = "gratitude", metric = "cleanDays", hidden = true,
-		name = L["A Week Without a Debt"], desc = L["Return every favour for a week: ten or more, on at least five days, none left unreturned."] },
+	{ id = "returns", theme = "gratitude", metric = "returns", goals = { 10, 100, 500 }, icon = "Spell_Holy_Renew",
+		name = L["Returning the Favour"], desc = L["Favours you returned."] },
+	{ id = "swift", theme = "gratitude", metric = "quick", goals = { 1, 25, 100 }, icon = "Spell_Holy_SealOfWisdom",
+		name = L["Quick to Thank"], desc = L["Favours returned within ten seconds of receiving them."] },
+	{ id = "day10", theme = "gratitude", metric = "differentDaily", goals = { 5, 10, 20 }, icon = "Spell_Holy_PrayerOfHealing02",
+		name = L["Thank You, Everyone"], desc = L["Different people you returned a favour to in one day."] },
+	{ id = "regular", theme = "gratitude", metric = "returnDays", goals = { 3, 10, 30 }, icon = "Spell_Holy_MagicalSentry",
+		name = L["Old Acquaintance"], desc = L["Days you returned a favour to the same person."] },
+	{ id = "classes", theme = "gratitude", metric = "classes", goals = { 3, 5, 8 }, icon = "Spell_Holy_WordFortitude",
+		name = L["All Walks of Life"], desc = L["Classes you returned a favour to."] },
+	{ id = "week", theme = "gratitude", metric = "cleanDays", goals = { 1, 7, 30 }, icon = "INV_Misc_Note_01",
+		name = L["A Clean Slate"], desc = L["Days you thanked people and let no favour go unreturned."] },
 
-	{ id = "strangers", theme = "generosity", metric = "strangers",
-		name = L["The Kindness of Strangers"], desc = L["Buff a hundred strangers unprompted."] },
-	{ id = "classes", theme = "generosity", metric = "classes",
-		name = L["All Walks of Life"], desc = L["Return favours to people of five different classes."] },
-	{ id = "day10", theme = "generosity", metric = "differentDaily",
-		name = L["Thank You, Everyone"], desc = L["Return favours to ten different people in one day."] },
-	{ id = "threedays", theme = "generosity", metric = "strangerDays", hidden = true,
-		name = L["A Familiar Kindness"], desc = L["Buff the same stranger on three different days."] },
+	-- Generosity: giving without being asked.
+	{ id = "kind", theme = "generosity", metric = "strangers", goals = { 1 }, icon = "Spell_Holy_Heal",
+		name = L["A Kind Stranger"], desc = L["Buff a passer-by who did not ask."] },
+	{ id = "strangers", theme = "generosity", metric = "strangers", goals = { 50, 250, 1000 }, icon = "Spell_Holy_GreaterHeal",
+		name = L["The Kindness of Strangers"], desc = L["Passers-by you buffed unprompted."] },
+	{ id = "given", theme = "generosity", metric = "given", goals = { 100, 1000, 5000 }, icon = "Spell_Holy_PowerWordShield",
+		name = L["Open Hand"], desc = L["Buffs you gave to other players."] },
+	{ id = "people", theme = "generosity", metric = "people", goals = { 25, 100, 500 }, icon = "Spell_Holy_HolySmite",
+		name = L["Friend to All"], desc = L["Different people you gave something to."] },
+	{ id = "gifts", theme = "generosity", metric = "spells", goals = { 2, 4, 6 }, icon = "Spell_Holy_ArcaneIntellect",
+		name = L["Varied Gifts"], desc = L["Different spells you gave to other players."] },
+	{ id = "threedays", theme = "generosity", metric = "strangerDays", goals = { 3 }, hidden = true, icon = "Spell_Holy_Restoration",
+		name = L["A Familiar Kindness"], desc = L["Buff the same passer-by on three different days."] },
 
-	{ id = "regular", theme = "fellowship", metric = "returnDays",
-		name = L["Old Acquaintance"], desc = L["Thank the same person on ten different days."] },
-	{ id = "raid", theme = "fellowship", metric = "groups", hidden = true,
-		name = L["Nobody Left Out"], desc = L["Give one of your buffs to everybody in your raid in one sitting."] },
-	{ id = "res", theme = "fellowship", metric = "res",
-		name = L["Back on Your Feet"], desc = L["Bring somebody back to life through the prompt."] },
-	{ id = "guardian", theme = "fellowship", metric = "rescues", hidden = true,
+	-- Fellowship: looking after the people beside you.
+	{ id = "raid", theme = "fellowship", metric = "groups", goals = { 25, 250, 1000 }, icon = "Spell_Holy_PrayerOfFortitude",
+		name = L["Nobody Left Out"], desc = L["Party and raid members you buffed."] },
+	{ id = "res", theme = "fellowship", metric = "res", goals = { 1, 25, 100 }, icon = "Spell_Holy_Resurrection",
+		name = L["Back on Your Feet"], desc = L["People you brought back to life through the prompt."] },
+	{ id = "guardian", theme = "fellowship", metric = "rescues", goals = { 3 }, hidden = true, icon = "Spell_Holy_LayOnHands",
 		name = L["Steady Hands"], desc = L["Resurrect the same person on three different days."] },
+	{ id = "cure", theme = "fellowship", metric = "cures", goals = { 1, 25, 100 }, icon = "Spell_Holy_DispelMagic",
+		name = L["A Clean Bill of Health"], desc = L["People you cured through the prompt."] },
+	{ id = "liked", theme = "fellowship", metric = "givers", goals = { 10, 50, 200 }, icon = "Spell_Nature_Regeneration",
+		name = L["Well Liked"], desc = L["Different people who buffed you."] },
+	{ id = "company", theme = "fellowship", metric = "received", goals = { 25, 250, 1000 }, icon = "Spell_Nature_Rejuvenation",
+		name = L["In Good Company"], desc = L["Buffs other players gave you."] },
 
-	{ id = "asked", theme = "courtesy", metric = "asked",
-		name = L["You Only Had to Ask"], desc = L["Answer a request made in chat."] },
-	{ id = "cure", theme = "courtesy", metric = "cures",
-		name = L["A Clean Bill of Health"], desc = L["Cure somebody through the prompt."] },
-	{ id = "courtesy", theme = "courtesy", metric = "services",
-		name = L["At Your Service"], desc = L["Conjure, port or summon on request."] },
-	{ id = "thanks", theme = "courtesy", metric = "thanks", hidden = true,
-		name = L["The Polite Reply"], desc = L["Thank a different person on a different day."] },
+	-- Courtesy: answering, serving and saying thank you.
+	{ id = "asked", theme = "courtesy", metric = "asked", goals = { 1, 25, 100 }, icon = "INV_Misc_Note_02",
+		name = L["You Only Had to Ask"], desc = L["Requests made in chat that you answered."] },
+	{ id = "courtesy", theme = "courtesy", metric = "services", goals = { 1, 25, 100 }, icon = "Spell_Arcane_PortalStormWind",
+		name = L["At Your Service"], desc = L["Conjures, portals, summons and other services given on request."] },
+	{ id = "trades", theme = "courtesy", metric = "serviceKinds", goals = { 2, 4 }, icon = "INV_Misc_Bag_10",
+		name = L["A Helping Hand"], desc = L["Different kinds of service you gave."] },
+	{ id = "thanks", theme = "courtesy", metric = "thanks", goals = { 1, 50, 250 }, icon = "Spell_Holy_SealOfSalvation",
+		name = L["The Polite Reply"], desc = L["People you thanked for a buff."] },
+	{ id = "notes", theme = "courtesy", metric = "thankDays", goals = { 3, 14, 60 }, icon = "INV_Misc_Note_03",
+		name = L["Thank-You Notes"], desc = L["Days you thanked somebody for a buff."] },
+	{ id = "host", theme = "courtesy", metric = "servicePeople", goals = { 5, 25, 100 }, icon = "INV_Drink_04",
+		name = L["Gracious Host"], desc = L["Different people you gave a service to."] },
+	{ id = "grace", theme = "courtesy", metric = "refused", goals = { 1 }, hidden = true, icon = "Spell_Holy_SealOfSacrifice",
+		name = L["No Hard Feelings"], desc = L["Somebody turned down your buff, and you let it go."] },
+
+	-- Devotion: good manners kept up day after day.
+	{ id = "daily", theme = "devotion", metric = "activeDays", goals = { 7, 30, 100 }, icon = "INV_Misc_PocketWatch_01",
+		name = L["Daily Courtesy"], desc = L["Days you showed good manners."] },
+	{ id = "streak", theme = "devotion", metric = "bestStreak", goals = { 3, 7, 30 }, icon = "Spell_Holy_Excorcism",
+		name = L["Unbroken Courtesy"], desc = L["Days in a row you showed good manners."] },
+	{ id = "early", theme = "devotion", metric = "early", goals = { 1 }, hidden = true, icon = "Spell_Holy_SurgeOfLight",
+		name = L["Early Riser"], desc = L["Show good manners between five and eight in the morning."] },
+	{ id = "late", theme = "devotion", metric = "late", goals = { 1 }, hidden = true, icon = "Spell_Nature_Sleep",
+		name = L["Night Owl"], desc = L["Show good manners between midnight and four in the morning."] },
+	{ id = "medals", theme = "devotion", metric = "medals", goals = { 10, 25, 50 }, icon = "INV_Misc_Coin_01",
+		name = L["Well Mannered"], desc = L["Medals you earned in Manners achievements."] },
 }
+for i, def in ipairs(DEFS) do def.order = i end
 
 local function Day(at)
 	return date("%Y%m%d", at or time())
@@ -83,6 +150,11 @@ local function CharacterKey()
 	return (type(guid) == "string" and guid or "local") .. ":" .. PlainClass()
 end
 
+local SETTINGS = {
+	filter = { all = true, earned = true, progress = true, locked = true },
+	sort = { theme = true, closest = true, recent = true, name = true },
+}
+
 local function Database()
 	if type(MannersAchievementsDB) ~= "table" then MannersAchievementsDB = {} end
 	local db = MannersAchievementsDB
@@ -91,54 +163,89 @@ local function Database()
 	if notification ~= "toast" and notification ~= "chat" then notification = "none" end
 	db.notification = notification
 	db.sound = db.sound == true
+	if not SETTINGS.filter[db.filter] then db.filter = "all" end
+	if not SETTINGS.sort[db.sort] then db.sort = "theme" end
+	if db.theme ~= "all" and not THEME[db.theme] then db.theme = "all" end
+	db.page = math.max(1, math.floor(tonumber(db.page) or 1))
 	return db
 end
+
+local TABLES = { "metrics", "earned", "capped", "personDays", "strangerDays", "classes", "dirtyDays",
+	"when", "people", "givers", "spells", "serviceKinds", "days", "servicePeople", "thankDays" }
+
+local function Fresh()
+	local st = { class = PlainClass(), seeded = false, version = DATA_VERSION }
+	for _, name in ipairs(TABLES) do st[name] = {} end
+	return st
+end
+
+local function Count(t)
+	local n = 0
+	for _ in pairs(t) do n = n + 1 end
+	return n
+end
+
+local function Value(st, def)
+	return st.metrics[def.metric] or 0
+end
+
+local function TierOf(def, progress)
+	local tier = 0
+	for i, goal in ipairs(def.goals) do
+		if progress >= goal then tier = i end
+	end
+	return tier
+end
+
+-- The medal a tier is: a single goal has no bronze, silver or gold of its own.
+local function MedalOf(def, tier)
+	if tier < 1 then return nil end
+	if #def.goals == 1 then return MEDALS[3] end
+	return MEDALS[math.min(3, tier + (3 - #def.goals))]
+end
+
+local function PointsOf(def, tier)
+	if tier < 1 then return 0 end
+	if #def.goals == 1 then return SINGLE_POINTS + (def.hidden and HIDDEN_BONUS or 0) end
+	local points = 0
+	for i = 1, tier do points = points + MedalOf(def, i).points end
+	return points
+end
+
+local Recheck
 
 local function State()
 	local db = Database()
 	local key = CharacterKey()
 	local st = db.characters[key]
 	if type(st) ~= "table" then
-		st = { class = PlainClass(), metrics = {}, earned = {}, capped = {},
-			personDays = {}, strangerDays = {}, classes = {}, dirtyDays = {}, seeded = false }
+		st = Fresh()
 		db.characters[key] = st
 	end
-	st.metrics = type(st.metrics) == "table" and st.metrics or {}
-	st.earned = type(st.earned) == "table" and st.earned or {}
-	st.capped = type(st.capped) == "table" and st.capped or {}
-	st.personDays = type(st.personDays) == "table" and st.personDays or {}
-	st.strangerDays = type(st.strangerDays) == "table" and st.strangerDays or {}
-	st.classes = type(st.classes) == "table" and st.classes or {}
-	st.dirtyDays = type(st.dirtyDays) == "table" and st.dirtyDays or {}
+	for _, name in ipairs(TABLES) do
+		if type(st[name]) ~= "table" then st[name] = {} end
+	end
+	-- Older saves counted the same metrics against 10/100/1000 for every
+	-- achievement: the counts stand, the medals are worked out again.
+	if st.version ~= DATA_VERSION then
+		st.version = DATA_VERSION
+		st.metrics.classes = Count(st.classes)
+		for id in pairs(st.earned) do st.earned[id] = nil end
+		Recheck(st, false)
+	end
 	return st
 end
 
-local function Value(st, def)
-	local metrics = st.metrics
-	if def.metric == "classes" then
-		local n = 0
-		for _ in pairs(st.classes) do n = n + 1 end
-		return n
-	elseif def.metric == "differentDaily" or def.metric == "cleanDays"
-		or def.metric == "returnDays" or def.metric == "strangerDays"
-		or def.metric == "rescues" or def.metric == "thanks" then
-		return metrics[def.metric] or 0
-	end
-	return metrics[def.metric] or 0
-end
-
-local function Tier(progress)
-	local result = 0
-	for i, goal in ipairs(TIERS) do
-		if progress >= goal then result = i end
-	end
-	return result
+local function Bump()
+	version = version + 1
+	if ns.RefreshOptionsDisplay and Active() then api:Guard("achievements repaint", ns.RefreshOptionsDisplay) end
 end
 
 local function Notify(def, tier)
 	local db = Database()
 	if db.notification == "none" then return end
-	local line = L["%s reached %s: %s"]:format(def.name, TIER_NAMES[tier], def.desc)
+	local medal = MedalOf(def, tier)
+	local line = L["%s reached %s: %s"]:format(def.name, medal and medal.name or "", def.desc)
 	if db.notification == "chat" and ns and ns.addon then
 		ns.addon:Print(line)
 	elseif db.notification == "toast" then
@@ -149,15 +256,45 @@ local function Notify(def, tier)
 	end
 end
 
-local function Recheck(st, announce)
-	for _, def in ipairs(DEFS) do
-		local tier = Tier(Value(st, def))
-		local before = st.earned[def.id] or 0
-		if tier > before then
-			st.earned[def.id] = tier
-			if announce then Notify(def, tier) end
+Recheck = function(st, announce)
+	-- Twice: a medal earned on the first pass counts toward Well Mannered.
+	for _ = 1, 2 do
+		local medals = 0
+		for _, def in ipairs(DEFS) do
+			if def.metric ~= "medals" then medals = medals + (st.earned[def.id] or 0) end
+		end
+		st.metrics.medals = medals
+		for _, def in ipairs(DEFS) do
+			local tier = TierOf(def, Value(st, def))
+			local before = st.earned[def.id] or 0
+			if tier > before then
+				st.earned[def.id] = tier
+				st.when[def.id] = time()
+				if announce then Notify(def, tier) end
+			end
 		end
 	end
+end
+
+-- A day with good manners: the count of such days and the longest run of them.
+local function Showed(st, at)
+	at = at or time()
+	local day = Day(at)
+	if st.days[day] then return end
+	st.days[day] = true
+	st.metrics.activeDays = Count(st.days)
+	local run, back, last = 1, 1, day
+	-- Bounded, and stopped on a day that reads the same as the one after it.
+	while back <= 400 do
+		local before = Day(at - back * 86400)
+		if before == last or not st.days[before] then break end
+		run, back, last = run + 1, back + 1, before
+	end
+	st.metrics.streak = run
+	st.metrics.bestStreak = math.max(st.metrics.bestStreak or 0, run)
+	local hour = tonumber(date("%H", at)) or 12
+	if hour >= 5 and hour < 8 then st.metrics.early = 1 end
+	if hour < 4 then st.metrics.late = 1 end
 end
 
 -- At most one credit for a metric/person/day. This is the anti-spam wall:
@@ -171,8 +308,16 @@ local function Credit(metric, name, amount, announce, at)
 	if st.capped[day][key] then return false end
 	st.capped[day][key] = true
 	st.metrics[metric] = (st.metrics[metric] or 0) + (amount or 1)
+	Showed(st, at)
 	Recheck(st, announce ~= false)
 	return true
+end
+
+-- A name into a set, with the set's size kept as a metric.
+local function Collect(st, set, name, metric)
+	if type(name) ~= "string" or name == "" or set[name] then return end
+	set[name] = true
+	st.metrics[metric] = Count(set)
 end
 
 local function DifferentDays(st, store, name, day, metric)
@@ -180,9 +325,7 @@ local function DifferentDays(st, store, name, day, metric)
 	store[name] = type(store[name]) == "table" and store[name] or {}
 	if not store[name][day] then
 		store[name][day] = true
-		local count = 0
-		for _ in pairs(store[name]) do count = count + 1 end
-		st.metrics[metric] = math.max(st.metrics[metric] or 0, count)
+		st.metrics[metric] = math.max(st.metrics[metric] or 0, Count(store[name]))
 	end
 end
 
@@ -190,23 +333,36 @@ local function OnReceived(_, seen)
 	if not Active() then return end
 	if type(seen) ~= "table" or type(seen.name) ~= "string" then return end
 	recent[seen.name] = GetTime()
-	State().dirtyDays[Day()] = nil
+	local st = State()
+	st.dirtyDays[Day()] = nil
+	Collect(st, st.givers, seen.name, "givers")
+	Credit("received", seen.name, 1, true)
+	Bump()
 end
 
-local function OnSettled(_, name, debt, pending)
+local function OnSettled(_, name, debt, pending, spellId)
 	if not Active() then return end
 	pending = type(pending) == "table" and pending or {}
 	local st = State()
 	local day = Day()
+	if type(name) == "string" and not pending.res and not pending.cure then
+		Collect(st, st.people, name, "people")
+		local spell = api:Plain(spellId)
+		if type(spell) == "number" then
+			local nameFor = ns.SpellNameFor
+			local spellName = type(nameFor) == "function" and api:Plain(nameFor(spell)) or nil
+			Collect(st, st.spells, type(spellName) == "string" and spellName or tostring(spell), "spells")
+		end
+		Credit("given", name, 1, true)
+	end
 	if debt then
 		if Credit("returns", name, 1, true) then
 			DifferentDays(st, st.personDays, name, day, "returnDays")
 			local heard = recent[name]
 			if type(heard) == "number" and GetTime() - heard <= 10 then Credit("quick", name, 1, true) end
-			if type(debt.class) == "string" then st.classes[debt.class] = true end
-			local people = st.capped[day] or {}
+			if type(debt.class) == "string" then Collect(st, st.classes, debt.class, "classes") end
 			local daily = 0
-			for key in pairs(people) do
+			for key in pairs(st.capped[day] or {}) do
 				if key:sub(1, 8) == "returns\0" then daily = daily + 1 end
 			end
 			st.metrics.differentDaily = math.max(st.metrics.differentDaily or 0, daily)
@@ -217,16 +373,16 @@ local function OnSettled(_, name, debt, pending)
 		Credit("cures", name, 1, true)
 	elseif pending.res then
 		Credit("res", name, 1, true)
-		DifferentDays(st, st.personDays, name, day, "rescues")
+		DifferentDays(st, st.personDays, "res\0" .. tostring(name), day, "rescues")
 	elseif pending.inGroup == true then
 		Credit("groups", name, pending.group and type(pending.group.members) == "table"
 			and #pending.group.members + 1 or 1, true)
 	else
 		Credit("strangers", name, 1, true)
-		local days = st.strangerDays
-		DifferentDays(st, days, name, day, "strangerDays")
+		DifferentDays(st, st.strangerDays, name, day, "strangerDays")
 	end
 	Recheck(st, true)
+	Bump()
 end
 
 local function OnLetGo()
@@ -234,22 +390,35 @@ local function OnLetGo()
 	State().dirtyDays[Day()] = true
 end
 
+local function OnRefused(_, name)
+	if not Active() then return end
+	Credit("refused", name, 1, true)
+	Bump()
+end
+
 local function OnThanked(_, name)
 	if not Active() then return end
 	local st = State()
 	local day = Day()
+	Collect(st, st.thankDays, day, "thankDays")
 	if Credit("thanks", name, 1, true) and not st.dirtyDays[day] then
 		st.capped[day] = type(st.capped[day]) == "table" and st.capped[day] or {}
-		if st.capped[day].cleanDays then return end
-		st.capped[day].cleanDays = true
-		st.metrics.cleanDays = (st.metrics.cleanDays or 0) + 1
-		Recheck(st, true)
+		if not st.capped[day].cleanDays then
+			st.capped[day].cleanDays = true
+			st.metrics.cleanDays = (st.metrics.cleanDays or 0) + 1
+			Recheck(st, true)
+		end
 	end
+	Bump()
 end
 
 local function OnService(_, kind, name)
 	if not Active() then return end
+	local st = State()
+	if type(kind) == "string" then Collect(st, st.serviceKinds, kind, "serviceKinds") end
+	Collect(st, st.servicePeople, name, "servicePeople")
 	Credit("services", type(name) == "string" and name or kind, 1, true)
+	Bump()
 end
 
 local function SeedRow(row)
@@ -257,13 +426,19 @@ local function SeedRow(row)
 	local name = row.name
 	local at = row.doneAt or row.at
 	local day = Day(at)
+	if row.kind == "received" then
+		Collect(st, st.givers, name, "givers")
+		Credit("received", name, 1, false, row.at)
+	end
 	if row.kind == "received" and row.state == "returned" then
 		Credit("returns", name, 1, false, at)
 		DifferentDays(st, st.personDays, name, day, "returnDays")
-		if type(row.class) == "string" then st.classes[row.class] = true end
+		if type(row.class) == "string" then Collect(st, st.classes, row.class, "classes") end
 		if type(row.doneAt) == "number" and type(row.at) == "number"
 			and row.doneAt - row.at <= 10 then Credit("quick", name, 1, false, at) end
 	elseif row.kind == "given" and not row.asked then
+		Collect(st, st.people, name, "people")
+		Credit("given", name, 1, false, at)
 		Credit(row.to == "group" and "groups" or "strangers", name, row.covered or 1, false, at)
 		if row.to ~= "group" then DifferentDays(st, st.strangerDays, name, day, "strangerDays") end
 	end
@@ -280,74 +455,201 @@ local function Initialize()
 	end
 end
 
-local function ProgressForTheme(theme)
-	local st = State()
-	local chosen
+---------------------------------------------------------------------------
+-- reading it: totals, the sorted list, a row's text
+---------------------------------------------------------------------------
+
+local function Totals(st)
+	local points, medals, done, max = 0, 0, 0, 0
 	for _, def in ipairs(DEFS) do
-		if def.theme == theme and (st.earned[def.id] or 0) < 3 and not chosen then
-			chosen = def
-		end
+		local tier = st.earned[def.id] or 0
+		points = points + PointsOf(def, tier)
+		medals = medals + tier
+		max = max + #def.goals
+		if tier >= #def.goals then done = done + 1 end
 	end
-	if not chosen then
-		chosen = DEFS[1]
-		for _, def in ipairs(DEFS) do
-			if def.theme == theme and Value(st, def) >= Value(st, chosen) then chosen = def end
-		end
+	local rank, nextRank = RANKS[1], nil
+	for i, r in ipairs(RANKS) do
+		if points >= r.at then rank, nextRank = r, RANKS[i + 1] end
 	end
-	return chosen, st
+	return points, medals, max, done, rank, nextRank
 end
 
-local function Text(parent, text, size, colour)
-	local fs = parent:CreateFontString(nil, "OVERLAY")
-	fs:SetFont(STANDARD_TEXT_FONT, size, "")
-	fs:SetTextColor(unpack(colour or { 0.9, 0.9, 0.92 }))
-	fs:SetJustifyH("LEFT")
-	fs:SetText(text or "")
-	return fs
+-- How far toward the next goal, 0 to 1 (1 when every goal is met).
+local function Closeness(st, def)
+	local tier = st.earned[def.id] or 0
+	local goal = def.goals[tier + 1]
+	if not goal then return 1 end
+	local from = def.goals[tier] or 0
+	return math.max(0, math.min(1, (Value(st, def) - from) / math.max(1, goal - from)))
 end
 
-local function Paint(_, host)
-	if not pane then
-		pane = { rows = {} }
-		pane.class = Text(host, "", 10, { 0.65, 0.65, 0.68 })
-		pane.class:SetPoint("TOPLEFT", host, "TOPLEFT", 2, 0)
-		for i, theme in ipairs(THEMES) do
-			local row = CreateFrame("Frame", nil, host)
-			row:SetPoint("TOPLEFT", host, "TOPLEFT", 2, -(i - 1) * 58 - 20)
-			row:SetPoint("RIGHT", host, "RIGHT", -2, 0)
-			row:SetHeight(50)
-			row.name = Text(row, "", 12, theme.colour)
-			row.name:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-			row.goal = Text(row, "", 10, { 0.75, 0.75, 0.78 })
-			row.goal:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -2)
-			row.track = row:CreateTexture(nil, "BACKGROUND")
-			row.track:SetTexture("Interface\\Buttons\\WHITE8X8")
-			row.track:SetVertexColor(1, 1, 1, 0.08)
-			row.track:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 3)
-			row.track:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 3)
-			row.track:SetHeight(5)
-			row.fill = row:CreateTexture(nil, "BORDER")
-			row.fill:SetTexture("Interface\\Buttons\\WHITE8X8")
-			row.fill:SetVertexColor(theme.colour[1], theme.colour[2], theme.colour[3], 0.9)
-			row.fill:SetPoint("BOTTOMLEFT", row.track, "BOTTOMLEFT")
-			row.fill:SetHeight(5)
-			pane.rows[i] = row
-		end
+local listCache = { version = -1 }
+
+local function List()
+	local db = Database()
+	local key = version .. ":" .. db.filter .. ":" .. db.sort .. ":" .. db.theme
+	if listCache.key == key then return listCache.rows end
+	local st = State()
+	local rows = {}
+	for _, def in ipairs(DEFS) do
+		local tier = st.earned[def.id] or 0
+		local keep = db.theme == "all" or def.theme == db.theme
+		if db.filter == "earned" then keep = keep and tier > 0
+		elseif db.filter == "progress" then keep = keep and tier < #def.goals and Value(st, def) > 0
+		elseif db.filter == "locked" then keep = keep and tier == 0 end
+		if keep then rows[#rows + 1] = def end
 	end
-	pane.class:SetText(L["Your %s manners"]:format(PlainClass()))
-	local totalWidth = host:GetWidth() - 4
-	for i, theme in ipairs(THEMES) do
-		local def, st = ProgressForTheme(theme.id)
-		local earned, progress = st.earned[def.id] or 0, Value(st, def)
-		local tier = math.min(3, earned + 1)
-		local goal = TIERS[tier]
-		local row = pane.rows[i]
-		local name = def.hidden and earned == 0 and L["A hidden moment"] or def.name
-		row.name:SetText(theme.name .. " -- " .. name .. " (" .. TIER_NAMES[tier] .. ")")
-		row.goal:SetText(def.hidden and earned == 0
-			and L["Good manners will reveal it."] or L["%d / %d -- %s"]:format(progress, goal, def.desc))
-		row.fill:SetWidth(math.max(1, totalWidth * math.min(1, progress / goal)))
+	local sorts = {
+		theme = function(a, b)
+			local ta, tb = THEME[a.theme].order, THEME[b.theme].order
+			if ta ~= tb then return ta < tb end
+			return a.order < b.order
+		end,
+		closest = function(a, b)
+			local ca, cb = Closeness(st, a), Closeness(st, b)
+			-- Done ones last.
+			if (ca >= 1) ~= (cb >= 1) then return cb >= 1 end
+			if ca ~= cb then return ca > cb end
+			return a.order < b.order
+		end,
+		recent = function(a, b)
+			local wa, wb = st.when[a.id] or 0, st.when[b.id] or 0
+			if wa ~= wb then return wa > wb end
+			return a.order < b.order
+		end,
+		name = function(a, b)
+			if a.name ~= b.name then return a.name < b.name end
+			return a.order < b.order
+		end,
+	}
+	table.sort(rows, sorts[db.sort])
+	listCache.key, listCache.rows = key, rows
+	return rows
+end
+
+-- The list a page at a time, so the page stays short however many there are.
+local PAGE_SIZE = 8
+local function Pages()
+	return math.max(1, math.ceil(#List() / PAGE_SIZE))
+end
+local function Page()
+	local db = Database()
+	if db.page > Pages() then db.page = Pages() end
+	return db.page
+end
+local function OnPage(i)
+	return List()[(Page() - 1) * PAGE_SIZE + i]
+end
+
+-- A bar drawn in the text: two stretched white squares, filled and empty.
+local BAR_W = 150
+local function Bar(fraction, colour)
+	local filled = math.floor(BAR_W * math.max(0, math.min(1, fraction)) + 0.5)
+	local r = tonumber(colour:sub(1, 2), 16) or 255
+	local g = tonumber(colour:sub(3, 4), 16) or 255
+	local b = tonumber(colour:sub(5, 6), 16) or 255
+	local out = ""
+	if filled > 0 then
+		out = ("|TInterface\\Buttons\\WHITE8X8:6:%d:0:0:8:8:0:8:0:8:%d:%d:%d|t"):format(filled, r, g, b)
 	end
+	if filled < BAR_W then
+		out = out .. ("|TInterface\\Buttons\\WHITE8X8:6:%d:0:0:8:8:0:8:0:8:60:60:66|t"):format(BAR_W - filled)
+	end
+	return out
+end
+
+local function Goals(def, tier)
+	if #def.goals == 1 then return "" end
+	local parts = {}
+	for i, goal in ipairs(def.goals) do
+		local medal = MedalOf(def, i)
+		local text = ("%s %d"):format(medal.name, goal)
+		parts[i] = i <= tier and ("|cff" .. medal.colour .. text .. "|r") or ("|cff808080" .. text .. "|r")
+	end
+	return table.concat(parts, "  ")
+end
+
+local function RowText(def)
+	local st = State()
+	local theme = THEME[def.theme]
+	local tier = st.earned[def.id] or 0
+	local progress = Value(st, def)
+	if def.hidden and tier == 0 then
+		return ("|T%s:24:24|t  |cff808080%s|r  |cff%s%s|r\n%s"):format(LOCKED_ICON, L["A hidden moment"],
+			theme.colour, theme.name, L["Good manners will reveal it."])
+	end
+	local medal = MedalOf(def, tier)
+	local title = ("|T%s:24:24|t  |cffffffff%s|r  |cff%s%s|r"):format(ICONS .. def.icon, def.name, theme.colour, theme.name)
+	if medal then title = title .. ("  |cff%s[%s]|r"):format(medal.colour, medal.name) end
+	local lines = { title, def.desc }
+	local nextGoal = def.goals[tier + 1]
+	if nextGoal then
+		lines[#lines + 1] = Bar(Closeness(st, def), theme.colour) .. "  " .. L["%d / %d"]:format(progress, nextGoal)
+	elseif st.when[def.id] then
+		lines[#lines + 1] = "|cff80d18c" .. L["Completed on %s"]:format(date("%Y-%m-%d", st.when[def.id])) .. "|r"
+	else
+		lines[#lines + 1] = "|cff80d18c" .. L["Completed"] .. "|r"
+	end
+	local goals = Goals(def, tier)
+	if goals ~= "" then lines[#lines + 1] = goals end
+	return table.concat(lines, "\n")
+end
+
+local function SummaryText()
+	local st = State()
+	local points, medals, max, done, rank, nextRank = Totals(st)
+	local lines = {
+		("|cffffd100%s|r"):format(rank.name),
+		L["%d points, %d of %d medals, %d of %d achievements complete."]:format(points, medals, max, done, #DEFS),
+	}
+	if nextRank then
+		local from = rank.at
+		lines[#lines + 1] = Bar((points - from) / math.max(1, nextRank.at - from), "ffd100") .. "  "
+			.. L["%d points to %s"]:format(nextRank.at - points, nextRank.name)
+	end
+	if (st.metrics.streak or 0) > 1 and st.days[Day()] then
+		lines[#lines + 1] = L["Good manners %d days in a row."]:format(st.metrics.streak)
+	end
+	return table.concat(lines, "\n")
+end
+
+local function RecentText()
+	local st = State()
+	local earned = {}
+	for _, def in ipairs(DEFS) do
+		if (st.earned[def.id] or 0) > 0 and st.when[def.id] then earned[#earned + 1] = def end
+	end
+	table.sort(earned, function(a, b) return st.when[a.id] > st.when[b.id] end)
+	if #earned == 0 then return "|cff808080" .. L["Nothing earned yet. Return a favour to begin."] .. "|r" end
+	local lines = {}
+	for i = 1, math.min(5, #earned) do
+		local def = earned[i]
+		local medal = MedalOf(def, st.earned[def.id])
+		lines[i] = ("|T%s:16:16|t %s  |cff%s%s|r  |cff808080%s|r"):format(ICONS .. def.icon, def.name,
+			medal.colour, medal.name, date("%Y-%m-%d", st.when[def.id]))
+	end
+	return table.concat(lines, "\n")
+end
+
+local STATS = {
+	{ "returns", L["Favours you returned"] }, { "quick", L["Returned within ten seconds"] },
+	{ "received", L["Buffs other players gave you"] }, { "givers", L["Different people who buffed you"] },
+	{ "given", L["Buffs you gave to other players"] }, { "people", L["Different people you gave something to"] },
+	{ "strangers", L["Passers-by you buffed unprompted"] }, { "groups", L["Party and raid members you buffed"] },
+	{ "res", L["People you brought back to life"] }, { "cures", L["People you cured"] },
+	{ "asked", L["Requests you answered"] }, { "services", L["Services you gave"] },
+	{ "thanks", L["People you thanked"] }, { "activeDays", L["Days with good manners"] },
+	{ "bestStreak", L["Longest run of days"] },
+}
+
+local function StatsText()
+	local st = State()
+	local lines = {}
+	for i, stat in ipairs(STATS) do
+		lines[i] = ("%s: |cffffffff%d|r"):format(stat[2], st.metrics[stat[1]] or 0)
+	end
+	return table.concat(lines, "\n")
 end
 
 ShowToast = function(def, tier, line)
@@ -355,20 +657,27 @@ ShowToast = function(def, tier, line)
 	local epoch = toastEpoch
 	if not toast then
 		toast = CreateFrame("Frame", nil, UIParent)
-		toast:SetSize(280, 54)
+		toast:SetSize(300, 58)
 		toast:SetPoint("TOP", UIParent, "TOP", 0, -80)
 		toast:SetFrameStrata("DIALOG")
 		toast.back = toast:CreateTexture(nil, "BACKGROUND")
 		toast.back:SetAllPoints()
 		toast.back:SetTexture("Interface\\Buttons\\WHITE8X8")
 		toast.back:SetVertexColor(0.05, 0.05, 0.07, 0.94)
-		toast.title = Text(toast, "", 13, { 1, 0.82, 0.2 })
-		toast.title:SetPoint("TOPLEFT", toast, "TOPLEFT", 12, -10)
-		toast.detail = Text(toast, "", 10, { 0.85, 0.85, 0.88 })
+		toast.icon = toast:CreateTexture(nil, "ARTWORK")
+		toast.icon:SetSize(36, 36)
+		toast.icon:SetPoint("LEFT", toast, "LEFT", 11, 0)
+		toast.title = toast:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		toast.title:SetPoint("TOPLEFT", toast.icon, "TOPRIGHT", 10, -2)
+		toast.title:SetJustifyH("LEFT")
+		toast.detail = toast:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 		toast.detail:SetPoint("TOPLEFT", toast.title, "BOTTOMLEFT", 0, -4)
 		toast.detail:SetPoint("RIGHT", toast, "RIGHT", -12, 0)
+		toast.detail:SetJustifyH("LEFT")
 	end
-	toast.title:SetText(def.name .. " -- " .. TIER_NAMES[tier])
+	local medal = MedalOf(def, tier)
+	toast.icon:SetTexture(ICONS .. def.icon)
+	toast.title:SetText(def.name .. (medal and (" -- " .. medal.name) or ""))
 	toast.detail:SetText(line)
 	toast:Show()
 	C_Timer.After(4, function()
@@ -383,15 +692,96 @@ if api:GetDB() then Initialize() end
 api:RegisterCallback("Favour.Received", OnReceived, A)
 api:RegisterCallback("Favour.Settled", OnSettled, A)
 api:RegisterCallback("Favour.LetGo", OnLetGo, A)
+api:RegisterCallback("Favour.Refused", OnRefused, A)
 api:RegisterCallback("Thanked", OnThanked, A)
 api:RegisterCallback("Service.Given", OnService, A)
-api:RegisterLedgerTab("achievements", L["Achievements"], Paint)
 
-api:RegisterOptionsExtension("diagnostics", function(_, args)
-	args.achievementIntro = { type = "description", order = 91,
-		name = L["Quiet rewards for returning favours and being useful to other players. Progress is capped once per person and achievement each day."] }
+---------------------------------------------------------------------------
+-- the page
+---------------------------------------------------------------------------
+
+local function Options()
+	local args = {}
+	args.achievementSummary = { type = "description", order = 1, fontSize = "medium",
+		name = function() return SummaryText() end }
+	args.achievementRecent = { type = "description", order = 2,
+		name = function() return RecentText() end }
+	local themes, themeOrder = { all = L["Every kind"] }, { "all" }
+	for _, theme in ipairs(THEMES) do
+		themes[theme.id] = theme.name
+		themeOrder[#themeOrder + 1] = theme.id
+	end
+	args.achievementTheme = {
+		type = "select", name = L["Kind"], order = 3,
+		desc = L["Show one kind of achievement, or every kind."],
+		values = themes, sorting = themeOrder,
+		get = function() return Database().theme end,
+		set = function(_, value)
+			local db = Database()
+			db.theme, db.page = THEME[value] and value or "all", 1
+		end,
+	}
+	args.achievementFilter = {
+		type = "select", name = L["Show"], order = 4,
+		desc = L["Which achievements the list shows."],
+		values = { all = L["All"], earned = L["Earned"], progress = L["In progress"], locked = L["Not started"] },
+		sorting = { "all", "earned", "progress", "locked" },
+		get = function() return Database().filter end,
+		set = function(_, value)
+			local db = Database()
+			db.filter, db.page = SETTINGS.filter[value] and value or "all", 1
+		end,
+	}
+	args.achievementSort = {
+		type = "select", name = L["Sort by"], order = 5,
+		desc = L["The order of the list."],
+		values = { theme = L["Kind"], closest = L["Closest to the next medal"],
+			recent = L["Most recently earned"], name = L["Name"] },
+		sorting = { "theme", "closest", "recent", "name" },
+		get = function() return Database().sort end,
+		set = function(_, value)
+			local db = Database()
+			db.sort, db.page = SETTINGS.sort[value] and value or "theme", 1
+		end,
+	}
+	args.achievementNone = { type = "description", order = 6,
+		name = "|cff808080" .. L["Nothing matches. Choose another kind or show all."] .. "|r",
+		hidden = function() return #List() > 0 end }
+	for i = 1, PAGE_SIZE do
+		args["achievementRow" .. i] = {
+			type = "description", order = 10 + i, width = "full",
+			name = function()
+				local def = OnPage(i)
+				return def and RowText(def) or ""
+			end,
+			hidden = function() return OnPage(i) == nil end,
+		}
+	end
+	local function OnePage() return Pages() < 2 end
+	args.achievementPrev = {
+		type = "execute", name = L["Previous"], order = 50,
+		disabled = function() return Page() <= 1 end, hidden = OnePage,
+		func = function()
+			local db = Database()
+			db.page = math.max(1, Page() - 1)
+			Bump()
+		end,
+	}
+	args.achievementPageOf = { type = "description", order = 51, hidden = OnePage,
+		name = function() return L["Page %d of %d"]:format(Page(), Pages()) end }
+	args.achievementNext = {
+		type = "execute", name = L["Next"], order = 52,
+		disabled = function() return Page() >= Pages() end, hidden = OnePage,
+		func = function()
+			local db = Database()
+			db.page = math.min(Pages(), Page() + 1)
+			Bump()
+		end,
+	}
+	args.achievementStats = { type = "description", order = 100,
+		name = function() return StatsText() end }
 	args.achievementNotification = {
-		type = "select", name = L["Achievement notification"], order = 92, width = "full",
+		type = "select", name = L["Achievement notification"], order = 101, width = "full",
 		values = { none = L["None"], toast = L["Small toast"], chat = L["One line in chat"] },
 		sorting = { "none", "toast", "chat" },
 		get = function() return Database().notification end,
@@ -400,16 +790,95 @@ api:RegisterOptionsExtension("diagnostics", function(_, args)
 		end,
 	}
 	args.achievementSound = {
-		type = "toggle", name = L["Sound"], order = 93, width = "full",
+		type = "toggle", name = L["Sound"], order = 102, width = "full",
 		desc = L["Play a sound with an achievement notification."],
 		disabled = function() return Database().notification == "none" end,
 		get = function() return Database().sound == true end,
 		set = function(_, value) Database().sound = value == true end,
 	}
-end)
-api:AddLayoutSection("diagnostics", {
-	key = "diagnostics.achievements", title = L["Achievements"], items = {
-		"diagnostics.achievementIntro", "diagnostics.achievementNotification",
-		"diagnostics.achievementSound",
+	args.achievementTest = {
+		type = "execute", name = L["Show an example"], order = 103,
+		desc = L["Shows the notification you chose, as an achievement would."],
+		disabled = function() return Database().notification == "none" end,
+		func = function() Notify(DEFS[1], 1) end,
+	}
+	args.achievementReset = {
+		type = "execute", name = L["Start this character over"], order = 104,
+		desc = L["Forget this character's achievements and counts. Other characters keep theirs."],
+		confirm = true,
+		confirmText = L["Forget every achievement and count for this character? This cannot be undone."],
+		func = function()
+			local db = Database()
+			db.characters[CharacterKey()] = Fresh()
+			State().seeded = true
+			Bump()
+		end,
+	}
+	return args
+end
+
+api:RegisterOptionsPage("achievements", function()
+	local args = Options()
+	for _, item in pairs(args) do
+		local own = item.hidden
+		item.hidden = function(...)
+			if not Active() then return true end
+			return own and own(...) or false
+		end
+	end
+	return { type = "group", name = L["Achievements"], args = args }
+end, {
+	title = L["Achievements"],
+	blurb = L["Quiet rewards for good manners: returning favours, helping strangers, answering and thanking."],
+	icon = "Interface\\AddOns\\Manners\\Textures\\Manners64",
+	sections = {
+		{ key = "achievements.overview", title = L["Your manners"], items = {
+			"achievements.achievementSummary",
+		} },
+		{ key = "achievements.recent", title = L["Earned lately"], items = {
+			"achievements.achievementRecent",
+		} },
+		{ key = "achievements.list", title = L["Achievements"], items = (function()
+			local items = {
+				{ "achievements.achievementTheme", pair = true, match = "achievementBrowse" },
+				{ "achievements.achievementFilter", pair = true, match = "achievementBrowse" },
+				{ "achievements.achievementSort", pair = true, match = "achievementBrowse" },
+				"achievements.achievementNone",
+			}
+			for i = 1, PAGE_SIZE do items[#items + 1] = "achievements.achievementRow" .. i end
+			items[#items + 1] = { "achievements.achievementPrev", buttons = true }
+			items[#items + 1] = { "achievements.achievementPageOf", buttons = true }
+			items[#items + 1] = { "achievements.achievementNext", buttons = true }
+			return items
+		end)() },
+		{ key = "achievements.stats", title = L["Statistics"], fold = true, items = {
+			"achievements.achievementStats",
+		} },
+		{ key = "achievements.notifications", title = L["Achievement notification"], fold = true, items = {
+			"achievements.achievementNotification", "achievements.achievementSound",
+			{ "achievements.achievementTest", buttons = true },
+			{ "achievements.achievementReset", buttons = true },
+		} },
 	},
-})
+	subpages = {
+		{ "achievements.list", title = L["Achievements"] },
+		{ "achievements.stats", "achievements.notifications", title = L["Statistics and settings"] },
+	},
+}, "modules")
+do
+	local layout = ns.WindowLayout
+	-- The simple view keeps where you stand and what you earned lately.
+	if layout and layout.simple and type(layout.simple.items) == "table" then
+		layout.simple.items["achievements.achievementSummary"] = true
+		layout.simple.items["achievements.achievementRecent"] = true
+	end
+	if layout and type(layout.notes) == "table" then
+		layout.notes["achievements.achievementSummary"] = { block = true }
+		layout.notes["achievements.achievementStats"] = { block = true }
+		for i = 1, PAGE_SIZE do layout.notes["achievements.achievementRow" .. i] = { block = true } end
+	end
+end
+
+-- For the tests and /manners debug: the definitions and the reading of a row.
+A.DEFS, A.RowText, A.List, A.Totals, A.State = DEFS, RowText, List, Totals, State
+ns.Achievements = A

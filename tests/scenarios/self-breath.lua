@@ -263,8 +263,11 @@ do
 		end
 		pull()
 		if mine(ns) then fail(scenario, "offered in a fight") end
-		if macro(ns):find("Unending Breath", 1, true) then
-			fail(scenario, "the fight's presses cast Unending Breath on you: " .. macro(ns))
+		-- Kept on the pull (every class's own buff may be): then the prompt
+		-- shows it, so the press never casts something it does not say.
+		if macro(ns):find("Unending Breath", 1, true)
+			and key(ns.Prompt.state.current) ~= "selfbreath" then
+			fail(scenario, "the fight's presses cast Unending Breath the prompt does not show: " .. macro(ns))
 		end
 		Mock.advance(5)
 		after()

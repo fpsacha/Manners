@@ -200,7 +200,7 @@ end
 -- minimap's tracking list holds (Core.lua reads tracking from it, not from
 -- the spellbook): Track Beasts for the hunter.
 local KNOWS = {
-	MAGE = { known = { 1459, 168 } },
+	MAGE = { known = { 1459, 168, 2139, 543, 11958 } },
 	-- Shadowform (15473) too, which only a priest with the talent has.
 	PRIEST = { buffs = { "fortitude", "spirit", "shadow" }, known = { 588, 15473 } },
 	PALADIN = { buffs = { "wisdom", "might", "kings", "beacon" }, known = { 465, 25780 } },

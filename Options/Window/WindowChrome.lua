@@ -822,7 +822,9 @@ end
 -- nothing per frame.
 function UI.FitSidebar(top)
 	local side = UI.side
-	local room = UI.HEIGHT - UI.FOOTER - top
+	-- A few pixels kept free: a font that draws a little taller than it
+	-- measures must not push the last page under the footer.
+	local room = UI.HEIGHT - UI.FOOTER - top - 8
 	if side.bottom and side.bottom > room then
 		side.bottom = LaySidebar(side, UI.Layout(), true) - 1
 	end

@@ -11,19 +11,15 @@ S = "runscenarios.py"
 # --- the offer (Queue.lua) ---
 
 mutate("Queue.lua",
-       "\tif not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end\n",
+       "\t\tbuff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now)",
        "",
        "own: never offered",
        expect="a mage with no armor up was not offered one", script=S)
 
 # Your own group buff after the class's own rather than before.
 mutate("Queue.lua",
-       "\tif #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end\n"
-       "\tif not buff and fight then return nil end\n"
-       "\tif not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end\n",
-       "\tbuff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now)\n"
-       "\tif not buff and #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end\n"
-       "\tif not buff and fight then return nil end\n",
+       "\tif #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end",
+       "\tif false and #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end",
        "own: your group buff not first",
        expect="before your Intellect", script=S)
 

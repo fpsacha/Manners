@@ -53,6 +53,12 @@ function api:RefreshPrompt()
 	if ns.Prompt then return ns.Guard("module prompt refresh", ns.Prompt.Refresh, ns.Prompt) end
 end
 
+function api:OpenLedger(tab)
+	if not ns.Ledger or type(ns.Ledger.Show) ~= "function" then return false end
+	ns.Guard("module ledger", ns.Ledger.Show, tab)
+	return true
+end
+
 -- `callback` is a function. `owner` is the module table it should receive as
 -- its first argument, or nil for a plain function.
 function api:RegisterCallback(event, callback, owner)
@@ -111,7 +117,7 @@ end
 
 local COMBAT_KEYS = {
 	L = true, Prompt = true, Flavour = true, caps = true,
-	plain = true, safecall = true, Guard = true, Trail = true, db = true,
+	plain = true, safecall = true, safecallok = true, Guard = true, Trail = true, db = true,
 	addon = true, pendingClick = true, ExpirePendingClick = true,
 	ProbeCapabilities = true, SpellKnown = true, SpellNameFor = true,
 	CastReady = true,
@@ -130,6 +136,10 @@ local COMBAT_KEYS = {
 	CureSuspend = true,
 	BreakFree = true, MendPet = true, CureFight = true, CureNeed = true,
 	CombatLayout = true, ReactiveWards = true,
+	CombatActions = true, Moments = true, Sense = true, MomentCard = true,
+	Looks = true, LOCALE = true, ReagentCount = true, ReagentName = true, defaults = true,
+	MOMENTS = true, MOMENT_KEYS = true, MOMENT_DEFAULTS = true, MOMENT_SETS = true,
+	CAST_SCHOOLS = true, CAST_SCHOOLS_BY_CLIENT = true, Setup = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	OptionsPage = true, WindowLayout = true,
 	ContextDecision = true, ContextTarget = true,
@@ -138,6 +148,9 @@ local COMBAT_KEYS = {
 local COMBAT_WRITES = {
 	BreakFree = true, MendPet = true, CureFight = true, CureNeed = true,
 	CombatLayout = true, ReactiveWards = true,
+	CombatActions = true, Moments = true, Sense = true, MomentCard = true,
+	MOMENTS = true, MOMENT_KEYS = true, MOMENT_DEFAULTS = true, MOMENT_SETS = true,
+	CAST_SCHOOLS = true, CAST_SCHOOLS_BY_CLIENT = true, MomentLines = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	CureFightKnown = true, ProbeCapabilities = true,
 	ClassHasCures = true, CureLearned = true, CureInfo = true,
@@ -215,14 +228,19 @@ local SERVICE_KEYS = {
 }
 local SERVICE_WRITES = { Courtesy = true }
 
-local ACHIEVEMENT_KEYS = { L = true, addon = true }
+-- The page draws its rows framed (WindowLayout's notes), repaints the window
+-- when a count moves, and names the spells given for Varied Gifts.
+local ACHIEVEMENT_KEYS = { L = true, addon = true, WindowLayout = true,
+	RefreshOptionsDisplay = true, SpellNameFor = true, Achievements = true }
+-- Its own reading of the list, for the tests and /manners debug.
+local ACHIEVEMENT_WRITES = { Achievements = true }
 
 local CONTEXTS = {
 	combat = { keys = COMBAT_KEYS, writes = COMBAT_WRITES, title = "Manners: Combat" },
 	pets = { keys = PET_KEYS, writes = PET_WRITES, title = "Manners: Pets" },
 	mybuffs = { keys = MYBUFF_KEYS, writes = MYBUFF_WRITES, title = "Manners: My Buffs" },
 	services = { keys = SERVICE_KEYS, writes = SERVICE_WRITES, title = "Manners: Services" },
-	achievements = { keys = ACHIEVEMENT_KEYS, writes = {}, title = "Manners: Achievements" },
+	achievements = { keys = ACHIEVEMENT_KEYS, writes = ACHIEVEMENT_WRITES, title = "Manners: Achievements" },
 }
 
 -- A module sees a narrow facade of the core, not its private namespace. The
@@ -329,6 +347,7 @@ function api:InsertLayoutItems(page, afterPath, items)
 					table.insert(section.items, at, item)
 					at = at + 1
 				end
+				if ns.OptionsPage and ns.OptionsPage.ForgetPageMap then ns.OptionsPage.ForgetPageMap() end
 				return true
 			end
 		end
@@ -340,6 +359,13 @@ function api:AddLayoutSection(page, section)
 	local layout = ns.WindowLayout
 	local target = layout and layout.pages and layout.pages[page]
 	if type(target) ~= "table" or type(section) ~= "table" then return false end
+	for i, old in ipairs(target.sections or {}) do
+		if old.key == section.key then
+			target.sections[i] = section
+			if ns.OptionsPage and ns.OptionsPage.ForgetPageMap then ns.OptionsPage.ForgetPageMap() end
+			return true
+		end
+	end
 	target.sections[#target.sections + 1] = section
 	return true
 end

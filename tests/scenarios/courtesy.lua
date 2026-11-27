@@ -13,7 +13,7 @@ local dir, H = ...
 local fail, load = H.fail, H.load
 local strangers, freshPrompt, owe, pressButton = H.strangers, H.freshPrompt, H.owe, H.pressButton
 
-local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "C_Spell", "GetItemCount", "C_Container",
+local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "C_Spell", "C_Item", "GetItemCount", "C_Container",
 	"ClickTradeButton", "GetTradePlayerItemLink", "GetCursorInfo", "CursorHasItem", "ClearCursor",
 	"AcceptTrade", "UnitGUID", "UnitLevel", "UnitInParty", "IsUsableSpell", "MAX_TRADABLE_ITEMS", "IsResting" }
 local original = {}
@@ -83,6 +83,13 @@ local function world(opts)
 	w.partner = opts.partner or "nameplate1"
 	w.globals = {
 		IsSpellKnown = knows, IsPlayerSpell = knows, C_Spell = spell,
+		C_Item = {
+			GetItemIconByID = function(item)
+				if item == 8079 then return 807901 end
+				if item == 65500 then return 655000 end
+				if item == 65516 then return 655160 end
+			end,
+		},
 		GetItemCount = function(item) return w.bags[item] or 0 end,
 		C_Container = {
 			GetContainerNumSlots = function(bag) return bag == 0 and 16 or 0 end,
@@ -166,6 +173,9 @@ do
 		if ns.EntrySpellName(anna) ~= "Conjure Water" then
 			fail(scenario, "the entry names " .. tostring(ns.EntrySpellName(anna)) .. ", not Conjure Water")
 		end
+		if ns.Prompt.lib.EntryIcon(anna) ~= 807901 then
+			fail(scenario, "the conjure prompt did not use the water item icon")
+		end
 		if ns.Prompt:ReasonText(anna) ~= "asked for water -- conjure it first" then
 			fail(scenario, "the reason line reads " .. tostring(ns.Prompt:ReasonText(anna)))
 		end
@@ -192,6 +202,9 @@ do
 		end
 		if ns.Prompt:ReasonText(anna) ~= "asked for water" then
 			fail(scenario, "the trade's reason line reads " .. tostring(ns.Prompt:ReasonText(anna)))
+		end
+		if ns.Prompt.lib.EntryIcon(anna) ~= 807901 then
+			fail(scenario, "the trade kept the conjure spell icon instead of the water's icon")
 		end
 		ns.Prompt:Refresh()
 		ran = pressButton(ns)
@@ -750,6 +763,39 @@ do
 				fail(scenario, text .. ": the refreshment in the bags is not offered as the trade")
 			end
 			Mock.advance(61)
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+do
+	local scenario = "courtesy: mists: one refreshment spell keeps each recipient's item icon"
+	Mock.setFlavour("mists")
+	local restoreUnits = strangers({ nameplate1 = { "Anna" }, nameplate2 = { "Bert" } })
+	local w = world({
+		known = { 1459, 42955 },
+		bags = { [65500] = 20, [65516] = 20 },
+		levels = { nameplate1 = 34, nameplate2 = 54 },
+	})
+	with(scenario, w.globals, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario, { "courtesyRefresh" })
+		hear(ns, "CHAT_MSG_SAY", "water pls", "Anna", "Player-1-nameplate1")
+		hear(ns, "CHAT_MSG_SAY", "water pls", "Bert", "Player-1-nameplate2")
+		local anna, bert = entryFor(ns, "Anna"), entryFor(ns, "Bert")
+		if not (anna and bert and anna.courtesy.item == 65500 and bert.courtesy.item == 65516) then
+			fail(scenario, "the two recipients did not keep their level-appropriate items")
+		end
+		if anna.buff == bert.buff or ns.Prompt.lib.EntryIcon(anna) ~= 655000
+			or ns.Prompt.lib.EntryIcon(bert) ~= 655160 then
+			fail(scenario, "one recipient's item icon overwrote the other's")
+		end
+		if ns.EntrySpellName(anna) ~= "Conjure Refreshment"
+			or ns.EntrySpellName(bert) ~= "Conjure Refreshment" then
+			fail(scenario, "an item icon replaced the spell name")
 		end
 		noErrors(scenario, ns)
 	end)

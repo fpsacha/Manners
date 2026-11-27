@@ -326,7 +326,7 @@ end
 -- it change; a colour gets a fresh copy, so the profile never holds the
 -- defaults' own table for a picker to write into.
 local function ResetField(path)
-	local section, name = path:match("^(%w+)%.(%w+)$")
+	local section, name = path:match("^([^.]+)%.(.+)$")
 	local default = ns.defaults.profile[section][name]
 	local into = ns.db.profile[section]
 	local current = into[name]
