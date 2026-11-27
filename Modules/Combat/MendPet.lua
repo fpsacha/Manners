@@ -121,6 +121,10 @@ local function Profile()
 	return ns.db and ns.db.profile
 end
 
+local function Active()
+	return ns.ModuleActive and ns.ModuleActive("combat") == true
+end
+
 -- Whether the setting keeps the button dim in every fight (a plain field).
 local function Always()
 	local db = Profile()
@@ -430,7 +434,7 @@ function MendPet.Changed()
 	paintDue = true
 	timer.After(REPAINT, function()
 		paintDue = false
-		ns.Guard("mend pet", Paint)
+		if Active() then ns.Guard("mend pet", Paint) end
 	end)
 end
 
@@ -462,8 +466,10 @@ local function OnEvent(event, spellId)
 			local timer = _G.C_Timer
 			if type(timer) == "table" and type(timer.After) == "function" then
 				timer.After(busy + 0.05, function()
-					paintedKey = nil
-					ns.Guard("mend pet", Paint)
+					if Active() then
+						paintedKey = nil
+						ns.Guard("mend pet", Paint)
+					end
 				end)
 			end
 			ns.Trail("fight", "mend pet went out")

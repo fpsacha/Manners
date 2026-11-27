@@ -151,6 +151,10 @@ local function Profile()
 	return ns.db and ns.db.profile
 end
 
+local function Active()
+	return ns.ModuleActive and ns.ModuleActive("combat") == true
+end
+
 -- Whether the setting keeps the button dim in every fight (a plain field).
 local function Always()
 	local db = Profile()
@@ -695,6 +699,7 @@ end
 
 Recheck = function()
 	recheckDue = false
+	if not Active() then return end
 	ns.Guard("break free", function()
 		local was = afflicted
 		Read()
