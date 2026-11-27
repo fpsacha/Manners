@@ -4807,6 +4807,7 @@ L["Who buffed you, whether you returned it, and who you buffed first."] = "누�
 L["Turn optional modules on or off here. Their changes take effect after Reload UI."] = "여기서 선택 모듈을 켜거나 끌 수 있습니다. 변경 사항은 UI 새로 고침 후 적용됩니다."
 L["All optional modules start on in 1.12.5. Choose what you want to keep: Combat adds fight buttons, My Buffs reminds you of your own buffs and consumables, Services answers requests, Pets cares for pets, and Achievements adds optional ledger goals. Changes take effect after Reload UI."] = "1.12.5부터 모든 선택 모듈이 기본으로 켜집니다. 유지할 모듈을 선택하세요. 전투는 전투 버튼을, 내 버프는 버프와 소모품 알림을, 서비스는 요청 응답을, 소환수는 돌봄을, 업적은 선택 기록 목표를 추가합니다. 변경 사항은 UI 새로 고침 후 적용됩니다."
 L["Keep these modules"] = "선택한 모듈 유지"
+L["Choose your optional modules"] = "선택 모듈 고르기"
 L["Manners: Combat"] = "Manners: 전투"
 L["Cure, break-free and Mend Pet buttons in a fight."] = "전투 중 해제, 벗어나기, 소환수 치료 버튼."
 L["Manners: Achievements"] = "Manners: 업적"

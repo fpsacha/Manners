@@ -364,12 +364,12 @@ ns.WindowLayout = {
 			blurb = L["Turn optional modules on or off here. Their changes take effect after Reload UI."],
 			icon = ICONS.modules,
 			sections = {
-				{ key = "modules.welcome", header = "general.modulesWelcome", items = {
-					"general.modulesWelcomeDone",
-				} },
 				{ key = "modules.lead", items = {
 					-- HOME: companion pets and the rest of My Buffs stay on the
 					-- optional My own buffs page, which joins this sidebar group.
+					"general.modulesWelcomeHeader",
+					"general.modulesWelcome",
+					"general.modulesWelcomeDone",
 					"general.modules",
 				} },
 				{ key = "modules.reload", title = L["Apply changes"], items = {

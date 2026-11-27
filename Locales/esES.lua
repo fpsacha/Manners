@@ -4807,6 +4807,7 @@ L["Who buffed you, whether you returned it, and who you buffed first."] = "Quié
 L["Turn optional modules on or off here. Their changes take effect after Reload UI."] = "Activa o desactiva aquí los módulos opcionales. Los cambios tendrán efecto tras recargar la interfaz."
 L["All optional modules start on in 1.12.5. Choose what you want to keep: Combat adds fight buttons, My Buffs reminds you of your own buffs and consumables, Services answers requests, Pets cares for pets, and Achievements adds optional ledger goals. Changes take effect after Reload UI."] = "Todos los módulos opcionales empiezan activados en 1.12.5. Elige cuáles conservar: Combate añade botones de lucha, Mis beneficios recuerda tus beneficios y consumibles, Servicios atiende solicitudes, Mascotas cuida de ellas y Logros añade objetivos opcionales al registro. Los cambios tendrán efecto al recargar la interfaz."
 L["Keep these modules"] = "Conservar estos módulos"
+L["Choose your optional modules"] = "Elige tus módulos opcionales"
 L["Manners: Combat"] = "Manners: Combate"
 L["Cure, break-free and Mend Pet buttons in a fight."] = "Botones de curar, liberarse y aliviar mascota en combate."
 L["Manners: Achievements"] = "Manners: Logros"
