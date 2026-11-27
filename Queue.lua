@@ -2817,10 +2817,6 @@ local function SelfBuff(db, mine, full, now)
 		inGroup = grouped,
 		tanksOnly = tanksHeld or nil,
 		isTank = tanksHeld and ns.IsTankUnit("player") or nil,
-		isMelee = db.buff.shoutMelee == true and ns.IsMeleeUnit("player", caps.class) or nil,
-		shoutMelee = db.buff.shoutMelee == true,
-		shoutCombatInstances = db.buff.shoutCombatInstances == true,
-		shoutCombatAllowed = db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() or nil,
 		notMeInside = notMeInside,
 		-- Your own class, for a blessing chosen for it.
 		theirClass = next(db.buff.forClass) ~= nil and ns.caps and ns.caps.class or nil,
@@ -3024,6 +3020,12 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 		charges = charges,
 		checked = true,
 	}
+	if db.buff.shoutMelee == true then
+		opts.isMelee, opts.shoutMelee = ns.IsMeleeUnit("player", caps.class), true
+	end
+	if db.buff.shoutCombatInstances == true then
+		opts.shoutCombatInstances, opts.shoutCombatAllowed = true, ns.ShoutCombatAllowed()
+	end
 	-- A top-up says how long the buff lasts and when it was due (the tooltip).
 	if remaining then entry.duration, entry.lead, entry.leadKind = seconds, lead, kind end
 	-- *My food, stones and oils after everybody else*: the bag items that
@@ -3292,10 +3294,11 @@ function ns.BuildQueue(watch)
 	local shoutCombatAllowed = db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() or nil
 	local opts = {
 		unpaid = UNPAID, tanksOutside = tanksOutside,
-		shoutMelee = db.buff.shoutMelee == true,
-		shoutCombatInstances = db.buff.shoutCombatInstances == true,
-		shoutCombatAllowed = shoutCombatAllowed,
 	}
+	if db.buff.shoutMelee == true then opts.shoutMelee = true end
+	if db.buff.shoutCombatInstances == true then
+		opts.shoutCombatInstances, opts.shoutCombatAllowed = true, shoutCombatAllowed
+	end
 	for _, buff in ipairs(candidates) do
 		if buff.forTank then opts.forTank = true break end
 	end
@@ -3607,9 +3610,14 @@ function ns.BuildQueue(watch)
 		opts.asked = named
 		-- A chat request, even a plain "buff pls", is an explicit choice of the
 		-- source and is never held by Battle Shout's recipient/timing filters.
-		opts.requested = asked and true or nil
-		opts.isMelee = opts.shoutMelee
-			and ns.IsMeleeUnit(unit, plain(select(2, UnitClass(unit)))) or nil
+		if opts.shoutMelee or opts.shoutCombatInstances then
+			opts.requested = asked and true or nil
+			if opts.shoutMelee and not opts.requested then
+				opts.isMelee = ns.IsMeleeUnit(unit, plain(select(2, UnitClass(unit)))) or nil
+			else
+				opts.isMelee = nil
+			end
+		end
 		-- A favour owed, for a buff kept for that and for a request by name
 		-- (Buffs.lua, returnOnly).
 		opts.owed = isOwed and true or nil
@@ -3857,8 +3865,8 @@ function ns.BuildQueue(watch)
 			-- Their PvP flag as read this scan (nil with the setting off),
 			-- which the memory of them keeps (RememberPasserBy).
 			pvp = flag,
-			isMelee = opts.isMelee,
 		}
+		if opts.shoutMelee then entry.isMelee = opts.isMelee end
 		local decision = ns.ContextDecision("buff", "buff", full, priority, reason, true, nil)
 		entry.priority, entry.reason = decision.priority, decision.reason
 		queue[#queue + 1] = entry

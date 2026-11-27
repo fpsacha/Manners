@@ -27,6 +27,11 @@ do
 		[10225] = { usable = true, noMana = false },
 		[28609] = { usable = true, noMana = false },
 	}
+	local originalSpells = _G.C_Spell
+	rawset(_G, "C_Spell", setmetatable({ IsSpellUsable = function(id)
+		local answer = Mock.spellUsable[id]
+		return answer and answer.usable, answer and answer.noMana
+	end }, { __index = originalSpells }))
 	local aura = nil
 	rawset(_G, "C_UnitAuras", setmetatable({
 		GetAuraDataByIndex = function(unit, index, filter)
@@ -81,7 +86,7 @@ do
 		Mock.frameEvent("UNIT_COMBAT", "player", "DAMAGE", "", 100, FIRE)
 		if shown(ns, "fire") then fail(scenario, "an unusable Fire Ward was revealed") end
 		Mock.spellUsable[10225] = { usable = true, noMana = false }
-		Mock.spellCooldowns = { [10225] = { duration = 30 } }
+		Mock.spellCooldowns = { [10225] = { startTime = GetTime(), duration = 30 } }
 		Mock.frameEvent("UNIT_COMBAT", "player", "DAMAGE", "", 100, FIRE)
 		if shown(ns, "fire") then fail(scenario, "Fire Ward's cooldown revealed its button") end
 		Mock.spellCooldowns = nil
@@ -128,6 +133,7 @@ do
 		if shown(ns, "frost") then fail(scenario, "an unlearned Frost Ward was revealed") end
 	end
 	rawset(_G, "C_UnitAuras", original)
+	rawset(_G, "C_Spell", originalSpells)
 	Mock.reset()
 end
 
@@ -165,6 +171,11 @@ do
 		[27128] = { usable = true, noMana = false },
 		[32796] = { usable = true, noMana = false },
 	}
+	local originalSpells = _G.C_Spell
+	rawset(_G, "C_Spell", setmetatable({ IsSpellUsable = function(id)
+		local answer = Mock.spellUsable[id]
+		return answer and answer.usable, answer and answer.noMana
+	end }, { __index = originalSpells }))
 	local ns = load(scenario, true)
 	if ns then
 		drive(scenario, ns)
@@ -196,5 +207,6 @@ do
 			rawset(_G, "C_AddOns", realAddOns)
 		end
 	end
+	rawset(_G, "C_Spell", originalSpells)
 	Mock.reset()
 end

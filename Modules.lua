@@ -703,7 +703,7 @@ do
 	end
 
 	local function CurrentToken(token)
-		return moduleWelcomeToken == token and api:GetProfile() == token.profile
+		return _G.MannersAPI == api and moduleWelcomeToken == token and api:GetProfile() == token.profile
 			and (token.profileName == nil or ProfileName() == token.profileName)
 	end
 
