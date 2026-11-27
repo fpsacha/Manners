@@ -5,6 +5,20 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "1.12.6", date = nil, sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Battle Shout recipients.|r Off by default, warriors can limit Battle Shout reminders to tanks and reliably identified melee players, with a separate choice to show them only in combat inside dungeons and raids.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Combat and module toggles on Forever.|r Shared Combat buttons now pass both dimensions to the client, and Manners uses the player's GUID for the addon's per-character enable state, so switches and module pages agree after Reload UI.",
+			"|cffff9a52Own food remains authoritative.|r A secret or refused meal-aura read no longer lets a second food prompt interrupt an active meal.",
+			"|cffff9a52Failed service delivery stays pending.|r A blocked healthstone or Soulstone trade no longer consumes the request, and outside-instance service rules do not fail open when the client's instance answer is unreadable.",
+			"|cffff9a52New requests replace stale ones.|r A recognised request filtered during combat clears the sender's older pending intent instead of leaving it to be served later.",
+			"|cffff9a52Reactive wards must be castable.|r A ward button appears only when the matching spell is known, usable, funded and off cooldown.",
+			"|cffff9a52Module chooser and migration state are safer.|r The one-time chooser belongs to the profile that scheduled it, retries if it was not shown, and shared profiles reconcile modules per character without overriding an explicit off.",
+			"|cffff9a52A press settles only its own cast.|r A secret spell ID from an unrelated cast can no longer clear a favour or consume a request.",
+		} },
+	} },
 	{ version = "1.12.5", date = "27 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100All optional modules start on.|r Combat, My Buffs, Services, Pets and Achievements are enabled in a new install.",
@@ -69,15 +83,6 @@ ns.WhatsNew = {
 			"|cffff9a52Cross-client Services.|r Fire Shield and every other Service are absent on clients that do not prove the spell and data, rather than leaving a dead control or queue entry.",
 			"|cffff9a52Options layout.|r Wide windows keep their columns aligned, long sections stay within the usual window's three-screen limit and the Paladin and module controls stay reachable without hiding the buff-order list.",
 			"|cffff9a52In character for every class.|r A hunter or another class with nothing to buff others with can still choose the In character thank-you set from Start here; the choice does not change the lines used when casting buffs.",
-		} },
-	} },
-	{ version = "1.12.2", date = "25 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Pick the blessing you ask for.|r |cffffffffBlessing to ask a paladin for|r, under |cffffffffAsk people for a buff I'm missing|r, asks for Might or another blessing instead of Automatic's Wisdom (thanks to broodwave).",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Tracking after a death.|r Find Minerals and the other trackings are reminded again after you die, even when the minimap still shows them on (thanks to aisenfaire).",
-			"|cffff9a52No imbue for a fishing pole.|r A shaman with a fishing pole in the main hand is no longer reminded of a weapon imbue (thanks to LT2138).",
 		} },
 	} },
 }

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.12.6
 
 ### Highlights
 - **Battle Shout recipients.** Off by default, warriors can limit Battle Shout

@@ -4,7 +4,7 @@
 ## Title: Manners: Pets
 ## Notes: Optional hunter pet care, hints, lines and moments for Manners.
 ## Author: Sacha
-## Version: 1.12.5
+## Version: 1.12.6
 ## Dependencies: Manners
 ## DefaultState: enabled
 ## X-License: MIT
