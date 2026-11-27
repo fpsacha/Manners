@@ -19,8 +19,22 @@ mutate("Modules.lua",
        script=S)
 
 mutate("Modules.lua",
-       "\tprofile.optionalModulesMigrated = true\n",
+       "\tif profile.optionalModulesMigrated ~= true then profile.optionalModulesMigrated = true end\n",
        "",
        "modules-migration: a completed migration is not marked",
        expect="modules migration #64: old active own buffs load My Buffs and restore self learning",
+       script=S)
+
+mutate("Modules.lua",
+       "\tif legacyProfile == true and profile.optionalCombatMigrated ~= true then\n",
+       "\tif false and profile.optionalCombatMigrated ~= true then\n",
+       "modules-migration: legacy Combat switches are ignored",
+       expect="modules migration: old active Combat switches load Combat",
+       script=S)
+
+mutate("Modules.lua",
+       "or prompt.reactiveWards == true)",
+       "or false)",
+       "modules-migration: reactive wards do not enable Combat",
+       expect="modules migration: any active legacy Combat-only switch loads Combat",
        script=S)

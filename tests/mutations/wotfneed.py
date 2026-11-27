@@ -6,8 +6,9 @@
 S = "runscenarios.py"
 BF = "Modules/Combat/BreakFree.lua"
 P = "wotfneed: "
-GUESS = '\tif not hit and lostAt and (how == "secret" or how == "no API") then\n'
-ENDS = '\t\tif full == false or (full == nil and GetTime() - lostAt <= UNSURE_SECONDS) then\n'
+GUESS = '\tif not hit and lostAt and (how == "secret" or how == "empty" or how == "no API") then\n'
+WINDOW = "\t\tif age <= UNSURE_SECONDS then\n"
+GUESSED = '\t\tif lostAt and how ~= "empty" and (full == false or full == nil) then\n'
 
 # --- 1. a fear by mechanic is a fear
 
@@ -17,7 +18,21 @@ mutate(BF,
        "wotfneed: a fear by mechanic dropped from the row",
        expect=P + "a fear by mechanic lights it", script=S)
 
-# --- 2. a withheld read, control lost: the need
+# --- 2. an event can arrive before its active-list entry
+
+mutate(BF,
+       "\tlocal index = plain(eventIndex)\n",
+       "\tlocal index = nil\n",
+       "wotfneed: the added event index ignored",
+       expect=P + "the added event index exposes sleep before the active count", script=S)
+
+mutate(BF,
+       "\tif (afflicted or retrying) and not recheckDue and C_Timer and C_Timer.After then\n",
+       "\tif afflicted and not recheckDue and C_Timer and C_Timer.After then\n",
+       "wotfneed: an empty loss report never rechecked",
+       expect=P + "an empty first report rechecks until sleep is readable", script=S)
+
+# --- 3. a withheld read, control lost: the need
 
 mutate(BF,
        GUESS,
@@ -26,12 +41,12 @@ mutate(BF,
        expect=P + "a secret loss of control lights it while you have lost control", script=S)
 
 mutate(BF,
-       "\t\tlostAt = GetTime()\n\t\tkind, how = Read()\n\tend\n",
+       "\t\tlostAt = GetTime()\n\t\tkind, how = Read(lossEventIndex)\n\tend\n",
        "\t\tlostAt = GetTime()\n\tend\n",
        "wotfneed: a secret loss of control not read again once it is noted",
        expect=P + "a secret loss of control lights it while you have lost control", script=S)
 
-# --- 3. no API
+# --- 4. no API
 
 mutate(BF,
        GUESS,
@@ -39,39 +54,39 @@ mutate(BF,
        "wotfneed: no API never guessed",
        expect=P + "no loss-of-control API, a fear lights it", script=S)
 
-# --- 4. when the guess ends
+# --- 5. when the guess ends
 
 mutate(BF,
-       ENDS,
-       "\t\tif full == false or full == nil then\n",
+       WINDOW,
+       "\t\tif true then\n",
        "wotfneed: the ten seconds ignored",
        expect=P + "a withheld read with nothing to say it ended gives up after ten seconds", script=S)
 
 mutate(BF,
-       ENDS,
-       "\t\tif full ~= true or (full == nil and GetTime() - lostAt <= UNSURE_SECONDS) then\n",
+       GUESSED,
+       "\t\tif full ~= true then\n",
        "wotfneed: anything but a plain true taken for control lost",
        expect=P + "a withheld read with nothing to say it ended gives up after ten seconds", script=S)
 
 mutate(BF,
-       ENDS,
-       "\t\tif full ~= nil or (full == nil and GetTime() - lostAt <= UNSURE_SECONDS) then\n",
+       GUESSED,
+       "\t\tif full ~= nil then\n",
        "wotfneed: a plain true taken for control lost",
        expect=P + "a secret report while you plainly have control is no reason", script=S)
 
 mutate(BF,
-       "\t\tlostAt = nil\n\tend\n\tlocal was = afflicted\n",
+       "\t\tlostAt, lossEventIndex, retrying = nil, nil, false\n\tend\n\tlocal was = afflicted\n",
        "\tend\n\tlocal was = afflicted\n",
        "wotfneed: control gained does not end the guess",
        expect=P + "a secret count and a secret charm with control lost light it", script=S)
 
 mutate(BF,
-       "\tlostAt, guessed = nil, false\n\tRead()\n",
+       "\tlostAt, lossEventIndex, guessed, retrying = nil, nil, false, false\n\tRead()\n",
        "",
        "wotfneed: the guess outlives the fight",
        expect=P + "the guess ends with the fight", script=S)
 
-# --- 5. a plain read stays the authority
+# --- 6. a plain read stays the authority
 
 mutate(BF,
        GUESS,
@@ -79,7 +94,7 @@ mutate(BF,
        "wotfneed: a plain read guesses too",
        expect=P + "a plain stun with control lost is no reason", script=S)
 
-# --- 6. the words
+# --- 7. the words
 
 mutate("Options/Look.lua",
        "It shows while you are feared, charmed or asleep, and whenever you lose control of your character in a fight where the game will not say what took it: lit",
