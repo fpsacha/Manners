@@ -504,6 +504,14 @@ do
 		end
 		local keys = Asks(text, channel)
 		if not keys then return end
+		local now = GetTime()
+		local short = ShortName(sender)
+		Sweep(now)
+		-- A recognized newer message replaces the person's pending intent,
+		-- including when the combat policy below accepts none of it.
+		for i = #requests, 1, -1 do
+			if Made(requests[i], guid, short, nil) then table.remove(requests, i) end
+		end
 		-- A buff in a fight is held only from a whisper. A service can instead
 		-- choose to hold the request or let the fighting message go.
 		local fighting = InCombatLockdown() and true or nil
@@ -522,14 +530,8 @@ do
 			keys = filtered
 		end
 
-		local now = GetTime()
-		Sweep(now)
 		-- One standing request per person: asking again starts the minute again
-		-- and asks for what the new message asks for.
-		local short = ShortName(sender)
-		for i = #requests, 1, -1 do
-			if Made(requests[i], guid, short, nil) then table.remove(requests, i) end
-		end
+		-- and asks for what the accepted message asks for.
 		requests[#requests + 1] = {
 			name = sender, short = short, guid = guid, keys = keys, at = now,
 			expires = now + ASK_SECONDS, channel = channel,
