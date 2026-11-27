@@ -415,7 +415,7 @@ do
 	if not ns then return end
 	drive(scenario, ns)
 	local realC = rawget(_G, "C_AddOns")
-	local states = { Manners_Combat = 0 }
+	local states = { Manners_Combat = 2 }
 	rawset(_G, "C_AddOns", {
 		GetAddOnEnableState = function(folder) return states[folder] or 0 end,
 		EnableAddOn = function(folder) states[folder] = 2 end,
@@ -432,8 +432,10 @@ do
 		end
 	end
 	local api = MannersAPI
-	if api:SetModuleEnabled("combat", false) or states.Manners_Combat ~= 2 then
-		fail(scenario, "the module API changed addon state in combat")
+	local changed = api:SetModuleEnabled("combat", false)
+	if changed or states.Manners_Combat ~= 2 then
+		fail(scenario, ("the module API changed addon state in combat: changed %s, state %s, toggle %s")
+			:format(tostring(changed), tostring(states.Manners_Combat), tostring(api:CanToggleModule("combat"))))
 	end
 	Mock.inCombat = false
 end
