@@ -8,6 +8,10 @@
   choice to show them only in combat inside dungeons and raids.
 
 ### Fixes
+- **Combat and module toggles on Forever.** Shared Combat buttons now pass
+  both dimensions to the client, and Manners uses the player's GUID for the
+  addon's per-character enable state, so switches and module pages agree after
+  Reload UI.
 - **Own food remains authoritative.** A secret or refused meal-aura read no
   longer lets a second food prompt interrupt an active meal.
 - **Failed service delivery stays pending.** A blocked healthstone or Soulstone

@@ -425,6 +425,7 @@ function Mock.reset()
 	-- character from a thing stored in the one shared profile.
 	Mock.character = "Mort Defrette"
 	Mock.playerName = nil
+	Mock.playerGUID = nil
 	Mock.dbCallbacks = {}
 	-- Everything parked on C_Timer.After and not yet run. Cleared here so one
 	-- scenario's timers cannot fire inside the next one.
@@ -1323,7 +1324,10 @@ function UnitRace(u)
 	local race = Mock.playerRace or "Human"
 	return RACE_NAMES[race] or race, race, 1
 end
-function UnitGUID(u) return maybeSecret("Player-1-" .. tostring(u)) end
+function UnitGUID(u)
+	if u == "player" and Mock.playerGUID then return maybeSecret(Mock.playerGUID) end
+	return maybeSecret("Player-1-" .. tostring(u))
+end
 -- A group member's pet, by its token: partypetN is partyN's, raidpetN raidN's.
 -- One is out only where a scenario names it in Mock.unitNames, as it names a
 -- party member ({ partypet1 = { "Rex" } }): no pet token exists otherwise,

@@ -38,6 +38,18 @@ if ns then
 		and ns.CureNeed and ns.CureScan and ns.CureLines) then
 		fail(scenario, "the module did not plug in all three buttons and the cure display")
 	end
+	local calls = 0
+	local probe = {
+		ClearAllPoints = function() end,
+		SetPoint = function() end,
+		SetSize = function(_, width, height)
+			calls = calls + 1
+			if width ~= height then fail(scenario, "combat layout placed " .. tostring(width) .. " x " .. tostring(height)) end
+		end,
+	}
+	ns.CombatLayout.PlaceRight(probe, {}, { iconSize = 30, scale = 1 })
+	ns.CombatLayout.PlaceBelow(probe, {}, { iconSize = 30, scale = 1 })
+	if calls ~= 2 then fail(scenario, "combat layout did not size both shared placements") end
 end
 
 local toc = io.open(dir .. "/Modules/Combat/Manners_Combat.toc", "r")

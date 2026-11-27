@@ -16,13 +16,15 @@ end
 function Layout.PlaceRight(button, relative, profile)
 	button:ClearAllPoints()
 	button:SetPoint("LEFT", relative, "RIGHT", GAP, 0)
-	button:SetSize(Layout.Size(profile))
+	local size = Layout.Size(profile)
+	button:SetSize(size, size)
 end
 
 function Layout.PlaceBelow(button, relative, profile)
 	button:ClearAllPoints()
 	button:SetPoint("TOP", relative, "BOTTOM", 0, -GAP)
-	button:SetSize(Layout.Size(profile))
+	local size = Layout.Size(profile)
+	button:SetSize(size, size)
 end
 
 function Layout.RightOf(...)

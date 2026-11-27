@@ -9,6 +9,12 @@ mutate("Modules/Combat/Manners_Combat.toc",
        "combat-module: the optional module ships disabled",
        expect=N + "the addon owns every fight button", script=S)
 
+mutate("Modules/Combat/Layout.lua",
+       "button:SetSize(size, size)\n",
+       "button:SetSize(size)\n",
+       "combat-module: shared button layout passes one SetSize coordinate",
+       expect=N + "the addon owns every fight button", script=S)
+
 mutate("Modules/Combat/Init.lua",
        "api:RegisterModule(\"combat\", \"Manners: Combat\")\n",
        "",

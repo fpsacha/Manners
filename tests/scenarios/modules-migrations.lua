@@ -294,7 +294,7 @@ do
 	local control = H.findOption(ns.optionsTable, "modulesCombat")
 	if control.disabled() then fail(scenario, "an unloaded Combat module was disabled in combat") end
 	control.set(nil, true)
-	if state ~= 2 or character ~= UnitName("player") then
+	if state ~= 2 or character ~= UnitGUID("player") then
 		fail(scenario, "the current character was not passed to EnableAddOn")
 	end
 	if repaints == 0 or not MannersAPI:ModuleReloadPending() then
@@ -817,6 +817,7 @@ do
 	local scenario = "modules migration: a shared profile migrates each character once"
 	Mock.reset()
 	Mock.playerName = { "Alice", "Mockrealm" }
+	Mock.playerGUID = "Player-1-Alice"
 	Mock.sv.profile = {
 		optionalModulesMigrated = true,
 		optionalCombatMigrated = true,
@@ -847,11 +848,12 @@ do
 	drive(scenario, ns)
 	local firstCalls = calls
 	Mock.playerName = { "Beth", "Mockrealm" }
+	Mock.playerGUID = "Player-1-Beth"
 	MannersAPI:MigrateOptionalModules(true)
 	if calls ~= firstCalls + 3 then
 		fail(scenario, "the second character did not migrate every required folder")
 	end
-	enabled["Beth:Manners_MyBuffs"] = nil
+	enabled["Player-1-Beth:Manners_MyBuffs"] = nil
 	MannersAPI:MigrateOptionalModules(true)
 	if calls ~= firstCalls + 3 then
 		fail(scenario, "an intentional per-character disable was enabled again")

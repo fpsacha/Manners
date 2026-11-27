@@ -122,7 +122,7 @@ mutate("Modules.lua",
        script=S)
 
 mutate("Modules.lua",
-       "chat.EnableAddOn(folder, ns.plain(UnitName and UnitName(\"player\") or nil))\n",
+       "chat.EnableAddOn(folder, AddOnCharacter())\n",
        "chat.EnableAddOn(folder)\n",
        "modules-plumbing: C_AddOns enable ignores the current character",
        expect="modules: an unloaded module can be enabled in combat and repaints",

@@ -472,11 +472,16 @@ local MODULE_FOLDERS = {
 	services = "Manners_Services",
 }
 
+local function AddOnCharacter()
+	local guid = type(_G.UnitGUID) == "function" and ns.plain(_G.UnitGUID("player")) or nil
+	if type(guid) == "string" and guid ~= "" then return guid end
+	return type(_G.UnitName) == "function" and ns.plain(_G.UnitName("player")) or nil
+end
+
 local function AddOnEnableState(folder, id)
 	local chat = _G.C_AddOns
 	if type(chat) == "table" and type(chat.GetAddOnEnableState) == "function" then
-		local name = ns.plain(UnitName and UnitName("player") or nil)
-		local state = chat.GetAddOnEnableState(folder, name)
+		local state = chat.GetAddOnEnableState(folder, AddOnCharacter())
 		state = ns.plain(state)
 		if type(state) == "number" then return state ~= 0 end
 		return loaded[id] ~= nil
@@ -626,7 +631,7 @@ function api:SetModuleEnabled(id, enabled)
 	local changed = false
 	if enabled then
 		if type(chat) == "table" and type(chat.EnableAddOn) == "function" then
-			chat.EnableAddOn(folder, ns.plain(UnitName and UnitName("player") or nil))
+			chat.EnableAddOn(folder, AddOnCharacter())
 			changed = true
 		elseif type(EnableAddOn) == "function" then
 			EnableAddOn(folder)
@@ -634,7 +639,7 @@ function api:SetModuleEnabled(id, enabled)
 		end
 	else
 		if type(chat) == "table" and type(chat.DisableAddOn) == "function" then
-			chat.DisableAddOn(folder, ns.plain(UnitName and UnitName("player") or nil))
+			chat.DisableAddOn(folder, AddOnCharacter())
 			changed = true
 		elseif type(DisableAddOn) == "function" then
 			DisableAddOn(folder)
