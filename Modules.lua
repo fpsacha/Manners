@@ -114,6 +114,7 @@ local COMBAT_KEYS = {
 	plain = true, safecall = true, Guard = true, Trail = true, db = true,
 	addon = true, pendingClick = true, ExpirePendingClick = true,
 	ProbeCapabilities = true, SpellKnown = true, SpellNameFor = true,
+	CastReady = true,
 	AddSettingsLine = true, MACRO_LIMIT = true, InRange = true,
 	IsTankUnit = true, ShortName = true, UnitFullName = true,
 	BuffInfo = true, CanCastAnything = true, DebtExpiry = true,

@@ -79,6 +79,16 @@ function Wards.Knows()
 	return Wards.Known(ROWS.fire) or Wards.Known(ROWS.frost)
 end
 
+local function Usable(row)
+	if not Wards.Known(row) then return false end
+	local check = C_Spell and C_Spell.IsSpellUsable
+	if type(check) ~= "function" then check = _G.IsUsableSpell end
+	local usable, noMana = ns.safecall(check, row.id)
+	if usable ~= true or noMana == true then return false end
+	local ready = ns.CastReady and ns.CastReady(row.id)
+	return ready == true
+end
+
 function Wards.Applies(db)
 	return Enabled(db) and Supported() and Wards.Knows()
 end
@@ -268,10 +278,12 @@ local function EventFrame()
 			elseif event == "UNIT_COMBAT" then
 				local key = DamageSchool(unit, action, amount, school)
 				local row = key and ROWS[key] or nil
-				if row and fightOn and Wards.Applies() and Wards.Known(row) and not WardAura() then
+				if row and fightOn then
 					Hush()
-					active = key
-					Show(row, true)
+					if Wards.Applies() and Usable(row) and not WardAura() then
+						active = key
+						Show(row, true)
+					end
 				end
 			elseif event == "UNIT_AURA" then
 				if WardAura() then Hush() end

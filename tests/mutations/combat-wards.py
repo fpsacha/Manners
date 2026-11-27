@@ -24,7 +24,19 @@ mutate("Modules/Combat/Wards.lua",
        expect=N + "classic damage reveals only a known matching ward", script=S)
 
 mutate("Modules/Combat/Wards.lua",
-       "if row and fightOn and Wards.Applies() and Wards.Known(row) and not WardAura() then\n",
-       "if row and fightOn and Wards.Known(row) and not WardAura() then\n",
+       "if Wards.Applies() and Usable(row) and not WardAura() then\n",
+       "if Usable(row) and not WardAura() then\n",
        "combat-wards: the option no longer gates damage",
+       expect=N + "classic damage reveals only a known matching ward", script=S)
+
+mutate("Modules/Combat/Wards.lua",
+       "if usable ~= true or noMana == true then return false end\n",
+       "if false then return false end\n",
+       "combat-wards: an unusable ward is revealed",
+       expect=N + "classic damage reveals only a known matching ward", script=S)
+
+mutate("Modules/Combat/Wards.lua",
+       "local ready = ns.CastReady and ns.CastReady(row.id)\n\treturn ready == true\n",
+       "return true\n",
+       "combat-wards: a cooling ward is revealed",
        expect=N + "classic damage reveals only a known matching ward", script=S)
