@@ -20,9 +20,11 @@ Wago and installed in WoW Forever. ZIP SHA-256:
   adversarial suite, Retail module scenarios, quick checks and package install
   all pass. #33, #59, #60, #62, #63 and #64 are closed for 1.12.5.
 - **Waiting on the owner:** nothing.
-- **Waiting on players:** #21 still needs the player's client and log. #65 is
-  an enhancement request for Battle Shout reminders, not a release blocker.
-- **Next:** watch nightly selftest; then implement #65 separately if approved.
+- **Waiting on players:** #21 still needs the player's client and log.
+- **In flight separately:** #65's off-by-default Battle Shout controls, with
+  reliable tank/melee recipient filtering and an optional in-combat dungeon/raid
+  rule, are implemented on `feature-1126-shout` for focused verification.
+- **Next:** verify that focused branch; watch nightly selftest.
 - **Watch out:** all optional folders now start enabled. 1.12.5's one-time
   login chooser lets players turn individual modules off; existing saved-off
   choices remain off. Reactive wards are Classic Era/TBC only because Forever

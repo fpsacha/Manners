@@ -2307,6 +2307,7 @@ local function RememberPasserBy(entry, now, within, hasMana, guid)
 	memo.seen, memo.reason, memo.within = now, entry.reason, within
 	memo.buff, memo.class, memo.targetName = entry.buff, entry.class, entry.targetName
 	memo.hasMana = hasMana
+	memo.isMelee = entry.isMelee
 	-- For the /ignore list, asked of a name alone when the person is no longer in
 	-- reach (OfferPassersBy).
 	memo.guid = guid
@@ -2346,7 +2347,7 @@ end
 -- not: without a token nothing says what else they lack, and the reading kept
 -- is about this buff alone. `askOnly` is the scan's neverAuto spells a request
 -- may name (ns.AskOnlyBuffs), still castable for somebody who asked for one.
-local function StillCastable(memo, candidates, f, askOnly)
+local function StillCastable(memo, candidates, f, askOnly, shoutCombatAllowed)
 	local key = memo.buff.key
 	local pinned = ns.PinnedBuff()
 	if pinned and pinned.key ~= key then return false end
@@ -2370,6 +2371,10 @@ local function StillCastable(memo, candidates, f, askOnly)
 	if memo.buff.meleeOnly and memo.reason ~= "asked" and db and db.buff.skipCasters == true
 		and ns.CASTER_CLASSES[memo.class] then
 		return false
+	end
+	if memo.buff.recipientMelee and memo.reason ~= "asked" and db then
+		if db.buff.shoutMelee == true and memo.isMelee ~= true then return false end
+		if db.buff.shoutCombatInstances == true and shoutCombatAllowed ~= true then return false end
 	end
 	for _, buff in ipairs(candidates) do
 		if buff.key == key then
@@ -2401,7 +2406,8 @@ end
 -- StillCastable's; `ignoring` that the /ignore list has anybody on it, whom
 -- no memory offers either: a member of the group stays offered, and so is
 -- remembered, and the group may be gone by the time the memory is read.
-local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop, ignoring, dropAsked)
+local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop, ignoring,
+	dropAsked, shoutCombatAllowed)
 	local skipClasses = SkippedClasses(db.filters)
 	local mute = Mute.Source(db)
 	for name, memo in pairs(passing) do
@@ -2425,7 +2431,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 			or (ns.zonedAt and memo.seen < ns.zonedAt)
 			or rejected[name] == true
 			or flagged
-			or not StillCastable(memo, candidates, db.filters, askOnly)
+			or not StillCastable(memo, candidates, db.filters, askOnly, shoutCombatAllowed)
 			or ns.IsBlocked(name, memo.buff.key, now)
 			or (db.filters.verifiedOnly and nearby and memo.checked and memo.known == nil)
 			or ListedAs(name, verdict) ~= nil
@@ -2811,6 +2817,10 @@ local function SelfBuff(db, mine, full, now)
 		inGroup = grouped,
 		tanksOnly = tanksHeld or nil,
 		isTank = tanksHeld and ns.IsTankUnit("player") or nil,
+		isMelee = db.buff.shoutMelee == true and ns.IsMeleeUnit("player", caps.class) or nil,
+		shoutMelee = db.buff.shoutMelee == true,
+		shoutCombatInstances = db.buff.shoutCombatInstances == true,
+		shoutCombatAllowed = db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() or nil,
 		notMeInside = notMeInside,
 		-- Your own class, for a blessing chosen for it.
 		theirClass = next(db.buff.forClass) ~= nil and ns.caps and ns.caps.class or nil,
@@ -3279,7 +3289,13 @@ function ns.BuildQueue(watch)
 	-- What PickBuffFor is told about the person in hand, one table reused for
 	-- everybody the walk reaches.
 	-- tanksOutside is the scan's, the same for everybody, so written once here.
-	local opts = { unpaid = UNPAID, tanksOutside = tanksOutside }
+	local shoutCombatAllowed = db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() or nil
+	local opts = {
+		unpaid = UNPAID, tanksOutside = tanksOutside,
+		shoutMelee = db.buff.shoutMelee == true,
+		shoutCombatInstances = db.buff.shoutCombatInstances == true,
+		shoutCombatAllowed = shoutCombatAllowed,
+	}
 	for _, buff in ipairs(candidates) do
 		if buff.forTank then opts.forTank = true break end
 	end
@@ -3589,6 +3605,11 @@ function ns.BuildQueue(watch)
 		-- one buff (Core.lua, Castable and PickBuffFor). A plain "buff pls"
 		-- lifts none of them.
 		opts.asked = named
+		-- A chat request, even a plain "buff pls", is an explicit choice of the
+		-- source and is never held by Battle Shout's recipient/timing filters.
+		opts.requested = asked and true or nil
+		opts.isMelee = opts.shoutMelee
+			and ns.IsMeleeUnit(unit, plain(select(2, UnitClass(unit)))) or nil
 		-- A favour owed, for a buff kept for that and for a request by name
 		-- (Buffs.lua, returnOnly).
 		opts.owed = isOwed and true or nil
@@ -3836,6 +3857,7 @@ function ns.BuildQueue(watch)
 			-- Their PvP flag as read this scan (nil with the setting off),
 			-- which the memory of them keeps (RememberPasserBy).
 			pvp = flag,
+			isMelee = opts.isMelee,
 		}
 		local decision = ns.ContextDecision("buff", "buff", full, priority, reason, true, nil)
 		entry.priority, entry.reason = decision.priority, decision.reason
@@ -4005,7 +4027,8 @@ function ns.BuildQueue(watch)
 	-- mana, a city-only rule out in the world. And the askers while the floor
 	-- holds requests back too.
 	OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, neverVerdict,
-		not db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)
+		not db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked,
+		shoutCombatAllowed)
 	-- And the passers-by remembered for a cure (Cures.lua), by its own switch.
 	if opts.cures and ns.CuresRemembered then
 		ns.CuresRemembered(queue, seen, rejected, now, savingMana or notResting)

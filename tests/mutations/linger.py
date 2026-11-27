@@ -139,26 +139,34 @@ mutate("Queue.lua",
 
 # ------------------------------------------------ passers-by turned down as a kind
 mutate("Queue.lua",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)\n",
-       "\t\tgroupOnly or savingMana or notResting, ignoring, manaHoldsAsked)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked,\n"
+       "\t\tshoutCombatAllowed)\n",
+       "\t\tgroupOnly or savingMana or notResting, ignoring, manaHoldsAsked,\n"
+       "\t\tshoutCombatAllowed)\n",
        "linger: passers-by off keeps the remembered",
        expect="a remembered passer-by was offered with passers-by switched off", script=S)
 
 mutate("Queue.lua",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)\n",
-       "\t\tnot db.sources.strangers or groupOnly or notResting, ignoring, manaHoldsAsked)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked,\n"
+       "\t\tshoutCombatAllowed)\n",
+       "\t\tnot db.sources.strangers or groupOnly or notResting, ignoring, manaHoldsAsked,\n"
+       "\t\tshoutCombatAllowed)\n",
        "linger: saving mana keeps the remembered",
        expect="a remembered passer-by was offered with saving mana", script=S)
 
 mutate("Queue.lua",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)\n",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana, ignoring, manaHoldsAsked)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked,\n"
+       "\t\tshoutCombatAllowed)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana, ignoring, manaHoldsAsked,\n"
+       "\t\tshoutCombatAllowed)\n",
        "linger: out of the city keeps the remembered",
        expect="a remembered passer-by was offered with out of the city", script=S)
 
 mutate("Queue.lua",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)\n",
-       "\t\tnot db.sources.strangers or savingMana or notResting, ignoring, manaHoldsAsked)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked,\n"
+       "\t\tshoutCombatAllowed)\n",
+       "\t\tnot db.sources.strangers or savingMana or notResting, ignoring, manaHoldsAsked,\n"
+       "\t\tshoutCombatAllowed)\n",
        "linger: a shout offered to the remembered",
        expect="a warrior's shout was offered to a passer-by remembered", script=S)
 

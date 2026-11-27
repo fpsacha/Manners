@@ -157,8 +157,8 @@ mutate("Core.lua", STRICT,
        expect="tankonly: a buff without the choice is never held, whatever the set says", script=S)
 
 mutate("Queue.lua",
-       "\tlocal opts = { unpaid = UNPAID, tanksOutside = tanksOutside }\n",
-       "\tlocal opts = { unpaid = UNPAID }\n",
+       "\t\tunpaid = UNPAID, tanksOutside = tanksOutside,\n",
+       "\t\tunpaid = UNPAID,\n",
        "tankonly: the scan is not told of the looser choice",
        expect="tankonly: held to tanks, a passer-by outside the group is offered Thorns as ever", script=S)
 

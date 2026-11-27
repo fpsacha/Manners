@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Highlights
+- **Battle Shout recipients.** Off by default, warriors can limit Battle Shout
+  reminders to tanks and reliably identified melee players, with a separate
+  choice to show them only in combat inside dungeons and raids.
+
 ## 1.12.5
 
 *27 November 2026*
