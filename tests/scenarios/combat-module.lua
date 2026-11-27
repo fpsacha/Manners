@@ -1,10 +1,10 @@
--- Manners: Combat is absent with no frames or options until its disabled addon
+-- Manners: Combat is absent with no frames or options until its addon
 -- folder is loaded, then it plugs back into the prompt through MannersAPI.
 
 local dir, H = ...
 local fail, load, drive, loadModule = H.fail, H.load, H.drive, H.loadModule
 
-local scenario = "combat-module: the disabled addon owns every fight button"
+local scenario = "combat-module: the addon owns every fight button"
 Mock.reset()
 local ns = load(scenario, true)
 if ns then
@@ -44,7 +44,7 @@ local toc = io.open(dir .. "/Modules/Combat/Manners_Combat.toc", "r")
 local text = toc and toc:read("*a") or ""
 if toc then toc:close() end
 if not text:find("## Dependencies: Manners", 1, true) then fail(scenario, "the module has no dependency on Manners") end
-if not text:find("## DefaultState: disabled", 1, true) then fail(scenario, "the module ships enabled") end
+if not text:find("## DefaultState: enabled", 1, true) then fail(scenario, "the module does not ship enabled") end
 Mock.reset()
 
 do

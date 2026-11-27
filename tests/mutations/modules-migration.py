@@ -38,3 +38,17 @@ mutate("Modules.lua",
        "modules-migration: reactive wards do not enable Combat",
        expect="modules migration: any active legacy Combat-only switch loads Combat",
        script=S)
+
+mutate("Modules.lua",
+       "\t\tprofile.moduleWelcome1125 = true\n",
+       "",
+       "modules-migration: the module chooser is offered on every login",
+       expect="modules: 1.12.5 opens one module chooser after login",
+       script=S)
+
+mutate("Modules.lua",
+       "\t\tmoduleWelcomeOpen = true\n",
+       "\t\tmoduleWelcomeOpen = false\n",
+       "modules-migration: the module chooser explanation is absent",
+       expect="modules: 1.12.5 opens one module chooser after login",
+       script=S)

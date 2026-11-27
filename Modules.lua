@@ -12,6 +12,7 @@ local lifecycles = {}
 local moduleContexts = {}
 local attached, coreReady = {}, false
 local pendingReload = {}
+local moduleWelcomeOpen = false
 
 local KNOWN = {
 	{ id = "combat", title = "Manners: Combat" },
@@ -626,4 +627,37 @@ end
 
 function api:ModuleActive(id)
 	return ns.ModuleActive(id)
+end
+
+function api:ModuleWelcomeOpen()
+	return moduleWelcomeOpen
+end
+
+function api:DismissModuleWelcome()
+	moduleWelcomeOpen = false
+	local profile = api:GetProfile()
+	if profile then profile.moduleWelcome1125 = true end
+	if ns.RepaintOptions then ns.RepaintOptions() end
+	return true
+end
+
+-- 1.12.5 is the one release that explains the new default-on folders. Once
+-- per profile, after login, open the chooser; the switches keep the player's
+-- existing addon state and the marker is saved even if they close the window.
+do
+	local frame = CreateFrame("Frame")
+	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+	frame:SetScript("OnEvent", function(_, _, initial, reload)
+		if not (initial == true or reload == true) then return end
+		local profile = api:GetProfile()
+		if not profile or profile.moduleWelcome1125 == true or moduleWelcomeOpen then return end
+		profile.moduleWelcome1125 = true
+		moduleWelcomeOpen = true
+		local later = _G.C_Timer and _G.C_Timer.After
+		if type(later) == "function" then
+			later(1, function()
+				if not InCombatLockdown() and ns.OpenOptions then ns.OpenOptions("modules", true) end
+			end)
+		end
+	end)
 end

@@ -7,6 +7,7 @@ local _, ns = ...
 ns.WhatsNew = {
 	{ version = "1.12.5", date = "27 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100All optional modules start on.|r Combat, My Buffs, Services, Pets and Achievements are enabled in a new install.",
 			"|cffffd100Existing module choices are restored.|r Profiles from before optional modules enable the folders their saved My Buffs, Services or Combat settings need, once, without turning anything on for a new or intentionally-off profile.",
 			"|cffffd100Outline.|r A thirtieth look, a clean near-black prompt with a crisp black outline and a square spell socket, is now available under Look.",
 			"|cffffd100Reactive wards on classic clients.|r Classic Era and TBC can show a pre-armed Fire Ward or Frost Ward secure button after a concrete matching damage event.",

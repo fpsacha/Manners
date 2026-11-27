@@ -131,7 +131,7 @@ do
 	else
 		local src = f:read("*a")
 		f:close()
-		local body = src:match("local function ReadLoss%(row%)(.-)\nend\n")
+		local body = src:match("local function ReadLoss%(row, eventIndex%)(.-)\nend\n")
 		if not body then
 			fail(scenario, "SKIPPED -- ReadLoss not found")
 		else

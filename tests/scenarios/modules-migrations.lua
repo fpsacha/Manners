@@ -701,3 +701,32 @@ do
 	if not kept then fail(scenario, "a disabled module's saved choice was reset by a core page") end
 	rawset(_G, "C_AddOns", realC)
 end
+
+do
+	local scenario = "modules: 1.12.5 opens one module chooser after login"
+	Mock.reset()
+	local ns = load(scenario)
+	if not ns then return end
+	drive(scenario, ns)
+	local opened, marker = 0, ns.db.profile.moduleWelcome1125
+	local oldOpen = ns.OpenOptions
+	ns.OpenOptions = function(page, quiet)
+		if page ~= "modules" or quiet ~= true then fail(scenario, "opened " .. tostring(page)) end
+		opened = opened + 1
+	end
+	Mock.frameEvent("PLAYER_ENTERING_WORLD", true, false)
+	Mock.runTimers(1)
+	Mock.runTimers(2)
+	if opened ~= 1 or not ns.db.profile.moduleWelcome1125 or not MannersAPI:ModuleWelcomeOpen() then
+		fail(scenario, ("chooser open %s, marker %s, visible %s")
+			:format(tostring(opened), tostring(ns.db.profile.moduleWelcome1125), tostring(MannersAPI:ModuleWelcomeOpen())))
+	end
+	Mock.frameEvent("PLAYER_ENTERING_WORLD", false, true)
+	Mock.runTimers(2)
+	if opened ~= 1 then fail(scenario, "the chooser opened twice") end
+	MannersAPI:DismissModuleWelcome()
+	if MannersAPI:ModuleWelcomeOpen() then fail(scenario, "Done did not dismiss the chooser") end
+	ns.OpenOptions = oldOpen
+	ns.db.profile.moduleWelcome1125 = marker
+	Mock.reset()
+end

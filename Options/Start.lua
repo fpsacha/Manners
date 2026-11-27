@@ -273,7 +273,9 @@ local function OnlyVisited(own)
 			for k, v in pairs(value) do
 				if not (k == "carried" and v == true) then return false end
 			end
-		elseif not (key == "firstRun" and (value == "pending" or value == "existing")) then
+		elseif not ((key == "firstRun" and (value == "pending" or value == "existing"))
+			or key == "optionalModulesMigrated" and value == true
+			or key == "moduleWelcome1125" and value == true) then
 			return false
 		end
 	end
@@ -1507,6 +1509,26 @@ function Page.BuildStartTab()
 					return L["Turn optional modules on or off here. Their changes take effect after Reload UI."]
 				end,
 				order = 68,
+			},
+			modulesWelcome = {
+				type = "description",
+				name = L["All optional modules start on in 1.12.5. Choose what you want to keep: Combat adds fight buttons, My Buffs reminds you of your own buffs and consumables, Services answers requests, Pets cares for pets, and Achievements adds optional ledger goals. Changes take effect after Reload UI."],
+				order = 68.01,
+				hidden = function()
+					local api = _G.MannersAPI
+					return not (api and api:ModuleWelcomeOpen())
+				end,
+			},
+			modulesWelcomeDone = {
+				type = "execute", name = L["Keep these modules"], order = 68.02,
+				hidden = function()
+					local api = _G.MannersAPI
+					return not (api and api:ModuleWelcomeOpen())
+				end,
+				func = function()
+					local api = _G.MannersAPI
+					if api then api:DismissModuleWelcome() end
+				end,
 			},
 			modulesCombat = {
 				type = "toggle", name = L["Manners: Combat"], order = 68.2, width = "full",

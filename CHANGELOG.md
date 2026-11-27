@@ -5,6 +5,9 @@
 *27 November 2026*
 
 ### Highlights
+- **All optional modules start on.** Combat, My Buffs, Services, Pets and
+  Achievements are enabled in a new install. The first login after 1.12.5
+  opens one explanation and chooser; saved user-off module choices remain off.
 - **Existing module choices are restored.** Profiles from before optional
   modules enable the folders their saved My Buffs, Services or Combat settings
   need, once, without turning anything on for a new or intentionally-off profile.

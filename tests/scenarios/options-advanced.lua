@@ -154,7 +154,7 @@ local LOOK_RESET = {
 -- buttons made for one. They moved off Look with the page.
 local FIGHT_RESET = {
 	{ "prompt", "fightRota" }, { "prompt", "breakFree" }, { "prompt", "cureFight" },
-	{ "prompt", "cureFightEach" }, { "prompt", "fightButtons" }, { "beast", "fightMend" },
+	{ "prompt", "cureFightEach" }, { "prompt", "reactiveWards" }, { "prompt", "fightButtons" }, { "beast", "fightMend" },
 }
 local LOOK_KEPT = {
 	{ "prompt", "x" }, { "prompt", "y" }, { "prompt", "point" }, { "prompt", "relPoint" },

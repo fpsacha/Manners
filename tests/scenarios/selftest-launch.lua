@@ -1023,7 +1023,7 @@ do
 		shelves.tab = "all"
 		ns.RefreshOptionsDisplay()
 		results = run(ns)
-		expect(scenario, results, "launch.picker", "PASS", "the window's own cards: 29 shown, 29 with the live icon")
+		expect(scenario, results, "launch.picker", "PASS", "the window's own cards: 30 shown, 30 with the live icon") 
 		local row = ns.WindowUI.RowFor("appearance.style")
 		local hidden
 		for _, card in ipairs(row.cards) do

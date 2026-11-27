@@ -327,11 +327,11 @@ toc = tocs.get(maketocs.SOURCE, "")
 
 print("\n== optional modules are their own addons ==")
 _states = {
-    "Manners_Combat": "disabled",
-    "Manners_Achievements": "disabled",
+    "Manners_Combat": "enabled",
+    "Manners_Achievements": "enabled",
     "Manners_Pets": "enabled",
-    "Manners_MyBuffs": "disabled",
-    "Manners_Services": "disabled",
+    "Manners_MyBuffs": "enabled",
+    "Manners_Services": "enabled",
 }
 _pkg = open(os.path.join(ROOT, ".pkgmeta"), encoding="utf-8").read()
 for _source, _name in maketocs.MODULES:
