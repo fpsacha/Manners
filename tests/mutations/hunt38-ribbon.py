@@ -10,10 +10,12 @@ def _m(old, new, label, expect):
            script="runscenarios.py")
 
 
-_m("\tif text == self.mixedText then return end\n",
-   "",
-   "a refitted name is taken to the gold again",
-   "a class colour is taken to the gold once")
+mutate("Prompt/Paint.lua",
+       "\treturn string.format(\"|c%s%s|r\", c.colorStr, text)\n",
+       "\treturn \"|cffffffff\" .. text .. \"|r\"\n",
+       "hunt38-ribbon: a refitted name loses its class colour",
+       expect="hunt38-ribbon: a class colour stays Blizzard's colour however often the line is refitted",
+       script="runscenarios.py")
 
 _m("\tinkOnDark = true,\n",
    "",

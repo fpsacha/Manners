@@ -1,23 +1,20 @@
-# Mutations for a druid's name on the softer looks: it is softened no further
-# than 0.35 (not on Luxe), and nobody else is. Each is caught by the scenario
-# in tests/scenarios/tint.lua that names it.
+# Dark prompt looks keep the client's class colours. The light-ground rule has
+# a separate scenario in tests/scenarios/tint.lua.
 
 S = "runscenarios.py"
 
 mutate("Prompt/Paint.lua",
-       "\t\tif entry.class == \"DRUID\" and share > DRUID_SOFTEN and not S.activeLook.classTintOnly then share = DRUID_SOFTEN end\n",
-       "",
-       "tint: the druid softened as every class",
-       expect="tint: a druid's name stays orange", script=S)
+       "\treturn string.format(\"|c%s%s|r\", c.colorStr, text)\n",
+       "\tlocal rgb = c.colorStr:sub(3)\n\tlocal lighter = \"|cff\" .. rgb:gsub(\"%x%x\", function(v) return string.format(\"%02x\", math.floor(tonumber(v, 16) + (255 - tonumber(v, 16)) * 0.5)) end)\n\treturn lighter .. text .. \"|r\"\n",
+       "tint: dark looks soften Blizzard class colours",
+       expect="tint: dark looks keep Blizzard class colours", script=S)
 
-mutate("Prompt/Paint.lua",
-       "entry.class == \"DRUID\" and share",
-       "entry.class and share",
-       "tint: every class softened as the druid",
-       expect="tint: a warrior and a mage keep", script=S)
-
-mutate("Looks/Luxe.lua",
-       "\tclassTintOnly = true,\n",
+mutate("Prompt/Text.lua",
+       "\tif StandardClassCode(a, r, g, b) then\n"
+       "\t\thit = \"|c\" .. key\n"
+       "\t\tink.codes[key] = hit\n"
+       "\t\treturn hit\n"
+       "\tend\n",
        "",
-       "tint: Luxe's druid taken off white",
-       expect="tint: Luxe keeps", script=S)
+       "tint: dark-ground text re-lightens Blizzard class colours",
+       expect="tint: dark looks keep Blizzard class colours", script=S)

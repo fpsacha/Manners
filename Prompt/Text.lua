@@ -77,12 +77,31 @@ local function Legible(r, g, b, minimum)
 	return Toward(r, g, b, hi)
 end
 
+local function StandardClassCode(a, r, g, b)
+	if not ink.light or not RAID_CLASS_COLORS then return false end
+	local code = (a .. r .. g .. b):lower()
+	for _, class in pairs(RAID_CLASS_COLORS) do
+		if type(class) == "table" and type(class.colorStr) == "string"
+			and class.colorStr:lower() == code then
+			return true
+		end
+	end
+	return false
+end
+
 -- One |cAARRGGBB code made legible, cached per code (ApplyStyle empties the
 -- cache): the same dozen codes are rewritten on every repaint.
 local function LegibleCode(a, r, g, b)
 	local key = a .. r .. g .. b
 	local hit = ink.codes[key]
 	if hit then return hit end
+	-- A dark ground keeps Blizzard's class colour exactly. Light-ground looks
+	-- still go through Legible (and usually through classContrast first).
+	if StandardClassCode(a, r, g, b) then
+		hit = "|c" .. key
+		ink.codes[key] = hit
+		return hit
+	end
 	-- Left alone if it clears 3:1, taken all the way to 4.5:1 if it has to
 	-- move: stopped at 3:1, white on cream came out fainter than the plain
 	-- text.

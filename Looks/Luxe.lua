@@ -19,12 +19,6 @@
 --     while the rest of the ink dims -- the reason survives combat;
 --   * the owed pulse breathes 0.18-0.36 every 2.4 s, only while somebody owed
 --     is on top, and holds still on Calm;
---   * class-coloured names are taken 85% of the way to white (classSoften),
---     so a class colour is only a tint on white: at 55% a mage's cyan landed
---     on the target reason's, and a mage's own "You" read as target. The
---     spine and the tag stay the only saturated marks, as the design has it.
---     "Colour names by class" already turns them off entirely, so a second
---     switch would only say the same thing twice;
 --   * a refusal greys the icon as well as reddening the tag, which reads
 --     without colour vision;
 --   * the count chip steps aside when the name would be cut even at its
@@ -49,9 +43,6 @@ local Luxe = ns.Looks.Register("luxe", {
 	order = 1,
 	-- The ground and the ink dim apart, so art itself stays whole.
 	combatArtAlpha = 1,
-	classSoften = 0.85,
-	-- names stay a tint on white, the druid's too (Prompt/Paint.lua)
-	classTintOnly = true,
 	-- The tag carries its own dark ground (PaintPill), whatever the panel.
 	subOnDark = true,
 	-- The painted frame (Looks/Painted.lua, art/looks/luxe): the card, its

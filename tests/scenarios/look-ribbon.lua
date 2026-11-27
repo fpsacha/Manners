@@ -1188,29 +1188,15 @@ withTree("look-ribbon: the lettering holds its contrast on every dye", ANNA, fun
 	if worst < 4.5 then fail(scenario, "the worst contrast is " .. worst) end
 end)
 
--- A class-coloured name is taken most of the way to the lettering's gold, so
--- it never fights the cloth.
-withTree("look-ribbon: a class colour is taken to the gold, and the chosen font colour wins", ANNA, function(ns, scenario)
+-- A class-coloured name keeps Blizzard's colour; the chosen font colour only
+-- applies when class colouring is off.
+withTree("look-ribbon: a class colour stays Blizzard's colour, and the chosen font colour wins", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario, function(pp) pp.classColor = true end)
 	if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
 	local text = tostring(r.name:GetText())
-	local rr, gg, bb = text:match("|cff(%x%x)(%x%x)(%x%x)")
-	if not rr then fail(scenario, "the name carries no class colour to take: " .. text) return end
-	local code = { tonumber(rr, 16) / 255, tonumber(gg, 16) / 255, tonumber(bb, 16) / 255 }
-	-- A priest is white; the gold's blue is 0.54, so the code is that far.
-	if not (code[3] < 0.9 and code[1] > 0.9) then fail(scenario, "a white class is not taken to the gold: " .. text) end
-	-- A dark class stays warm and readable.
-	for _, class in ipairs({ "DEATHKNIGHT", "WARLOCK", "SHAMAN", "DRUID" }) do
-		ns.owed["Anna Aim"].class = class
-		ns.Prompt:Paint({ name = "Anna Aim", short = "Anna", class = class, reason = "owed", buff = ns.ResolveBuff(true) }, 0)
-		FT.settle()
-		local t = tostring(r.name:GetText())
-		local a, b, c = t:match("|cff(%x%x)(%x%x)(%x%x)")
-		if a then
-			local l = lum(tonumber(a, 16) / 255, tonumber(b, 16) / 255, tonumber(c, 16) / 255)
-			local ground = lum(CRIMSON[1] * LIT, CRIMSON[2] * LIT, CRIMSON[3] * LIT)
-			if contrast(l, ground) < 4.5 then fail(scenario, class .. "'s name is under 4.5:1 on the cloth: " .. t) end
-		end
+	if not text:find("|cffffffff", 1, true) then
+		fail(scenario, "a priest's white class colour was changed: " .. text)
+		return
 	end
 	-- The colour the player chose is the lettering's.
 	p.classColor = false

@@ -1,10 +1,8 @@
 -- Hunt 38, the Ribbon look (Looks/Ribbon.lua): faults a player could reach by
 -- the settings and the sequence of a paint, each held here.
 --
---   * a class-coloured name is taken to the lettering's gold once, however
---     often the line is refitted (the count's tag coming and going refits it,
---     and every refit took the colour a third of the way again, until it was the
---     gold);
+--   * a class-coloured name stays in Blizzard's class colour however often the
+--     line is refitted (the count's tag coming and going refits it);
 --   * a light panel colour does not take the colour codes in the name and the
 --     list darker: the cloth under them is dark whatever the panel colour is,
 --     and the reason words in the list had gone nearly black on it;
@@ -71,14 +69,16 @@ local function contrast(a, b)
 end
 
 -- ------------------------------------------------------------------ 1
--- The class colour, mixed in once: the line is refitted when the count's tag
--- comes and goes, and the text it holds then is the look's own.
-withTree("hunt38-ribbon: a class colour is taken to the gold once, however often the line is refitted", ANNA, function(ns, scenario)
+-- The class colour survives every refit unchanged.
+withTree("hunt38-ribbon: a class colour stays Blizzard's colour however often the line is refitted", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario, function(pp) pp.classColor, pp.showCount = true, true end)
 	local entry = { name = "Anna Aim", short = "Anna", reason = "owed", buff = ns.ResolveBuff(true), class = "MAGE" }
 	ns.Prompt:Paint(entry, 0)
 	local first = r.name:GetText()
-	if not tostring(first):find("|cff%x%x%x%x%x%x") then fail(scenario, "the name carries no class colour: " .. tostring(first)) return end
+	if not tostring(first):find("|cff40c7eb", 1, true) then
+		fail(scenario, "the name does not carry the mage's Blizzard colour: " .. tostring(first))
+		return
+	end
 	for _, extra in ipairs({ 3, 0, 12, 12, 0, 3, 0 }) do
 		ns.Prompt:Paint(entry, extra)
 		FT.settle()

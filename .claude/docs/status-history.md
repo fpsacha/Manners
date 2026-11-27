@@ -174,15 +174,12 @@ food is its own key and any gives Well Fed; the other people keep
 names (the minimap's list re-aimed in `minimap.py`). Not tried in the game,
 which can only say how a right-click feels over an evening.
 
-**Druid names stay orange (unreleased).** On the looks that soften class
-colours (`classSoften`, 0.5 to 0.7 on most), a druid's #ff7c0a and a warrior's
-#c69b6d, which share a hue and a lightness and differ only in strength, met in
-a peach and a cream (CIE76 27 apart at 0.5, 15 at 0.7). `ClassColored` in
-`Prompt/Paint.lua` now takes a druid no further than 0.35 (`DRUID_SOFTEN`),
-which keeps the pair over 40 apart on every look but Luxe. Luxe sets
-`classTintOnly` (Looks.lua header) so its names stay a tint on white, the
-druid's too: at 0.85 a druid and a warrior are both nearly white there, by the
-look's design, and the changelog says "not Luxe".
+**Class colours keep Blizzard's values.** Dark prompt looks no longer mix
+class colours towards white: `ClassColored` in `Prompt/Paint.lua` writes
+`RAID_CLASS_COLORS` verbatim, and Ribbon no longer mixes the resulting code
+into its gold lettering. A look on a light ground still uses `classContrast`
+and `classInk` to darken the name only as far as its ground needs for
+readability.
 Letter's and the dark-ink looks' `classContrast` path is unchanged. No setting,
 no string. `tests/scenarios/tint.lua` and three mutations in
 `tests/mutations/tint.py`, each CAUGHT by `tools/prove.py`. Looks only in the

@@ -14,7 +14,7 @@
 --   2. Text has a dark ground. Under the name line and under the tag, the
 --      look composited over a world of luminance 0.30 and, apart, a snowfield
 --      of 0.85 gives 4.5:1 or better for every colour the line can be: white,
---      the gold |cffffd100, class colours as the look softens them, and on the
+--      the gold |cffffd100, and on the
 --      tag every reason in both palettes and every outcome. Added light counts
 --      double, since the game draws it brighter than it is written. A texture
 --      keeps one alpha in the game, so each layer is taken both ways -- its
@@ -75,24 +75,6 @@ end
 local WORLDS = { { "a dusky world", greyOf(0.30) }, { "snow", greyOf(0.85) } }
 
 local GOLD = { 1, 0xd1 / 255, 0 }
--- The game's class colours, as the name line is given them before the look
--- softens them.
-local CLASSES = { "c69b6d", "f48cba", "aad372", "fff468", "ffffff", "c41e3a", "0070dd", "3fc7eb",
-	"8788ee", "00ff98", "ff7c0a", "a330c9", "33937f" }
-
-local function nameColours(soften)
-	local out = { { "white", { 1, 1, 1 } }, { "the gold |cffffd100", GOLD } }
-	for _, hex in ipairs(CLASSES) do
-		local c = {}
-		for i = 1, 3 do
-			local v = tonumber(hex:sub(2 * i - 1, 2 * i), 16) / 255
-			c[i] = math.floor((v + (1 - v) * (soften or 0)) * 255 + 0.5) / 255
-		end
-		out[#out + 1] = { "the class colour " .. hex, c }
-	end
-	return out
-end
-
 -- ------------------------------------------------------------------ art
 
 -- The shipped TGA: 32-bit, uncompressed, as tools/make_luxe_textures.py
@@ -504,7 +486,7 @@ local function readable(ns, scenario, label, extraNameColours, tagOnly)
 	if not tagOnly and not look.clear and FT.visible(r.name) and (r.name._text or "") ~= "" then
 		local box = nameBox(s, r.name)
 		if box then
-			local colours = nameColours(look.classSoften or 0.85)
+			local colours = { { "white", { 1, 1, 1 } }, { "the gold |cffffd100", GOLD } }
 			colours[#colours + 1] = { "the name's own colour", textColour(r.name) }
 			for _, c in ipairs(extraNameColours or {}) do colours[#colours + 1] = c end
 			local q, why = worstContrast(s, r.name, box, colours)

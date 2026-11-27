@@ -1087,17 +1087,6 @@ withTree("look-leather: the text reads on the leather", ANNA, function(ns, scena
 			-- The count and the list.
 			check("the count on its patch", r.count._textColor, look, 4.5)
 			for _, fs in ipairs(r.rows) do check("a list name on its tag", fs._textColor, look, 4.0) end
-			-- A class colour as the look softens it, held to the 3:1 the prompt holds codes to.
-			local soften = look.classSoften or 0
-			for _, code in ipairs({ "c41e3a", "a330c9", "ff7c0a", "33937f", "aad372", "3fc7eb", "00ff98", "f48cba",
-				"ffffff", "fff468", "0070dd", "8788ee", "c69b6d" }) do
-				local cr, cg, cb = tonumber(code:sub(1, 2), 16) / 255, tonumber(code:sub(3, 4), 16) / 255, tonumber(code:sub(5, 6), 16) / 255
-				cr, cg, cb = cr + (1 - cr) * soften, cg + (1 - cg) * soften, cb + (1 - cb) * soften
-				local l = groundLum(look)
-				if ratio(lum({ cr, cg, cb }), l) < 3 then
-					fail(scenario, ("the class colour %s is under 3:1 on the leather (%s)"):format(code, variant[1]))
-				end
-			end
 		end
 	end
 	-- Colour codes in the name are left as they were picked for a dark ground on a

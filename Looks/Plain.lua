@@ -696,7 +696,6 @@ local function RegisterPlain(row, d)
 		category = row.category,
 		-- The painting dims itself in a fight (Combat), the art stays whole.
 		combatArtAlpha = 1,
-		classSoften = 0.35,
 		-- No earlier art to fall back to: Earlier art leaves it as it is.
 		paintedOnly = true,
 		paintedHides = {},

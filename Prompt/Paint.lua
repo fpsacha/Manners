@@ -9,26 +9,10 @@ local GetTime = _G.GetTime
 local REASON_KEY, RemainingText, OUTCOME_SECONDS = lib.REASON_KEY, lib.RemainingText, lib.OUTCOME_SECONDS
 local Gradient, SetLine, ShowChip, FullEffects = lib.Gradient, lib.SetLine, lib.ShowChip, lib.FullEffects
 
--- The softened class codes ClassColored has worked out, for the look's
--- classSoften in `by`.
-local softened = {}
-
--- A druid's orange and a warrior's tan share a hue (28 and 31 degrees) and a
--- lightness; only the orange's strength tells them apart, and taking both
--- towards white takes exactly that away (at 0.5 they are 27 apart in CIE76,
--- at 0.7 15). So a druid's name is softened no further than the 0.35 looks
--- soften it, which keeps the two over 40 apart on every look but Luxe, whose
--- names are a tint on white for every class (classTintOnly, 0.85): there a
--- druid and a warrior are both nearly white, by the look's design.
-local DRUID_SOFTEN = 0.35
-
 local function ClassColored(entry, text)
 	if not ns.db.profile.prompt.classColor or not entry.class then return text end
 	local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[entry.class]
 	if not c or not c.colorStr then return text end
-	-- Taken towards white where the look asks, so a name never reads as a
-	-- reason colour.
-	local soften = S.activeLook and S.activeLook.classSoften
 	-- A look on a light ground (the letter's parchment) takes the class colour
 	-- darker, until it reads at this contrast on that ground, first taken a
 	-- part of the way to the look's own ink (`classInk`: r, g, b and how far) so
@@ -53,23 +37,8 @@ local function ClassColored(entry, text)
 		end
 		return ("%s%s|r"):format(code, text)
 	end
-	if soften then
-		-- Worked out once per class and look: this runs on every repaint.
-		if softened.by ~= soften then wipe(softened) softened.by = soften end
-		local share = soften
-		if entry.class == "DRUID" and share > DRUID_SOFTEN and not S.activeLook.classTintOnly then share = DRUID_SOFTEN end
-		local code = softened[c.colorStr]
-		if not code then
-			-- From the code itself ("ffRRGGBB"), which every client fills in.
-			local function up(at)
-				local v = (tonumber(c.colorStr:sub(at, at + 1), 16) or 255) / 255
-				return math.floor((v + (1 - v) * share) * 255 + 0.5)
-			end
-			code = ("|cff%02x%02x%02x"):format(up(3), up(5), up(7))
-			softened[c.colorStr] = code
-		end
-		return ("%s%s|r"):format(code, text)
-	end
+	-- Dark prompt grounds keep Blizzard's class colour exactly. Readability is
+	-- carried by the look's ground and outline, not by changing the class code.
 	return string.format("|c%s%s|r", c.colorStr, text)
 end
 
