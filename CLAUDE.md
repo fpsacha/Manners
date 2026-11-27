@@ -101,11 +101,16 @@ function, switch and test named. Change both together.
   `Looks/` and `Phrases.lua`.
 - **Secrets.** Never take, type or store an API key. The user sets them with
   `gh secret set CF_API_KEY` (and `WAGO_API_TOKEN`), which prompts.
-- **CPU.** Leave 2 cores free. With several agents running tests, split the
-  workers between them (`--jobs`, `MANNERS_SCENARIO_JOBS`).
-- **Parallel agents** work in git worktrees, never the live tree, and put new
-  scenarios and mutations in files of their own. After merging, look for the
-  same fix made twice (a chat line said twice, a mutation gone MISSED).
+- **CPU.** Leave 2 cores free across the machine. Run as many read-only agents as
+  fit the available tool/session limit. Before parallel test work, set
+  `MANNERS_JOBS` to a machine-wide budget and split that budget between agents;
+  an agent running tests uses `--jobs` from its share. Stop adding agents if the
+  owner is slowed, memory is short, or commands begin competing for workers.
+- **Parallel agents** work in git worktrees, never the live tree. Read-only
+  reviewers may share a revision and split by subsystem; builders each own a
+  worktree and a disjoint set of files, scenarios and mutations. One integrator
+  merges them in order. After merging, look for the same fix made twice (a chat
+  line said twice, a mutation gone MISSED).
 - **Files.** Write generated files with the Write tool, never bash heredocs
   (they eat backslashes; `scenarios.lua` is full of `\0`). Text is LF
   (`.gitattributes`); in Python write with `newline=''`. Lua is tab-indented,
@@ -129,10 +134,14 @@ function, switch and test named. Change both together.
 - Never post a reply twice: before posting, look for a reply already there (the
   nightly pass answers comments too); a POST's 201 is the proof it went, a page
   that lags after a reload is not. `.claude/snippets/curseforge-reply.js` does both.
-- One agent at a time: queue them rather than fan out several in the background.
-- Tests go easy on RAM: `--jobs 4` at most, one suite at a time; ask before a
-  full selftest (GitHub runs it, `selftest.yml`). An agent runs a suite in the
-  foreground with a timeout, never in the background or on a Monitor.
+- Use parallel agents when their scopes are independent. Read-only reviews may
+  fan out broadly; implementation is parallel only with disjoint ownership.
+  One coordinator assigns scopes, watches resource use and resolves conflicts.
+- Tests go easy on RAM: `--jobs 4` at most per command, inside the machine-wide
+  `MANNERS_JOBS` budget, and one heavy suite per worktree. Ask before starting a
+  local full selftest (GitHub runs it in `selftest.yml`). Every suite has a
+  timeout; background runs are allowed only when the coordinator is doing
+  independent work and later verifies the result.
 - Build first, test once: while building, only `tools/lint.py` and the piece's
   own scenario file; no suite and no push until the owner calls the test pass.
 - No other addon is ever named, hinted at or compared with: not in listings,

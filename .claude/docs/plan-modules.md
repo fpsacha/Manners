@@ -122,9 +122,10 @@ when off, rewards good manners rather than grinding, never noisy.
 ## Rules that matter most here (from the owner)
 
 - Manners stays small: nothing new ON by default; modules ship disabled.
-- Work in a git worktree, never the live tree. One builder at a time unless
-  the owner asks for speed (his usage budget is limited; five builders in
-  parallel once burned most of a week's budget).
+- Work in a git worktree, never the live tree. Fan out read-only reviews and
+  independent builders as the machine and session allow, under `CLAUDE.md`'s
+  machine-wide worker budget. Builders own disjoint files and worktrees; one
+  integrator merges and checks for duplicate fixes.
 - Releases: `python tools/release.py X.Y.Z --coauthor "..."`; it waits for
   GitHub CI (the full tests) and uploads nothing if CI is red. Released
   without asking once green (see `CLAUDE.md`).

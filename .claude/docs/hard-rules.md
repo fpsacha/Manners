@@ -169,11 +169,16 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   until the pages say so.
 - **Secrets.** Never take, type or store an API key. The user sets them with
   `gh secret set CF_API_KEY` (and `WAGO_API_TOKEN`), which prompts.
-- **CPU.** Leave 2 cores free. With several agents running tests, split the
-  workers between them (`--jobs`, `MANNERS_SCENARIO_JOBS`).
-- **Parallel agents** work in git worktrees, never the live tree, and put new
-  scenarios and mutations in files of their own. After merging, look for the
-  same fix made twice (a chat line said twice, a mutation gone MISSED).
+- **CPU.** Leave 2 cores free across the machine. Run as many read-only agents as
+  fit the available tool/session limit. Before parallel test work, set
+  `MANNERS_JOBS` to a machine-wide budget and split that budget between agents;
+  an agent running tests uses `--jobs` from its share. Stop adding agents if the
+  owner is slowed, memory is short, or commands begin competing for workers.
+- **Parallel agents** work in git worktrees, never the live tree. Read-only
+  reviewers may share a revision and split by subsystem; builders each own a
+  worktree and a disjoint set of files, scenarios and mutations. One integrator
+  merges them in order. After merging, look for the same fix made twice (a chat
+  line said twice, a mutation gone MISSED).
 - **Files.** Write generated files with the Write tool, never bash heredocs
   (they eat backslashes; `scenarios.lua` is full of `\0`). Text is LF
   (`.gitattributes`); in Python write with `newline=''`. Lua is tab-indented,
