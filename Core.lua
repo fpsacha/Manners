@@ -6556,14 +6556,33 @@ function ns.SayAnchorCarried()
 	addon:Print(L["the prompt was moved onto its new anchor, the middle of the screen. If you had put it at the bottom edge on purpose, drag it back or pick a place under |cffffd100Where it sits|r on the options page."])
 end
 
+local function SavedProfileExisted(db, saved)
+	local profiles = type(saved) == "table" and saved.profiles or nil
+	if type(profiles) ~= "table" then return false end
+	if db and type(db.GetCurrentProfile) == "function" then
+		local name = ns.safecall(db.GetCurrentProfile, db)
+		if type(name) == "string" and type(profiles[name]) == "table" then return true end
+	end
+	local profile = db and db.profile
+	for _, stored in pairs(profiles) do
+		if stored == profile then return true end
+	end
+	return false
+end
+
 function addon:OnInitialize()
+	-- Read the file before AceDB opens it: an empty SavedVariables table is
+	-- not proof that this profile existed in the old monolith.
+	local saved = rawget(_G, "MannersDB")
 	self.db = LibStub("AceDB-3.0"):New("MannersDB", defaults, true)
 	ns.db = self.db
+	self.legacyModuleDatabase = SavedProfileExisted(self.db, saved)
 
 
 	self.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
+	self.db.RegisterCallback(self, "OnNewProfile", "ProfileCreated")
 	-- Deleting a profile only ends an import's undo made on the deleted one.
 	self.db.RegisterCallback(self, "OnProfileDeleted", "ProfileDeleted")
 	self.db.RegisterCallback(self, "OnDatabaseShutdown", "SaveDebts")
@@ -6574,6 +6593,9 @@ function addon:OnInitialize()
 	-- options and the slash commands with it.
 	ns.Guard("ClampSettings", ns.ClampSettings)
 	local modules = _G.MannersAPI
+	if modules and type(modules.MigrateOptionalModules) == "function" then
+		modules:MigrateOptionalModules(self.legacyModuleDatabase)
+	end
 	if modules and type(modules.Fire) == "function" then
 		ns.Guard("module database ready", modules.Fire, modules, "CoreReady", self.db)
 	end
@@ -6856,6 +6878,13 @@ function addon:ProfileDeleted(event, _, name)
 	ns.ProfileChangedForUndo(event, name)
 end
 
+function addon:ProfileCreated()
+	local modules = _G.MannersAPI
+	if modules and type(modules.MigrateOptionalModules) == "function" then
+		modules:MigrateOptionalModules(false)
+	end
+end
+
 -- Services may expose a pet-cast buff. The module owns the real event frame;
 -- this legacy callback is also what old diagnostics used to invalidate it.
 function addon:UNIT_PET(_, unit)
@@ -6866,6 +6895,10 @@ end
 function addon:RefreshConfig(event)
 	ns.Guard("ClampSettings", ns.ClampSettings)
 	local modules = _G.MannersAPI
+	if modules and type(modules.MigrateOptionalModules) == "function" then
+		modules:MigrateOptionalModules(event == "OnProfileChanged"
+			and SavedProfileExisted(self.db, rawget(_G, "MannersDB")))
+	end
 	if modules and type(modules.Fire) == "function" then
 		modules:Fire("ProfileChanged", self.db.profile, event)
 	end

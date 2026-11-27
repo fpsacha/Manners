@@ -484,6 +484,52 @@ local function AddOnEnableState(folder, id)
 	return false
 end
 
+local function LegacyMyBuffsActive(profile)
+	local sources = type(profile) == "table" and profile.sources or nil
+	return type(sources) == "table" and sources.self == true
+end
+
+local function LegacyServicesActive(profile)
+	local sources = type(profile) == "table" and profile.sources or nil
+	if sources and sources.courtesyTarget == true then return true end
+	local buff = profile and profile.buff
+	if buff and type(buff.optIn) == "table" and buff.optIn.fireshield == true then return true end
+	local services = profile and profile.services
+	if type(services) == "table" and sources and sources.asked == true then
+		for _, config in pairs(services) do
+			if type(config) == "table" and config.enabled == true then return true end
+		end
+	end
+	if type(sources) ~= "table" or sources.asked ~= true then return false end
+	for _, key in ipairs({
+		"courtesyRefresh", "courtesyPortals", "courtesyHealthstones",
+		"courtesySummons", "courtesySoulstone", "courtesySlowFall",
+		"courtesyLevitate", "courtesyWaterWalking",
+	}) do
+		if sources[key] == true then return true end
+	end
+	return false
+end
+
+-- A folder's game-level addon state is separate from an AceDB profile. Do this
+-- only for profiles that existed before the folders shipped, then leave an
+-- explicit marker so a later intentional disable is never undone.
+function api:MigrateOptionalModules(legacyProfile)
+	local profile = api:GetProfile()
+	if type(profile) ~= "table" or profile.optionalModulesMigrated == true then return false end
+	local changed = false
+	if legacyProfile == true then
+		if LegacyMyBuffsActive(profile) then
+			changed = api:SetModuleEnabled("mybuffs", true) or changed
+		end
+		if LegacyServicesActive(profile) then
+			changed = api:SetModuleEnabled("services", true) or changed
+		end
+	end
+	profile.optionalModulesMigrated = true
+	return changed
+end
+
 function api:IsModuleEnabled(id)
 	if pendingReload[id] ~= nil then return pendingReload[id] end
 	local folder = MODULE_FOLDERS[id]

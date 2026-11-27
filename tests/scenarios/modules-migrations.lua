@@ -2,6 +2,163 @@ local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
 
 do
+	local scenario = "modules migration #64: old active own buffs load My Buffs and restore self learning"
+	Mock.reset()
+	Mock.class = "DRUID"
+	Mock.knownSpells = { [782] = true, [5232] = true }
+	Mock.sv.profile = {
+		sources = { self = true },
+		ownBuffs = { inCities = true, holdMoving = false },
+	}
+	local realDB, realC = rawget(_G, "MannersDB"), rawget(_G, "C_AddOns")
+	rawset(_G, "MannersDB", { profiles = { Default = Mock.sv.profile } })
+	local states = { Manners_MyBuffs = 0 }
+	rawset(_G, "C_AddOns", {
+		GetAddOnEnableState = function(folder) return states[folder] or 0 end,
+		EnableAddOn = function(folder) states[folder] = 2 end,
+		DisableAddOn = function(folder) states[folder] = 0 end,
+	})
+	local ns = load(scenario, true)
+	if not ns then
+		rawset(_G, "MannersDB", realDB)
+		rawset(_G, "C_AddOns", realC)
+		return
+	end
+	drive(scenario, ns)
+	if states.Manners_MyBuffs ~= 2 or ns.db.profile.optionalModulesMigrated ~= true then
+		fail(scenario, "the old active My Buffs profile was not migrated and marked")
+	end
+	if MannersAPI:ModuleActive("mybuffs") or not MannersAPI:ModuleReloadPending() then
+		fail(scenario, "an unloaded migrated module became active without Reload UI")
+	end
+	if ns.OffersSelf() then
+		fail(scenario, "the disabled module did not explain issue 64's missing self buffs")
+	end
+	if ns.db.profile.ownBuffs.inCities ~= true
+		or ns.db.profile.ownBuffs.holdMoving ~= false then
+		fail(scenario, ("migration changed saved own-buff choices: inCities=%s holdMoving=%s")
+			:format(tostring(ns.db.profile.ownBuffs.inCities),
+				tostring(ns.db.profile.ownBuffs.holdMoving)))
+	end
+	if not H.loadModule(scenario, "Modules/MyBuffs/Manners_MyBuffs.toc") then
+		rawset(_G, "MannersDB", realDB)
+		rawset(_G, "C_AddOns", realC)
+		return
+	end
+	local found = false
+	for _, buff in ipairs(ns.SelfBuffs()) do if buff.key == "thorns" then found = true end end
+	if not found or not ns.OffersSelf() then
+		fail(scenario, "loading migrated My Buffs did not restore the learned Thorns self offer")
+	end
+	rawset(_G, "MannersDB", realDB)
+	rawset(_G, "C_AddOns", realC)
+end
+
+do
+	local scenario = "modules migration #63: old active Services requests load Services"
+	Mock.reset()
+	Mock.class = "MAGE"
+	Mock.sv.profile = {
+		sources = { asked = true, courtesyRefresh = true, courtesyTarget = false },
+	}
+	local realDB, realC = rawget(_G, "MannersDB"), rawget(_G, "C_AddOns")
+	rawset(_G, "MannersDB", { profiles = { Default = Mock.sv.profile } })
+	local states = { Manners_Services = 0 }
+	rawset(_G, "C_AddOns", {
+		GetAddOnEnableState = function(folder) return states[folder] or 0 end,
+		EnableAddOn = function(folder) states[folder] = 2 end,
+		DisableAddOn = function(folder) states[folder] = 0 end,
+	})
+	local ns = load(scenario, true)
+	if not ns then
+		rawset(_G, "MannersDB", realDB)
+		rawset(_G, "C_AddOns", realC)
+		return
+	end
+	drive(scenario, ns)
+	if states.Manners_Services ~= 2 or ns.db.profile.optionalModulesMigrated ~= true then
+		fail(scenario, "old active Services settings did not enable the folder")
+	elseif ns.db.profile.sources.asked ~= true or ns.db.profile.sources.courtesyRefresh ~= true then
+		fail(scenario, "the Services migration changed its old switches")
+	end
+	rawset(_G, "MannersDB", realDB)
+	rawset(_G, "C_AddOns", realC)
+end
+
+do
+	local scenario = "modules migration #62: old active consumable choices load My Buffs"
+	Mock.reset()
+	Mock.class = "ROGUE"
+	Mock.sv.profile = {
+		sources = { self = true },
+		ownBuffs = { pick = { poisonmain = "auto", stonemain = "auto" } },
+	}
+	local realDB, realC = rawget(_G, "MannersDB"), rawget(_G, "C_AddOns")
+	rawset(_G, "MannersDB", { profiles = { Default = Mock.sv.profile } })
+	local states = { Manners_MyBuffs = 0 }
+	rawset(_G, "C_AddOns", {
+		GetAddOnEnableState = function(folder) return states[folder] or 0 end,
+		EnableAddOn = function(folder) states[folder] = 2 end,
+		DisableAddOn = function(folder) states[folder] = 0 end,
+	})
+	local ns = load(scenario, true)
+	if not ns then
+		rawset(_G, "MannersDB", realDB)
+		rawset(_G, "C_AddOns", realC)
+		return
+	end
+	drive(scenario, ns)
+	if states.Manners_MyBuffs ~= 2 or ns.db.profile.ownBuffs.pick.poisonmain ~= "auto"
+		or ns.db.profile.ownBuffs.pick.stonemain ~= "auto" then
+		fail(scenario, "the old poison and weapon-stone choices did not migrate intact")
+	end
+	rawset(_G, "MannersDB", realDB)
+	rawset(_G, "C_AddOns", realC)
+end
+
+do
+	local scenario = "modules migration: new and intentionally off profiles stay disabled"
+	Mock.reset()
+	Mock.sv.profile = {
+		sources = {
+			self = true, asked = true, courtesyRefresh = false,
+			courtesyPortals = false, courtesyHealthstones = false,
+			courtesySummons = false, courtesyTarget = false,
+		},
+	}
+	local realDB, realC = rawget(_G, "MannersDB"), rawget(_G, "C_AddOns")
+	rawset(_G, "MannersDB", nil)
+	local states = {}
+	rawset(_G, "C_AddOns", {
+		GetAddOnEnableState = function(folder) return states[folder] or 0 end,
+		EnableAddOn = function(folder) states[folder] = 2 end,
+		DisableAddOn = function(folder) states[folder] = 0 end,
+	})
+	local ns = load(scenario, true)
+	if not ns then
+		rawset(_G, "MannersDB", realDB)
+		rawset(_G, "C_AddOns", realC)
+		return
+	end
+	drive(scenario, ns)
+	if states.Manners_MyBuffs or states.Manners_Services then
+		fail(scenario, "a new profile enabled an optional folder")
+	end
+	Mock.sv.profile.optionalModulesMigrated = nil
+	Mock.sv.profile.sources.self = false
+	rawset(_G, "MannersDB", { profiles = { Default = Mock.sv.profile } })
+	MannersAPI:MigrateOptionalModules(true)
+	if states.Manners_MyBuffs or states.Manners_Services then
+		fail(scenario, "an intentional off profile was enabled")
+	end
+	if ns.db.profile.optionalModulesMigrated ~= true then
+		fail(scenario, "the skipped migration was not explicitly marked")
+	end
+	rawset(_G, "MannersDB", realDB)
+	rawset(_G, "C_AddOns", realC)
+end
+
+do
 	local scenario = "modules: option builders are registered"
 	Mock.reset()
 	Mock.class = "HUNTER"
