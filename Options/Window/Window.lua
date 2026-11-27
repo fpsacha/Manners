@@ -638,7 +638,23 @@ local function CursorChanged()
 	if ns.macroOnCursor and UI.Shown() and not ns.Setup.Carrying() then UI.Refresh() end
 end
 
+local function InWindow(frame)
+	while frame do
+		if frame == UI.frame then return true end
+		frame = type(frame.GetParent) == "function" and frame:GetParent() or nil
+	end
+	return false
+end
+
+local function ReleaseKeyboard()
+	local W = ns.WindowWidgets
+	if W and W.StopCapture then W.StopCapture() end
+	local focus = type(GetCurrentKeyBoardFocus) == "function" and GetCurrentKeyBoardFocus() or nil
+	if InWindow(focus) and type(focus.ClearFocus) == "function" then focus:ClearFocus() end
+end
+
 local function Hidden()
+	ReleaseKeyboard()
 	ns.OptionsPage.reportOpen = false
 	ns.OptionsPage.shareOpen = false
 	ns.OptionsPage.selftestText = nil
@@ -718,6 +734,7 @@ function UI.Open(pageId, quiet)
 	if not UI.frame then UI.Build() end
 	local f = UI.frame
 	local was, wasShown = UI.page, f:IsShown()
+	if not wasShown then ReleaseKeyboard() end
 	f:Show()
 	f:Raise()
 	-- A profile that has never been set up opens on its two questions.

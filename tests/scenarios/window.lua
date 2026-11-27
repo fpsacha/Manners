@@ -15,7 +15,7 @@ local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
 
 -- Globals a scenario may replace, put back after each: Mock.reset owns none.
-local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "MenuUtil" }
+local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "MenuUtil", "GetCurrentKeyBoardFocus" }
 
 local function noErrors(scenario, ns)
 	for _, e in ipairs(ns.errors or {}) do
@@ -74,6 +74,58 @@ local function shown(frame) return frame ~= nil and frame:IsShown() == true end
 -- The window's reach into what the model says, with the window's own context.
 local function item(ns, path)
 	return ns.WindowBind.Item(path, nil, ns.WindowUI.ctx)
+end
+
+-- ------------------------------------------------------------------ keyboard focus
+do
+	local scenario = "window: closing options releases the player's keyboard focus"
+	with(scenario, {}, function(ns, UI)
+		GetCurrentKeyBoardFocus = function() return Mock.focus end
+		ns.OpenOptions("general")
+		local row = UI.RowFor("general.bindKey")
+		if not (row and row.button and row.grab == nil) then
+			fail(scenario, "SKIPPED -- Start here has no key control")
+			return
+		end
+		row.button:Click("LeftButton")
+		if Mock.focus ~= row.grab or ns.WindowWidgets.Capturing() ~= row then
+			fail(scenario, "SKIPPED -- the key control did not take the keyboard focus")
+			return
+		end
+
+		-- The window itself is hidden by the client. Its child controls do
+		-- not hear OnHide in this mock, as a real focus path can outlive the
+		-- top-level frame until the client gives the keyboard back.
+		ns.CloseOptions()
+		ns.OpenOptions("general")
+
+		Mock.bindings.W = "MOVEFORWARD"
+		local function clientKey(key)
+			local focus = GetCurrentKeyBoardFocus()
+			if focus then
+				local script = focus:GetScript(key == "ESCAPE" and "OnEscapePressed" or "OnKeyDown")
+				if script then script(focus, key) end
+				return "options focus"
+			end
+			if key == "ESCAPE" then
+				for _, name in ipairs(UISpecialFrames or {}) do
+					if name == "MannersOptions" then ns.CloseOptions() end
+				end
+				return "window close"
+			end
+			return Mock.bindings[key] and "game binding" or "unbound"
+		end
+
+		if clientKey("W") ~= "game binding" then
+			fail(scenario, "W still went to Manners after the settings window was reopened")
+		end
+		if clientKey("ESCAPE") ~= "window close" or UI.Shown() then
+			fail(scenario, "Escape was intercepted instead of closing the reopened settings window")
+		end
+		if ns.WindowWidgets.Capturing() or row.button._keyboard then
+			fail(scenario, "the reopened window kept the key control listening")
+		end
+	end)
 end
 
 -- ------------------------------------------------------------------ binding
