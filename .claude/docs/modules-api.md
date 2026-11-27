@@ -28,3 +28,8 @@ The saved feature paths remain under `MannersDB` so enabling a module restores
 the player's old choices. Achievements alone owns
 `MannersAchievementsDB`; it receives core favour events, registers no game
 events and cannot touch the prompt or queue.
+
+`MigrateOptionalModules` reads legacy feature switches once per profile. It
+enables My Buffs or Services only for a pre-existing profile whose feature
+switch was active, preserves its saved values and writes
+`optionalModulesMigrated` so a later intentional disable is untouched.
