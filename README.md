@@ -52,7 +52,7 @@ of Pandaria Classic** and **retail**, in nine languages.
 - **Profiles that switch by themselves.** One for the open world, one for
   dungeons, raids or battlegrounds, chosen as you arrive, and a profile
   manager that can use, duplicate, rename or delete any of them, with *Undo*.
-- **Twenty-nine looks.** From a pane of dark glass to a death knight's
+- **Thirty looks.** From a pane of dark glass to a death knight's
   runeblade, picked from a gallery of cards on four shelves.
 - **Options that start short.** A Simple view with just the essentials, a
   long page in parts you pick from a bar, and a painted icon for each page.
@@ -834,9 +834,9 @@ is off too, and there is no separate hall or share window.
 
 ## The prompt's look
 
-<img src=".github/media/manners-looks.png" alt="The twenty-nine looks for the prompt, the same favour drawn in each: Glass, the default, then Framed, Toast, Arcane, Minimal, Ghost, Hairline, Pill, Slate, Luxe, Ribbon, Letter, Warchief, Gearworks, Frost Mage, Fire Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter, Warrior, Priest, Rogue, Monk, Demon Hunter and Evoker" width="640">
+<img src=".github/media/manners-looks.png" alt="The thirty looks for the prompt, the same favour drawn in each: Glass, the default, then Framed, Toast, Arcane, Minimal, Ghost, Hairline, Pill, Slate, Outline, Luxe, Ribbon, Letter, Warchief, Gearworks, Frost Mage, Fire Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter, Warrior, Priest, Rogue, Monk, Demon Hunter and Evoker" width="640">
 
-Twenty-nine looks, each a card under Look > *Panel style*. Tabs over the
+Thirty looks, each a card under Look > *Panel style*. Tabs over the
 cards sort them: **For my class** (the looks made for your class, three for a
 mage; it opens first), **All**, and one tab for each shelf, **Minimal**,
 **Classic**, **Themed** and **Class**. Point at a card and the prompt wears
@@ -1430,7 +1430,7 @@ with two sections: ***The prompt in a fight*** and ***Buttons for when you need 
 ### Look
 
 - *Use my class's look on each character* (off): each character on the profile wears the look made for its class, a mage the mage look last clicked on a mage, else Frost Mage. Another look clicked is the profile's own, worn with it off.
-- ***Panel style***: the twenty-nine cards under tabs (*For my class*, *All*,
+- ***Panel style***: the thirty cards under tabs (*For my class*, *All*,
   *Minimal*, *Classic*, *Themed*, *Class*), a look tried on the prompt as you
   point at it. Under them, headed with the chosen look's name: *Earlier art*
   (off, for a repainted look), *Round the icon off*, *Gryphons at the ends*

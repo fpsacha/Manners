@@ -1,0 +1,15 @@
+{
+  "key": "outline",
+  "socket": {"shape": "square", "cx": 958, "cy": 515, "half": 145},
+  "name_xy": [1060, 382],
+  "reason_xy": [1065, 545],
+  "keycap": {"cx": 3292, "cy": 516, "w": 185, "h": 198},
+  "bar": [855, 321, 3525, 735],
+  "pane": [872, 334, 3510, 720],
+  "see_through": true,
+  "stretch": [1450, 3050],
+  "text_colour_ok": true,
+  "contrast": {"white": 12.0, "gold": 8.0},
+  "clip": true,
+  "notes": "A static near-black bar with a crisp black outline and one restrained inner rim. The frame itself carries no motion; only the live icon, key and prompt effects move."
+}

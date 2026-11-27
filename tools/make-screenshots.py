@@ -725,7 +725,7 @@ local added = {
 -- most players who use it have -- the looks that show the key only show it
 -- with one bound. ShotStyle is the look the profile ends up on, so a look the
 -- addon refused or put back is caught rather than drawn under another's name.
-for _, style in ipairs({ "glass", "framed", "toast", "arcane", "minimal", "ghost", "hairline", "pill", "slate", "luxe", "ribbon", "letter", "warchief", "gearworks", "frost", "firemage", "archmage", "fel", "wild", "lightbringer", "stormcaller", "ebon", "leather", "forge", "priest", "rogue", "monk", "demonhunter", "evoker" }) do
+for _, style in ipairs({ "glass", "framed", "toast", "arcane", "minimal", "ghost", "hairline", "pill", "slate", "outline", "luxe", "ribbon", "letter", "warchief", "gearworks", "frost", "firemage", "archmage", "fel", "wild", "lightbringer", "stormcaller", "ebon", "leather", "forge", "priest", "rogue", "monk", "demonhunter", "evoker" }) do
 	added[#added + 1] = { key = "shot-look-" .. style, at = 0.85, setup = function(ns)
 		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
@@ -2171,6 +2171,7 @@ LOOKS = [
     ("hairline", "Hairline", "a framed icon and one fine line"),
     ("pill", "Pill", "a rounded pane, a pale rim"),
     ("slate", "Slate", "a dark pane in a steel edge"),
+    ("outline", "Outline", "a clean dark bar in a black outline"),
     ("luxe", "Luxe", "slim dark card, a spine in the reason colour"),
     ("ribbon", "Ribbon", "a crimson ribbon and a gold medallion"),
     ("letter", "Letter", "parchment and a red wax seal"),
@@ -3007,7 +3008,7 @@ def picture_looks(snaps):
     hero_h = hero.size[1] + 24
     top = hero_top + hero_h + 6
     board = Board(top + sum(heights) + 10, seed=17, sun=(0.50, 0.53))
-    heading(board, "Twenty-nine looks to choose from",
+    heading(board, "Thirty looks to choose from",
             "The same favour in each. Pick one from the cards under Look.")
     # Glass and its words side by side, in the middle of the page.
     _, name, words = LOOKS[0]
@@ -3369,11 +3370,11 @@ GALLERY = [
      "it shows, under Look.",
      "The prompt twice with its tooltip above it: the Short one with the name, the spell, why they are "
      "offered and Hold Shift for more; the Full one with Shift held, saying what the press and each click do"),
-    ("manners-looks.png", "Twenty-nine looks to choose from",
+    ("manners-looks.png", "Thirty looks to choose from",
      "Glass, the default, then every other look on its shelf, Classic, Minimal, Themed and Class, the "
      "same favour drawn in each; click a card under Look to switch.",
-     "The twenty-nine looks for the prompt, the same favour drawn in each: Glass, the default, then "
-     "Framed, Toast, Arcane, Minimal, Ghost, Hairline, Pill, Slate, Luxe, Ribbon, Letter, Warchief, Gearworks, Frost Mage, Fire Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter, Warrior, Priest, Rogue, Monk, Demon Hunter and Evoker"),
+     "The thirty looks for the prompt, the same favour drawn in each: Glass, the default, then "
+     "Framed, Toast, Arcane, Minimal, Ghost, Hairline, Pill, Slate, Outline, Luxe, Ribbon, Letter, Warchief, Gearworks, Frost Mage, Fire Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter, Warrior, Priest, Rogue, Monk, Demon Hunter and Evoker"),
     ("manners-look-stormcaller.gif", "The Shaman look, as a buff lands",
      "Animated: somebody buffed you, you press, and chain lightning arcs from the totem to the standing "
      "stone.",

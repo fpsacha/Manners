@@ -15,7 +15,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 - **Cures in a fight:** tick *Show my cure on a button in a fight, only while somebody needs it* for a button that shows only when somebody near you needs your cure.
 - **Good manners, kept:** a favour ledger of who buffed you, what you gave back and who you buffed first.
 - **Something to say,** if you like: **In character**, over three thousand lines picked for your race, class and the moment (about a hundred of them the Forsaken's own), or a quiet `/thank`.
-- **Yours to arrange:** twenty-nine looks and one for your class, **profiles that switch by themselves** as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
+- **Yours to arrange:** thirty looks and one for your class, **profiles that switch by themselves** as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
 - **Kept out of the way:** a *Never offer* list, *Skip players in a fight*, *Offer nothing in cities and inns* and `/manners snooze`.
 
 **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight), in English, German, Spanish, French, Italian, Korean, Brazilian Portuguese and Simplified and Traditional Chinese.

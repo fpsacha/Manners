@@ -275,7 +275,7 @@ mutate("Looks/Looks.lua",
        expect="comes after a look of a later category", script=S)
 
 mutate("Looks/Looks.lua",
-       "\tminimal = { \"minimal\", \"ghost\", \"hairline\", \"pill\", \"slate\", \"luxe\" },\n",
+       "\tminimal = { \"minimal\", \"ghost\", \"hairline\", \"pill\", \"slate\", \"outline\", \"luxe\" },\n",
        "\tminimal = { \"minimal\", \"ghost\", \"hairline\", \"pill\", \"slate\" },\n",
        "painted: Luxe on no shelf",
        expect="luxe is in themed, not minimal", script=S)

@@ -136,7 +136,7 @@ mutate(".github/curseforge-summary.txt",
        expect="curseforge-summary.txt says", script=V)
 
 mutate(".github/curseforge-description.md",
-       "Yours to arrange: twenty-nine looks,",
+       "Yours to arrange: thirty looks,",
        "Yours to arrange: eighteen looks,",
        "storefront: the CurseForge page counts the looks wrong",
        expect="curseforge-description.md says Eighteen looks", script=V)

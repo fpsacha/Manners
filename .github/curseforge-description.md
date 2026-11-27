@@ -12,7 +12,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 - **More than buffs.** Your resurrection for the group's dead, a cure for a poison, curse or disease, and a mage's or warlock's courtesies (water, portals, healthstones, summons) for whoever asks, and a polite ask for a buff you lack, if you tick it. Your own armor or aura comes up as "You" when it lapses, and a poison or an oil too once you tick it.
 - **Good manners, kept.** A favour ledger of who buffed you, what you gave back and who you buffed first. If your character should speak, over three thousand In character lines, about a hundred of them the Forsaken's own.
 
-Yours to arrange: twenty-nine looks, a blessing for each class for paladins, profiles that switch by themselves as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
+Yours to arrange: thirty looks, a blessing for each class for paladins, profiles that switch by themselves as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
 
 ### What you see
 
@@ -81,7 +81,7 @@ The *Simple view* shows just the essentials, about a tenth of the options; untic
 - **Rogue:** a poison for each hand, from your bags or your spellbook.
 - **Death knight, monk, evoker:** Horn of Winter and Legacy of the Emperor on Mists, Blessing of the Bronze and Source of Magic on retail.
 
-Every class can be reminded of food, flasks, elixirs, scrolls and a stone, oil or lure for its weapon, where its game has them, each switched on by you, and every class has a look of its own among the twenty-nine.
+Every class can be reminded of food, flasks, elixirs, scrolls and a stone, oil or lure for its weapon, where its game has them, each switched on by you, and every class has a look of its own among the thirty.
 
 ### The good-manners side
 
