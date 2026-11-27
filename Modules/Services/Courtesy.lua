@@ -969,8 +969,9 @@ end
 
 local function InstanceAllowed(name)
 	if Courtesy.ServiceSetting(name, "where", "anywhere") ~= "outside" then return true end
-	local inside = type(_G.IsInInstance) == "function" and plain(_G.IsInInstance()) or nil
-	return inside ~= true
+	local inside
+	if type(_G.IsInInstance) == "function" then inside = plain(_G.IsInInstance()) end
+	return inside == false
 end
 
 local function ItemReady(item, withCooldown)
@@ -1763,8 +1764,10 @@ function Hand(request, key, item, name)
 		-- unasked stays on offer after a trade with nothing in it.
 		if count == 0 and not (type(request) == "table" and request.targeted) then Serve(request, key) end
 	else
-		Serve(request, key)
-		if Place(item) then count = 1 end
+		if Place(item) then
+			count = 1
+			Serve(request, key)
+		end
 	end
 	-- A trade with something in it: they are left alone for a while, a chat
 	-- request's person as well.

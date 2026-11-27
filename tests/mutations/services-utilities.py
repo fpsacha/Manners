@@ -120,3 +120,10 @@ mutate("Modules/Services/Courtesy.lua",
        "services-utilities: focus is accepted as the current target",
        expect="services-utilities: request scope, combat, instance and matching are independent per service",
        script=S)
+
+mutate("Modules/Services/Courtesy.lua",
+       "\treturn inside == false\n",
+       "\treturn inside ~= true\n",
+       "services-utilities: unknown instance state is trusted as outdoors",
+       expect="services-utilities: outside-only services fail closed when the instance is unknown",
+       script=S)

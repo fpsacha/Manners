@@ -283,6 +283,35 @@ do
 end
 
 do
+	local scenario = "services-utilities: outside-only services fail closed when the instance is unknown"
+	scene(scenario, { flavour = "camelot", class = "MAGE", known = { 130 }, bags = { [17056] = 1 } },
+		function(ns)
+			enable(ns, "slowfall")
+			ns.Courtesy.SetServiceSetting("slowfall", "where", "outside")
+			hear(ns, "PARTY", "slow fall pls", "Anna Aim", "party1")
+			if not entry(ns, "Anna Aim") then
+				fail(scenario, "SKIPPED -- an outside-only request was not offered while plainly outdoors")
+				return
+			end
+			for _, case in ipairs({
+				{ label = "nil", answer = function() return nil, "none" end },
+				{ label = "secret", answer = function() return Mock.SECRET, "none" end },
+			}) do
+				rawset(_G, "IsInInstance", case.answer)
+				Mock.advance(1)
+				if entry(ns, "Anna Aim") then
+					fail(scenario, "an outside-only service was offered when IsInInstance returned " .. case.label)
+				end
+				rawset(_G, "IsInInstance", function() return false, "none" end)
+				Mock.advance(1)
+				if not entry(ns, "Anna Aim") then
+					fail(scenario, "an outside-only service stayed hidden after a plain outdoor answer")
+				end
+			end
+		end)
+end
+
+do
 	local scenario = "services-utilities: a learned service alone gives a class a castable prompt"
 	scene(scenario, { flavour = "mainline", class = "WARLOCK", known = { 698 } }, function(ns)
 		enable(ns, "summon")
