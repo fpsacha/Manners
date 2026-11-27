@@ -1511,7 +1511,7 @@ function Page.BuildStartTab()
 			modulesCombat = {
 				type = "toggle", name = L["Manners: Combat"], order = 68.2, width = "full",
 				desc = L["Cure, break-free and Mend Pet buttons in a fight."],
-				disabled = function() return InCombatLockdown() end,
+				disabled = function() return not MannersAPI:CanToggleModule("combat") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("combat") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("combat", value == true) end end,
 			},
@@ -1522,7 +1522,7 @@ function Page.BuildStartTab()
 			modulesAchievements = {
 				type = "toggle", name = L["Manners: Achievements"], order = 68.3, width = "full",
 				desc = L["Manners achievements in a tab of the favour ledger."],
-				disabled = function() return InCombatLockdown() end,
+				disabled = function() return not MannersAPI:CanToggleModule("achievements") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("achievements") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("achievements", value == true) end end,
 			},
@@ -1533,7 +1533,7 @@ function Page.BuildStartTab()
 			modulesPets = {
 				type = "toggle", name = L["Manners: Pets"], order = 68.4, width = "full",
 				desc = L["Hunter pet care and moments."],
-				disabled = function() return InCombatLockdown() end,
+				disabled = function() return not MannersAPI:CanToggleModule("pets") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("pets") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("pets", value == true) end end,
 			},
@@ -1543,7 +1543,7 @@ function Page.BuildStartTab()
 			modulesMyBuffs = {
 				type = "toggle", name = L["Manners: My Buffs"], order = 68.5, width = "full",
 				desc = L["Own buffs, consumables and companion-pet reminders."],
-				disabled = function() return InCombatLockdown() end,
+				disabled = function() return not MannersAPI:CanToggleModule("mybuffs") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("mybuffs") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("mybuffs", value == true) end end,
 			},
@@ -1554,7 +1554,7 @@ function Page.BuildStartTab()
 			modulesServices = {
 				type = "toggle", name = L["Manners: Services"], order = 68.6, width = "full",
 				desc = L["Mage, priest, shaman and warlock services on explicit request."],
-				disabled = function() return InCombatLockdown() end,
+				disabled = function() return not MannersAPI:CanToggleModule("services") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("services") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("services", value == true) end end,
 			},

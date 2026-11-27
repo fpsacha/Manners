@@ -55,6 +55,56 @@ do
 end
 
 do
+	local scenario = "modules: an unloaded module can be enabled in combat and repaints"
+	Mock.reset()
+	Mock.inCombat = true
+	local ns = load(scenario, true)
+	if not ns then return end
+	drive(scenario, ns)
+	local realC, repaints = rawget(_G, "C_AddOns"), 0
+	local state, character = 0, nil
+	rawset(_G, "C_AddOns", {
+		GetAddOnEnableState = function() return state end,
+		EnableAddOn = function(folder, name)
+			if folder ~= "Manners_Combat" then fail(scenario, "enabled " .. tostring(folder)) end
+			character = name
+			state = 2
+		end,
+		DisableAddOn = function() fail(scenario, "disabled an unloaded module in combat") end,
+	})
+	local oldRepaint = ns.RepaintOptions
+	ns.RepaintOptions = function() repaints = repaints + 1 end
+	local control = H.findOption(ns.optionsTable, "modulesCombat")
+	if control.disabled() then fail(scenario, "an unloaded Combat module was disabled in combat") end
+	control.set(nil, true)
+	if state ~= 2 or character ~= UnitName("player") then
+		fail(scenario, "the current character was not passed to EnableAddOn")
+	end
+	if repaints == 0 or not MannersAPI:ModuleReloadPending() then
+		fail(scenario, "the pending reload did not repaint")
+	end
+	ns.RepaintOptions = oldRepaint
+	rawset(_G, "C_AddOns", realC)
+	Mock.inCombat = false
+end
+
+do
+	local scenario = "modules: a loaded module cannot be disabled in combat"
+	Mock.reset()
+	Mock.class = "PALADIN"
+	Mock.inCombat = true
+	local ns = load(scenario)
+	if not ns then return end
+	drive(scenario, ns)
+	local control = H.findOption(ns.optionsTable, "modulesCombat")
+	if not control.disabled() then fail(scenario, "loaded Combat could be disabled in combat") end
+	if MannersAPI:SetModuleEnabled("combat", false) then
+		fail(scenario, "loaded Combat changed state in combat")
+	end
+	Mock.inCombat = false
+end
+
+do
 	local scenario = "modules: core options never call a disabled Combat cure chooser"
 	Mock.reset()
 	local ns = load(scenario, true)
@@ -359,9 +409,9 @@ do
 end
 
 do
-	local scenario = "modules: combat locks every module switch and the API"
+	local scenario = "modules: combat locks every loaded module switch and the API"
 	Mock.reset()
-	local ns = load(scenario, true)
+	local ns = load(scenario)
 	if not ns then return end
 	drive(scenario, ns)
 	local realC = rawget(_G, "C_AddOns")
@@ -382,7 +432,7 @@ do
 		end
 	end
 	local api = MannersAPI
-	if api:SetModuleEnabled("combat", true) or states.Manners_Combat ~= 0 then
+	if api:SetModuleEnabled("combat", false) or states.Manners_Combat ~= 2 then
 		fail(scenario, "the module API changed addon state in combat")
 	end
 	Mock.inCombat = false
