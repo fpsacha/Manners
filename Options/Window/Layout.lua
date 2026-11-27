@@ -198,6 +198,10 @@ end
 local function CastItems()
 	local items, placed = { "who.choice" }, {}
 	for _, item in ipairs(OfferItems(placed)) do items[#items + 1] = item end
+	-- The model is built before the class probe; the controls hide themselves
+	-- from classes without Battle Shout.
+	items[#items + 1] = "who.shoutMelee"
+	items[#items + 1] = "who.shoutCombatInstances"
 	if not placed["who.skipCasters"] then items[#items + 1] = "who.skipCasters" end
 	if not placed["who.relevantOnly"] then items[#items + 1] = "who.relevantOnly" end
 	items[#items + 1] = { "who.autoNote", standIn = true }
