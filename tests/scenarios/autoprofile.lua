@@ -666,7 +666,6 @@ do
 		end
 		switchOn(ns)
 		ns.RepaintOptions()
-		Mock.runTimers(1)
 		for _, path in ipairs({ "profiles.auto_world", "profiles.auto_dungeon", "profiles.auto_raid", "profiles.auto_battle",
 			"profiles.autoSay" }) do
 			if not UI.RowShown(path) then fail(scenario, path .. " is not drawn with the switch on") end

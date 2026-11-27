@@ -2,6 +2,8 @@
 
 ## 1.12.6
 
+*27 November 2026*
+
 ### Highlights
 - **Battle Shout recipients.** Off by default, warriors can limit Battle Shout
   reminders to tanks and reliably identified melee players, with a separate

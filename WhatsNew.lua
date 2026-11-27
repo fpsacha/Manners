@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "1.12.6", date = nil, sections = {
+	{ version = "1.12.6", date = "27 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Battle Shout recipients.|r Off by default, warriors can limit Battle Shout reminders to tanks and reliably identified melee players, with a separate choice to show them only in combat inside dungeons and raids.",
 		} },

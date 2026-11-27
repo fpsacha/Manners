@@ -90,6 +90,20 @@ local function SpellIsOurs(spellId, buffKey, boundToPress)
 	if own then
 		return ns.OWN_BY_ID[spellId] == own or SpellNameFor(spellId) == ns.BuffName(own)
 	end
+	-- A cure comes from the Combat module, not BUFF_BY_ID. Match the kind of
+	-- cure the press parked to every rank of the learned spell for that kind.
+	if type(buffKey) == "string" and buffKey:sub(1, 5) == "cure:" and ns.CureFightKnown then
+		local list = ns.CureFightKnown()
+		for _, known in ipairs(list or {}) do
+			local cure = known.cure
+			if cure and cure.key == buffKey then
+				for _, rank in ipairs(cure.ranks or {}) do
+					if rank == spellId then return true end
+				end
+			end
+		end
+		return false
+	end
 	local buff = ns.FindBuff(caps.class, buffKey)
 	if not buff then return false end
 	return ns.BUFF_BY_ID[spellId] == buff

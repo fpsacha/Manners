@@ -65,6 +65,12 @@ mutate("Clicks.lua",
        "cures-self: the cure's key goes into the rotation pointer",
        expect="cures-self: a press settles as a cure on yourself", script=S)
 
+mutate("Clicks.lua",
+       "\tif type(buffKey) == \"string\" and buffKey:sub(1, 5) == \"cure:\" and ns.CureFightKnown then\n",
+       "\tif false and ns.CureFightKnown then\n",
+       "cures-self: the cast identity rejects a cure",
+       expect="cures-self: a press settles as a cure on yourself", script=S)
+
 mutate("Modules/Combat/Options.lua",
        "api:InsertLayoutItems(\"who\", \"who.resStrangers\", {\n"
        "\t\"who.curesNote\", \"who.cures\", \"who.curesStrangers\", \"who.curesSelf\",\n",
