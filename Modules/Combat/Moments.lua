@@ -115,6 +115,9 @@ for _, name in ipairs(TARGET_CAST) do ALL_EVENTS[#ALL_EVENTS + 1] = name end
 local slots, byId = {}, {}
 local header, ev, fader, anchor, anchorLabel
 local Priority, SELECTED_LEVEL = nil, 500
+-- The layer the preview is drawn on: over the options window it is opened from
+-- (the drag frame is on TOOLTIP, over this).
+local PREVIEW_STRATA = "FULLSCREEN_DIALOG"
 -- The sound a newly lit combat prompt plays, when its switch is on.
 local ALERT_SOUND = 888
 local dirtyRefresh, settledEnabled, settledCaps, settledOn = true, nil, nil, {}
@@ -122,6 +125,10 @@ local lastLearned
 -- What Wanted compares: the prompt's shape (Panel.lua's styleSerial) and the card size.
 local placedSerial, placedSize
 local previewing, previewSerial = false, 0
+-- The preview is the move (the settings put away for it, the bar over the
+-- prompt), not a look being tried; and whether the settings were open, to open
+-- them again on the Combat page when it ends.
+local moving, reopenOptions = false, false
 local fightEvents, peaceEvents = {}, {}
 local controlOn, ownCastOn, moveOn, fallOn = false, false, false, false
 -- Clocks kept for a spell no armed button of its own holds (Ice Block for Cold
@@ -1054,15 +1061,49 @@ local function Anchor()
 			ns.Guard("moments", Moments.EndPreview)
 		end
 	end)
-	anchorLabel = anchor:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	anchorLabel:SetPoint("BOTTOM", anchor, "TOP", 0, 4)
-	anchorLabel:SetText(L["Drag to move the combat prompt. Right-click when done."])
+	-- The bar over the prompt while it is moved: what it is, how to move it, and
+	-- the two ways out, on a plate of its own so it reads over anything.
+	anchorLabel = CreateFrame("Frame", "MannersCombatPromptMover", anchor)
+	anchorLabel:SetPoint("BOTTOM", anchor, "TOP", 0, 6)
+	anchorLabel:SetSize(300, 50)
+	local plate = anchorLabel:CreateTexture(nil, "BACKGROUND")
+	plate:SetAllPoints()
+	plate:SetColorTexture(0.05, 0.04, 0.03, 0.92)
+	local rim = anchorLabel:CreateTexture(nil, "BORDER")
+	rim:SetPoint("TOPLEFT", anchorLabel, "TOPLEFT", 0, 0)
+	rim:SetPoint("TOPRIGHT", anchorLabel, "TOPRIGHT", 0, 0)
+	rim:SetHeight(2)
+	rim:SetColorTexture(1, 0.82, 0, 0.9)
+	local title = anchorLabel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	title:SetPoint("TOPLEFT", anchorLabel, "TOPLEFT", 10, -8)
+	title:SetText(L["Combat prompt"])
+	local how = anchorLabel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	how:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+	how:SetText(L["Drag it to move it."])
+	local done = CreateFrame("Button", nil, anchorLabel, "UIPanelButtonTemplate")
+	done:SetSize(70, 22)
+	done:SetPoint("RIGHT", anchorLabel, "RIGHT", -8, 0)
+	done:SetText(L["Done"])
+	done:SetScript("OnClick", function() ns.Guard("moments", Moments.EndPreview) end)
+	local reset = CreateFrame("Button", nil, anchorLabel, "UIPanelButtonTemplate")
+	reset:SetSize(70, 22)
+	reset:SetPoint("RIGHT", done, "LEFT", -6, 0)
+	reset:SetText(L["Reset"])
+	reset:SetScript("OnClick", function()
+		ns.Guard("moments", function()
+			if Moments:ResetPosition() then Moments.Preview(true, true) end
+		end)
+	end)
+	anchorLabel.done, anchorLabel.reset = done, reset
 	anchorLabel:Hide()
 	return anchor
 end
 
 local function CombatStyle(p)
 	local db = Profile()
+	-- A look under the pointer in the options' gallery, for as long as it is there.
+	local tried = Moments.tried
+	if tried and ns.Looks and ns.Looks.Allowed()[tried] then return tried end
 	local look = db and db.moments and db.moments.look
 	if look ~= nil and look ~= "same" and ns.Looks and ns.Looks.Allowed()[look] then return look end
 	return p.style or "glass"
@@ -1077,7 +1118,8 @@ Place = function(p)
 	at:SetPoint("CENTER", R.button, "CENTER", tonumber(moments.promptX) or 0, tonumber(moments.promptY) or 0)
 	at:SetSize(W, H)
 	at:EnableMouse(previewing == true)
-	anchorLabel:SetShown(previewing == true)
+	-- The bar only while the prompt is being moved, not while a look is tried.
+	anchorLabel:SetShown(previewing == true and moving == true)
 	local placedN = 0
 	for n = 1, MAX do
 		local slot = slots[n]
@@ -1291,7 +1333,7 @@ end
 -- a fight ends (Release). Out of combat only.
 local function ClosePreview()
 	if not previewing then return end
-	previewing = false
+	previewing, moving = false, false
 	previewSerial = previewSerial + 1
 	if anchor then
 		anchor:EnableMouse(false)
@@ -1303,6 +1345,7 @@ local function ClosePreview()
 			Card.Tag(slot, false)
 			Card.Pulse(slot, false)
 		end
+		if slot and not InCombatLockdown() then slot.button:SetFrameStrata("MEDIUM") end
 	end
 end
 
@@ -1518,6 +1561,11 @@ function Moments.Previewing()
 	return previewing == true
 end
 
+-- The bar over the prompt while it is moved (made with the drag frame).
+function Moments.Mover()
+	return anchorLabel
+end
+
 -- One prompt example, marked and pulsing, with all other secure slots hidden.
 local function PreviewShow(group)
 	local selected
@@ -1540,6 +1588,8 @@ local function PreviewShow(group)
 			slot.cover:SetFrameLevel(shown and level + 10 or 0)
 			slot.routed, slot.routeLevel = shown, level
 			if shown then
+				-- Over the options window it was opened from, for as long as it is shown.
+				slot.button:SetFrameStrata(PREVIEW_STRATA)
 				slot.button:Show()
 				slot.inner:SetAlpha(1)
 				slot.face:SetAlpha(1)
@@ -1562,6 +1612,12 @@ local function EndPreview()
 	ClosePreview()
 	-- Every macro armed again, every card dark and out of sight, the drink judged.
 	Moments:Refresh()
+	-- The settings back where the move was started from.
+	if reopenOptions and ns.OpenOptions and not InCombatLockdown() then
+		reopenOptions = false
+		ns.Guard("options reopen", ns.OpenOptions, "combat")
+	end
+	reopenOptions = false
 	if ns.RefreshOptionsDisplay then ns.Guard("options repaint", ns.RefreshOptionsDisplay) end
 end
 Moments.EndPreview = EndPreview
@@ -1572,7 +1628,7 @@ Moments.EndPreview = EndPreview
 -- casts from it: every macro is taken off the buttons and every cover is up,
 -- whatever the mouse says. Out of a fight only; a fight that begins ends it
 -- before the lockdown (Take). `quiet`: a restyle showing it again says nothing.
-function Moments.Preview(quiet)
+function Moments.Preview(quiet, move)
 	if InCombatLockdown() or Sense.fighting then
 		if not quiet then Say(L["|cffff8080not during a fight|r -- the preview can be shown once it ends."]) end
 		return false
@@ -1587,6 +1643,15 @@ function Moments.Preview(quiet)
 	if not quiet then
 		Say(L["Showing the combat prompt. Drag it to move it, and right-click it or press Done moving when you are finished. Nothing casts from the preview."])
 	end
+	-- A move puts the settings away, so nothing covers the prompt, and the bar
+	-- over it says how to finish.
+	if move then
+		if ns.OptionsOpen and ns.OptionsOpen() then
+			reopenOptions = true
+			if ns.CloseOptions then ns.Guard("options close", ns.CloseOptions) end
+		end
+	end
+	moving = move == true
 	previewing = true
 	previewSerial = previewSerial + 1
 	local serial = previewSerial
@@ -1614,7 +1679,7 @@ function Moments.TogglePreview()
 		EndPreview()
 		return false
 	end
-	return Moments.Preview()
+	return Moments.Preview(nil, true)
 end
 
 -- A setting that changes how the prompt looks: applied at once, and shown on
@@ -1625,6 +1690,14 @@ function Moments.Restyle()
 	Moments:Refresh()
 	Moments.Preview(true)
 	return true
+end
+
+-- The options' gallery trying a look on the combat prompt (nil: the chosen one
+-- back). Shown on the preview, which comes up for it.
+function Moments.TryLook(key)
+	if InCombatLockdown() or Sense.fighting then return false end
+	Moments.tried = key
+	return Moments.Restyle()
 end
 
 -- The sound the combat prompt plays, once, so the switch is heard as it is set.
@@ -1697,6 +1770,11 @@ end
 -- listing the kinds in the bags at this moment; a flush never counts.
 function Moments:Take()
 	if InCombatLockdown() then return end
+	-- A look under the pointer in the options is not the one the fight wears.
+	if Moments.tried then
+		Moments.tried = nil
+		Moments:Refresh()
+	end
 	-- A fight starting in the middle of a preview: every macro is armed again and every
 	-- card dark before the lockdown, which would leave them as the preview left them.
 	if previewing then Moments:Refresh() end

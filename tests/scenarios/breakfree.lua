@@ -596,7 +596,7 @@ with("breakfree: a snooze of the prompt leaves it", function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 15
-with("breakfree: the switch is on In a fight and off by default", function(ns, scenario)
+with("breakfree: the switch is on the Combat page and off by default", function(ns, scenario)
 	-- Off out of the box since 1.12; the rest of this file switches it on.
 	if ns.defaults.profile.prompt.breakFree ~= false then fail(scenario, "not off out of the box") end
 	ns.db.profile.prompt.breakFree = true
@@ -605,11 +605,11 @@ with("breakfree: the switch is on In a fight and off by default", function(ns, s
 	if not (switch and key) then fail(scenario, "no switch or no key on Look") return end
 	if hidden(switch) or hidden(key) then fail(scenario, "hidden from a Forsaken who has it") end
 	if key.type ~= "keybinding" then fail(scenario, "its key is a " .. tostring(key.type)) end
-	-- In the buttons section of In a fight, the key indented under the switch.
+	-- In the Combat page's fight buttons, the key indented under the switch.
 	local found
 	local function walk(t)
 		if type(t) ~= "table" or found then return end
-		if t.key == "fight.buttons" and type(t.items) == "table" then found = t return end
+		if t.key == "combat.buttons" and type(t.items) == "table" then found = t return end
 		for _, v in pairs(t) do walk(v) end
 	end
 	walk(ns.WindowLayout)
@@ -618,7 +618,7 @@ with("breakfree: the switch is on In a fight and off by default", function(ns, s
 		if item == "appearance.breakFree" then hasSwitch = true end
 		if type(item) == "table" and item[1] == "appearance.breakFreeKey" and item.indent then hasKey = true end
 	end
-	if not (hasSwitch and hasKey) then fail(scenario, "not in the In a fight page's buttons section with its key under it") end
+	if not (hasSwitch and hasKey) then fail(scenario, "not in the Combat page's fight buttons with its key under it") end
 	if ns.WindowLayout.parents["appearance.breakFreeKey"] ~= "appearance.breakFree" then
 		fail(scenario, "search does not know the key's switch")
 	end

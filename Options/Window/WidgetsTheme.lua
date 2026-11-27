@@ -291,6 +291,13 @@ local function Restyle()
 	if ns.Prompt and not InCombatLockdown() then ns.Prompt:ApplyStyle() end
 end
 
+-- A control that tries a look on something other than the prompt (the combat
+-- prompt's gallery) says how in its own `tryLook(key)`; nil ends the trial.
+local function OwnTry(card)
+	local def = card.row and card.row.item and card.row.item.def
+	return def and type(def.tryLook) == "function" and def or nil
+end
+
 -- The chosen look back on the prompt (`redraw`: drawn now; a click about to
 -- choose another, or the game logging out, need not).
 local function EndTrial(redraw)
@@ -298,6 +305,10 @@ local function EndTrial(redraw)
 	if not t then return end
 	trial = nil
 	t.card.trying = false
+	if t.own then
+		t.own.tryLook(nil)
+		return
+	end
 	-- The table the look was tried on, which a profile switch since may have left.
 	local p = t.p
 	if p and p.style == t.key then p.style = t.was end
@@ -312,6 +323,15 @@ local function TrialEvent(_, event)
 end
 
 local function Try(card)
+	local own = OwnTry(card)
+	if own then
+		if not card.key or InCombatLockdown() or W.Off(card.row) then return end
+		EndTrial(false)
+		trial = { key = card.key, card = card, own = own }
+		card.trying = true
+		own.tryLook(card.key)
+		return
+	end
 	local p = PromptSettings()
 	if not (p and card.key) or InCombatLockdown() or W.Off(card.row) then return end
 	local had = trial ~= nil

@@ -66,11 +66,13 @@ local function shown(frame) return frame ~= nil and frame:IsShown() == true end
 
 -- ------------------------------------------------------------------ the page
 do
-	local scenario = "menupass-fight: everything about a fight is on In a fight"
+	local scenario = "menupass-fight: everything about a fight is on Combat"
 	with(scenario, nil, function(ns, UI)
+		-- With Manners: Combat on, every choice about a fight is on its page.
 		for _, path in ipairs(FIGHT) do
-			if UI.PageOf(path) ~= "fight" then
-				fail(scenario, path .. " is on " .. tostring(UI.PageOf(path)) .. ", not In a fight")
+			local want = "combat"
+			if UI.PageOf(path) ~= want then
+				fail(scenario, path .. " is on " .. tostring(UI.PageOf(path)) .. ", not " .. want)
 			end
 		end
 		local look = ns.WindowLayout.pages.appearance
@@ -86,11 +88,8 @@ do
 		if ns.OptionsPage.TAB.fight ~= ns.L["In a fight"] then
 			fail(scenario, "the page's name is " .. tostring(ns.OptionsPage.TAB.fight))
 		end
-		ns.OpenOptions("fight")
-		if ns.OptionsTab() ~= "fight" then fail(scenario, "OpenOptions(\"fight\") opened " .. tostring(ns.OptionsTab())) end
-		if ns.WindowLayout.pages.fight.title ~= ns.OptionsPage.TAB.fight then
-			fail(scenario, "the page's title is " .. tostring(ns.WindowLayout.pages.fight.title))
-		end
+		ns.OpenOptions("combat")
+		if (UI.visiblePages or {}).fight then fail(scenario, "In a fight stays in the sidebar with nothing on it") end
 	end)
 end
 
@@ -100,10 +99,10 @@ do
 	with(scenario, nil, function(ns, UI)
 		-- Off by default since 1.12: switched on first, then off.
 		ns.db.profile.prompt.breakFree = true
-		ns.OpenOptions("fight")
+		ns.OpenOptions("combat")
 		ns.RefreshOptionsDisplay()
 		if not UI.RowShown("appearance.breakFree") then
-			fail(scenario, "a Scourge priest's In a fight has no Will of the Forsaken row")
+			fail(scenario, "a Scourge priest's Combat page has no Will of the Forsaken row")
 			return
 		end
 		if not UI.RowShown("appearance.breakFreeKey") then fail(scenario, "its key row is not drawn while it is on") end
@@ -152,8 +151,8 @@ end
 do
 	local scenario = "menupass-fight: in combat the page says changes come after the fight"
 	with(scenario, nil, function(ns, UI)
-		ns.OpenOptions("fight")
-		local item = UI.Item(ns.WindowLayout.strip.combat.fight)
+		ns.OpenOptions("combat")
+		local item = UI.Item(ns.WindowLayout.strip.combat.combat)
 		if not item then fail(scenario, "In a fight has no combat line in the layout") return end
 		Mock.inCombat = true
 		ns.RefreshOptionsDisplay()
@@ -174,7 +173,7 @@ do
 	with(scenario, nil, function(ns, UI)
 		ns.OpenOptions("fight")
 		Mock.inCombat = true
-		for _, page in ipairs({ "fight", "quiet" }) do
+		for _, page in ipairs({ "combat", "quiet" }) do
 			local copy = UI.Item(ns.WindowLayout.strip.combat[page])
 			if not copy then
 				fail(scenario, page .. " has no combat line in the layout")
@@ -183,7 +182,7 @@ do
 			end
 		end
 		ns.CloseOptions()
-		for _, page in ipairs({ "fight", "quiet" }) do
+		for _, page in ipairs({ "combat", "quiet" }) do
 			local copy = UI.Item(ns.WindowLayout.strip.combat[page])
 			if copy and not UI.Hidden(copy) then fail(scenario, "with the window shut the dialog would show the line twice on " .. page) end
 		end
@@ -199,11 +198,11 @@ end
 do
 	local scenario = "menupass-fight: a Forsaken rogue with no prompt can reach the Will of the Forsaken switch"
 	with(scenario, { class = "ROGUE", race = "Scourge" }, function(ns, UI)
-		ns.OpenOptions("fight")
-		if not (UI.visiblePages or {}).fight then fail(scenario, "In a fight is not in the sidebar") end
+		ns.OpenOptions("combat")
+		if not (UI.visiblePages or {}).combat then fail(scenario, "Combat is not in the sidebar") end
 		if (UI.visiblePages or {}).appearance then fail(scenario, "Look is in the sidebar for a character with no prompt") end
 		if not UI.RowShown("appearance.breakFree") then fail(scenario, "the Will of the Forsaken switch is not shown") end
-		for _, path in ipairs({ "appearance.fightButtons", "appearance.fightRota" }) do
+		for _, path in ipairs({ "appearance.fightButtons" }) do
 			if UI.RowShown(path) then fail(scenario, path .. " is shown with no prompt") end
 		end
 		local lines = {}
@@ -217,8 +216,9 @@ do
 	local realDead = rawget(_G, "UnitIsDead")
 	rawset(_G, "UnitIsDead", function() return true end)
 	with(scenario, { class = "HUNTER", race = "Human", known = { [883] = true, [982] = true, [136] = true } }, function(ns, UI)
-		ns.OpenOptions("fight")
+		ns.OpenOptions("combat")
 		if not UI.RowShown("appearance.mendInFight") then fail(scenario, "the Mend Pet switch is not shown") end
+		ns.OpenOptions("fight")
 		-- Call, Revive and Mend Pet are on the prompt (Options/Shared.lua's HasPrompt
 		-- counts pet care since the retail hunter's window was found cut down), so
 		-- the fight's rota is a real choice for this hunter.

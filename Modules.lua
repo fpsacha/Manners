@@ -142,6 +142,10 @@ local COMBAT_KEYS = {
 	CAST_SCHOOLS = true, CAST_SCHOOLS_BY_CLIENT = true, Setup = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	OptionsPage = true, WindowLayout = true,
+	-- The combat prompt's move: the settings put away while it is moved, and
+	-- opened again on its page after; repainted as the preview starts and ends.
+	RefreshOptionsDisplay = true, OpenOptions = true, CloseOptions = true,
+	OptionsOpen = true, OptionsTab = true,
 	ContextDecision = true, ContextTarget = true,
 	ModuleActive = true,
 }

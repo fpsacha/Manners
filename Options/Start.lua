@@ -1536,24 +1536,24 @@ function Page.BuildStartTab()
 			},
 			modulesCombat = {
 				type = "toggle", name = L["Manners: Combat"], order = 68.2, width = "full",
-				desc = L["Cure, break-free and Mend Pet buttons in a fight."],
+				desc = L["One combat prompt for interrupts, defensives and other actions, and the cure, Will of the Forsaken and Mend Pet buttons."],
 				disabled = function() return not MannersAPI:CanToggleModule("combat") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("combat") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("combat", value == true) end end,
 			},
 			modulesCombatHelp = {
-				type = "description", name = L["Cure, break-free and Mend Pet buttons in a fight."],
+				type = "description", name = L["One combat prompt for interrupts, defensives and other actions, and the cure, Will of the Forsaken and Mend Pet buttons."],
 				order = 68.21,
 			},
 			modulesAchievements = {
 				type = "toggle", name = L["Manners: Achievements"], order = 68.3, width = "full",
-				desc = L["Manners achievements in a tab of the favour ledger."],
+				desc = L["Quiet achievements for good manners, with medals, points and ranks, on a page of their own."],
 				disabled = function() return not MannersAPI:CanToggleModule("achievements") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("achievements") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("achievements", value == true) end end,
 			},
 			modulesAchievementsHelp = {
-				type = "description", name = L["Manners achievements in a tab of the favour ledger."],
+				type = "description", name = L["Quiet achievements for good manners, with medals, points and ranks, on a page of their own."],
 				order = 68.31,
 			},
 			modulesPets = {

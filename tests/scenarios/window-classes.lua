@@ -84,7 +84,7 @@ local function unfold(ns, path)
 	ns.RefreshOptionsDisplay()
 end
 
-local ALL = "general who skip when click quiet fight appearance modules combat achievements self services profiles diagnostics"
+local ALL = "general who skip when click quiet appearance modules combat achievements self services profiles diagnostics"
 
 -- ------------------------------------------------------------ class table
 local TABLE = {
@@ -135,7 +135,7 @@ local TABLE = {
 	end },
 	-- A hunter and a rogue have What I say for the /thank alone (Options/Say.lua,
 	-- THANKS_ONLY): somebody buffing them is thanked like anybody.
-	{ "HUNTER", "general skip when click quiet fight appearance modules combat achievements pet self services profiles diagnostics", function(scenario, ns, UI)
+	{ "HUNTER", "general skip when click quiet appearance modules combat achievements pet self services profiles diagnostics", function(scenario, ns, UI)
 		ns.OpenOptions("general")
 		if UI.RowShown("general.quickWho") or not UI.RowShown("general.quickWhoSummary") then
 			fail(scenario, "a hunter's step 1 is not the own-buff sentence standing in")

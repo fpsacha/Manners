@@ -159,8 +159,20 @@ do
 			if ns.db.profile.moments.alert ~= "strong" or ns.db.profile.moments.alertSound ~= true then
 				fail(scenario, "combat alert settings were not kept")
 			end
+			local strata = {}
+			local liftedButton = ns.Moments:Button(ns.caps.moments.byKey[key].row.slot)
+			if liftedButton then
+				local realStrata = liftedButton.SetFrameStrata
+				liftedButton.SetFrameStrata = function(self, s, ...)
+					strata[#strata + 1] = s
+					if realStrata then return realStrata(self, s, ...) end
+				end
+			end
 			if not ns.Moments.Preview() or not ns.Moments.Anchor():IsMouseEnabled() then
 				fail(scenario, "the safe combat prompt preview could not be dragged")
+			end
+			if strata[#strata] ~= "FULLSCREEN_DIALOG" then
+				fail(scenario, "the preview is drawn under the options window: " .. tostring(strata[#strata]))
 			end
 			local move = H.findOption(ns.optionsTable, "combatActionMove")
 			if not move or move.name() ~= "Done moving" then
@@ -177,6 +189,9 @@ do
 			move.func()
 			if ns.Moments.Previewing() or move.name() ~= "Show and move the combat prompt" then
 				fail(scenario, "Done moving did not end the preview")
+			end
+			if strata[#strata] ~= "MEDIUM" then
+				fail(scenario, "the prompt stayed over every window after the preview: " .. tostring(strata[#strata]))
 			end
 			look.set(nil, "same")
 			if not ns.Moments.Previewing() then
@@ -201,6 +216,19 @@ do
 			for _, path in ipairs(reset or {}) do listed[path] = true end
 			if not (listed["moments." .. key] and listed["moments.look"]) or listed["moments.promptX"] then
 				fail(scenario, "Reset this page on Combat does not put back the actions and look, or moves the prompt")
+			end
+			local pages = ns.WindowLayout and ns.WindowLayout.pages or {}
+			local function onPage(page, path)
+				for _, section in ipairs(page and page.sections or {}) do
+					for _, item in ipairs(section.items or {}) do
+						if item == path or (type(item) == "table" and item[1] == path) then return true end
+					end
+				end
+			end
+			for _, path in ipairs({ "appearance.fightRota", "appearance.breakFree" }) do
+				if onPage(pages.fight, path) or not onPage(pages.combat, path) then
+					fail(scenario, path .. " is not on the Combat page alone")
+				end
 			end
 			ns.db.profile.moments[key] = false
 			ns.Moments:Refresh()
@@ -587,6 +615,61 @@ do
 			fail(scenario, "raid-wide fallback no longer reaches a low raid member")
 		end
 		for name, value in pairs(saved) do rawset(_G, name, value) end
+	end
+	Mock.reset()
+end
+
+do
+	scenario = "combat-actions: moving the prompt puts the settings away and brings them back"
+	Mock.reset()
+	Mock.setFlavour("camelot")
+	Mock.class = "WARRIOR"
+	Mock.knownSpells = { [6552] = true }
+	Mock.secureActions = true
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Guard("probe combat actions", ns.ProbeCapabilities)
+		local key = "combat-interrupt-pummel"
+		ns.db.profile.moments[key] = true
+		ns.Moments:Refresh()
+		ns.OpenOptions("combat")
+		local move = H.findOption(ns.optionsTable, "combatActionMove")
+		if not (move and ns.OptionsOpen()) then
+			fail(scenario, "SKIPPED -- no move button or no settings window")
+		else
+			move.func()
+			local bar = ns.Moments.Mover()
+			if not ns.Moments.Previewing() then fail(scenario, "the move did not show the prompt") end
+			if ns.OptionsOpen() then fail(scenario, "the settings stayed open over the prompt being moved") end
+			if not (bar and bar:IsShown()) then fail(scenario, "no bar says how to move the prompt and finish") end
+			if bar and bar.done then bar.done:GetScript("OnClick")(bar.done) end
+			if ns.Moments.Previewing() then fail(scenario, "Done on the bar did not finish the move") end
+			if not ns.OptionsOpen() or ns.OptionsTab() ~= "combat" then
+				fail(scenario, "the settings did not come back on the Combat page: " .. tostring(ns.OptionsTab()))
+			end
+			-- Trying a look from the gallery shows it on the combat prompt, without the bar.
+			local same = H.findOption(ns.optionsTable, "combatActionLookSame")
+			local look = H.findOption(ns.optionsTable, "combatActionLook")
+			if not (same and look and type(look.tryLook) == "function") then
+				fail(scenario, "the combat look has no gallery to try looks from")
+			else
+				same.set(nil, false)
+				look.tryLook("frost")
+				local slot = ns.Moments:Slot(ns.caps.moments.byKey[key].row.slot)
+				if not (ns.Moments.Previewing() and slot and slot.cardLook == "frost") then
+					fail(scenario, "a look under the pointer was not shown on the combat prompt")
+				end
+				if bar and bar:IsShown() then fail(scenario, "trying a look showed the move bar") end
+				if ns.db.profile.moments.look == "frost" then fail(scenario, "a look only tried was kept") end
+				look.tryLook(nil)
+				if slot and slot.cardLook == "frost" then fail(scenario, "the tried look stayed after the pointer left") end
+				same.set(nil, true)
+				if ns.db.profile.moments.look ~= "same" or not look.hidden() then
+					fail(scenario, "Wear the Manners prompt's look did not take the gallery's place")
+				end
+			end
+		end
 	end
 	Mock.reset()
 end

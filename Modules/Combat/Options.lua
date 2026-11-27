@@ -233,7 +233,7 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 			return L["Shows the combat prompt where it will appear. Drag it to move it, then press this button again or right-click the prompt. Nothing casts from the preview."]
 		end,
 		disabled = function() return InCombatLockdown() or not ns.Moments.AnyArmed() end,
-		hidden = Off,
+		hidden = function() return Off() or #Learned() == 0 end,
 		func = function() ns.Guard("move combat prompt", ns.Moments.TogglePreview) end,
 	}
 	args.combatActionReset = {
@@ -243,7 +243,7 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 			local m = ns.db.profile.moments
 			return InCombatLockdown() or (m.promptX == nil and m.promptY == nil)
 		end,
-		hidden = Off,
+		hidden = function() return Off() or #Learned() == 0 end,
 		func = function() ns.Guard("reset combat prompt place", ns.Moments.ResetPosition, ns.Moments) end,
 	}
 	local function SetEvery(value)
@@ -290,23 +290,45 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 			ns.Guard("combat action threshold", ns.Moments.Refresh, ns.Moments)
 		end,
 	}
+	local function SameLook() return ns.db.profile.moments.look == "same" end
+	args.combatActionLookSame = {
+		type = "toggle", name = L["Wear the Manners prompt's look"], order = 32.5034,
+		desc = L["The combat prompt looks like your normal Manners prompt. Turn this off to pick a look of its own below."],
+		width = "full", hidden = Off,
+		get = function() return SameLook() end,
+		set = function(_, value)
+			local m = ns.db.profile.moments
+			if value then
+				m.look = "same"
+			elseif SameLook() then
+				-- The gallery starts on the look it wore, so nothing jumps.
+				local style = ns.db.profile.prompt.style
+				m.look = type(style) == "string" and ns.Looks.Allowed()[style] and style or "glass"
+			end
+			Restyle()
+		end,
+	}
 	args.combatActionLook = {
 		type = "select", name = L["Combat prompt look"], order = 32.5035,
 		desc = L["Choose any Manners look for the combat prompt, or keep it the same as the normal prompt."],
 		values = CombatLooks(),
 		sorting = select(2, CombatLooks()),
 		width = "full",
-		hidden = Off,
+		hidden = function() return Off() or SameLook() end,
 		get = function()
 			local look = ns.db.profile.moments.look
-			if look == "same" then return "same" end
-			return type(look) == "string" and ns.Looks.Allowed()[look] and look or "same"
+			if look == "same" then return ns.db.profile.prompt.style end
+			return type(look) == "string" and ns.Looks.Allowed()[look] and look or ns.db.profile.prompt.style
 		end,
 		set = function(_, value)
 			ns.db.profile.moments.look =
 				type(value) == "string" and ns.Looks.Allowed()[value] and value or "same"
+			ns.Moments.tried = nil
 			Restyle()
 		end,
+		-- The gallery's cards try a look on the combat prompt under the pointer
+		-- (Options/Window/WidgetsTheme.lua, OwnTry), not on the Manners prompt.
+		tryLook = function(key) ns.Guard("combat prompt look", ns.Moments.TryLook, key) end,
 	}
 	args.combatActionSize = {
 		type = "range", name = L["Combat prompt size"], order = 32.5036,
@@ -387,14 +409,6 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		end
 	end
 	if Page.ForgetPageMap then Page.ForgetPageMap() end
-	args.combatActionLink = {
-		type = "description", order = 32.4994, width = "full",
-		hidden = Off,
-		name = function()
-			return L["Interrupts, defensives and the other actions the combat prompt offers are set on their own page: %s."]
-				:format(Page.RefTo(L["Actions to offer"], "appearance.combatActionAllOn"))
-		end,
-	}
 end)
 
 -- The Combat page, in the order it is set up: what it does and where it sits,
@@ -427,8 +441,34 @@ do
 		sections[#sections + 1] = { key = definition.key, title = definition.title, items = {}, home = true }
 		actions[#actions + 1] = definition.key
 	end
+	-- Everything In a fight held comes here, so every choice about a fight is on
+	-- one page (and In a fight, left with nothing, leaves the sidebar): what the
+	-- prompt does once a fight starts, first, and the buttons a fight brings up
+	-- beside it (Will of the Forsaken, the cure in a fight, Mend Pet, the ward).
+	do
+		local fight = ns.WindowLayout and ns.WindowLayout.pages and ns.WindowLayout.pages.fight
+		local moved = {}
+		for i = #(fight and fight.sections or {}), 1, -1 do
+			local section = fight.sections[i]
+			if section.key == "fight.prompt" or section.key == "fight.buttons" then
+				moved[section.key] = section.items
+				table.remove(fight.sections, i)
+			end
+		end
+		if moved["fight.prompt"] then
+			sections[#sections + 1] = { key = "combat.rota", title = L["The prompt in a fight"],
+				items = moved["fight.prompt"] }
+			actions[#actions + 1] = "combat.rota"
+		end
+		if moved["fight.buttons"] then
+			sections[#sections + 1] = { key = "combat.buttons", title = L["Fight buttons beside the prompt"],
+				items = moved["fight.buttons"] }
+			actions[#actions + 1] = "combat.buttons"
+		end
+	end
 	sections[#sections + 1] = { key = "combat.look", title = L["Look and alerts"], items = {
-		{ "appearance.combatActionLook", match = "combatPrompt" }, "appearance.combatActionSize",
+		"appearance.combatActionLookSame",
+		{ "appearance.combatActionLook", widget = "themes" }, "appearance.combatActionSize",
 		{ "appearance.combatActionAlert", match = "combatPrompt" }, "appearance.combatActionSound",
 	} }
 	sections[#sections + 1] = { key = "combat.thresholds", title = L["When an action is needed"], items = {
@@ -453,17 +493,17 @@ do
 				layout.simple.items[path] = true
 			end
 		end
+		-- In a fight, the page says its changes wait for the fight's end, as In a fight did.
+		if type(layout.strip) == "table" and type(layout.strip.combat) == "table" then
+			layout.strip.combat.combat = layout.strip.combat.fight
+			layout.strip.combat.fight = nil
+		end
 		if type(layout.units) == "table" then
 			layout.units["appearance.combatActionSize"] = { kind = "percent" }
 			layout.units["appearance.combatActionHealth"] = { kind = "percent" }
 			layout.units["appearance.combatActionResource"] = { kind = "percent" }
 		end
 	end
-	-- In a fight points at it, for whoever looks for interrupts there.
-	api:AddLayoutSection("fight", {
-		key = "fight.combat", title = L["Combat"],
-		items = { "appearance.combatActionLink" },
-	})
 end
 
 -- Reset this page on Combat: what it offers, its look and alerts, its
@@ -475,10 +515,15 @@ do
 		local list = {
 			"moments.health", "moments.mana", "moments.cardSize", "moments.look",
 			"moments.alert", "moments.alertSound",
+			-- What came here from In a fight: the rota and the fight's buttons.
+			"prompt.fightRota", "prompt.breakFree", "beast.fightMend", "prompt.cureFight",
+			"prompt.cureFightEach", "prompt.cureFightMods", "prompt.reactiveWards", "prompt.fightButtons",
 		}
 		for _, key in ipairs(ns.MOMENT_KEYS or {}) do list[#list + 1] = "moments." .. key end
 		list.keep = function() return not api:ModuleActive("combat") end
+		local fightAfter = reset.fight and reset.fight.after
 		list.after = function()
+			if fightAfter then fightAfter() end
 			if api:ModuleActive("combat") and ns.Moments then
 				ns.Guard("reset combat actions", ns.Moments.Refresh, ns.Moments)
 			end

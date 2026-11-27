@@ -599,7 +599,10 @@ do
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do
 				ns.OpenOptions(id)
-				if id == "pet" and ns.OptionsTab() ~= id then
+				if id == "fight" and ns.OptionsTab() ~= id then
+					-- With Manners: Combat on, everything In a fight held is on Combat.
+					if UI.visiblePages.fight then fail(scenario, "In a fight stays in the sidebar with nothing on it") end
+				elseif id == "pet" and ns.OptionsTab() ~= id then
 					-- Only a hunter has My pet: a mage's sidebar leaves it out.
 					if UI.visiblePages.pet then fail(scenario, "a mage's sidebar lists My pet") end
 				elseif ns.OptionsTab() ~= id then

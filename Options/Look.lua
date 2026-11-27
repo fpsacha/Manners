@@ -612,8 +612,13 @@ function Page.BuildLookTab()
 				order = 32.4905,
 				values = { needed = L["Only when needed"], always = L["All fight, dim until needed"] },
 				sorting = { "needed", "always" },
+				-- Shown only to a character one of those two buttons is for: a
+				-- greyed choice that can never apply is friction.
 				hidden = function()
-					return not ns.BreakFree and not ns.MendPet
+					if not ns.BreakFree and not ns.MendPet then return true end
+					local bf = ns.caps.breakFree ~= nil
+					local mp = ns.MendPet and ns.MendPet.KnowsMend and ns.MendPet.KnowsMend()
+					return not (bf or mp)
 				end,
 				disabled = function()
 					local bf = ns.caps.breakFree ~= nil and P().breakFree ~= false

@@ -250,12 +250,18 @@ it never rewrites a secure cast during lockdown. A need the client withholds is
 either read through a safe game-provided signal or left dark rather than
 guessed. Interrupts are immediate after a target-cast event even when the client
 withholds the interruptible flag; a plainly uninterruptible cast stays dark.
-The prompt's entire panel is clickable. Under *Look and alerts* you can give it
-any Manners Look, resize it, choose a quiet, pulse or strong-pulse alert and add
-a sound (heard once as you turn it on). *Show and move the combat prompt* keeps
-it on screen until you press *Done moving* or right-click it, and a look or size
-changed meanwhile shows on it at once. Its default position is the usual Manners
-prompt's position.
+The prompt's entire panel is clickable. Under *Look and alerts* it wears the
+Manners prompt's look (*Wear the Manners prompt's look*, on); untick that and a
+gallery of every look opens beneath, each one tried on the combat prompt as you
+point at it. You can resize it, choose a quiet, pulse or strong-pulse alert and
+add a sound (heard once as you turn it on). *Show and move the combat prompt*
+puts the options away and shows the prompt over everything with a small bar
+(*Reset*, *Done*); drag it, then *Done* or a right-click brings the options back.
+A look or size changed while it shows appears on it at once. Its default
+position is the usual Manners prompt's position. With Manners: Combat on, the
+round below, Will of the Forsaken, the cure in a fight and Mend Pet's button
+are set on this page too (*The prompt in a fight*, *Fight buttons beside the
+prompt*), and *In a fight* leaves the sidebar.
 
 The game locks the prompt for as long as a fight lasts: an addon may not
 change what a button casts then. So as a fight begins Manners hands the prompt
@@ -272,7 +278,7 @@ when the fight ends. Nobody is
 added to that list or taken off it before the fight ends, a skip cannot take
 somebody off it (chat says so), and names in the list cannot be clicked. *In a
 fight, each press moves on to the next person* (*In a fight*, on)
-switches the round off, and every press then casts at the one person the
+(*Combat* while Manners: Combat is on) switches the round off, and every press then casts at the one person the
 prompt was on. The Manners macro on an action bar keeps to that one person
 either way: the game does not let an addon rewrite a macro in a fight, nor a
 macro press a button that runs one, so in a fight the bar macro cannot move

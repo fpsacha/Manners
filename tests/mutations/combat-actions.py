@@ -52,8 +52,8 @@ mutate("Modules/Combat/Options.lua",
        expect="the status line does not count what is on", script=S)
 
 mutate("Modules/Combat/Options.lua",
-       '"moments.alert", "moments.alertSound",\n\t\t}',
-       '"moments.alert", "moments.alertSound", "moments.promptX",\n\t\t}',
+       '"moments.alert", "moments.alertSound",',
+       '"moments.alert", "moments.alertSound", "moments.promptX",',
        "combat actions: Reset this page on Combat moves the prompt",
        expect="Reset this page on Combat does not put back the actions and look, or moves the prompt", script=S)
 
@@ -143,8 +143,8 @@ mutate("Modules/Combat/MomentsCard.lua",
        expect=N + "a generated interrupt uses a plain target-cast signal without secure writes", script=S)
 
 mutate("Modules/Combat/Moments.lua",
-       "previewing = false",
-       "previewing = true",
+       "previewing, moving = false, false",
+       "previewing, moving = true, false",
        "combat actions: ending a preview leaves its drag frame over the prompt",
        expect="turning off the last action left the drag frame over the prompt", script=S)
 
@@ -154,3 +154,49 @@ mutate("Modules/Services/Courtesy.lua",
        "services: different recipients share and overwrite one service item icon",
        expect="courtesy: mists: one refreshment spell keeps each recipient's item icon",
        script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\t\t\t\tslot.button:SetFrameStrata(PREVIEW_STRATA)",
+       "\t\t\t\tlocal _ = PREVIEW_STRATA",
+       "combat actions: the preview is drawn under the options window",
+       expect="the preview is drawn under the options window", script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\t\tif slot and not InCombatLockdown() then slot.button:SetFrameStrata(\"MEDIUM\") end",
+       "",
+       "combat actions: the prompt stays over every window after the preview",
+       expect="the prompt stayed over every window after the preview", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\t\t\tif ns.CloseOptions then ns.Guard(\"options close\", ns.CloseOptions) end",
+       "",
+       "combat actions: the settings stay open over the prompt being moved",
+       expect="the settings stayed open over the prompt being moved", script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\t\tns.Guard(\"options reopen\", ns.OpenOptions, \"combat\")",
+       "",
+       "combat actions: the settings never come back after a move",
+       expect="the settings did not come back on the Combat page", script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\tif tried and ns.Looks and ns.Looks.Allowed()[tried] then return tried end",
+       "",
+       "combat actions: a look under the pointer is not shown on the combat prompt",
+       expect="a look under the pointer was not shown on the combat prompt", script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\tanchorLabel:SetShown(previewing == true and moving == true)",
+       "\tanchorLabel:SetShown(previewing == true)",
+       "combat actions: trying a look shows the move bar",
+       expect="trying a look showed the move bar", script=S)
+mutate("Modules/Combat/Options.lua",
+       "hidden = function() return Off() or SameLook() end,",
+       "hidden = Off,",
+       "combat actions: the look gallery shows while the Manners look is worn",
+       expect="Wear the Manners prompt's look did not take the gallery's place", script=S)
+
+mutate("Modules/Combat/Options.lua",
+       'if section.key == "fight.prompt" or section.key == "fight.buttons" then',
+       'if section.key == "fight.buttons" then',
+       "combat actions: the fight's rota stays alone on In a fight",
+       expect="appearance.fightRota is not on the Combat page alone", script=S)
