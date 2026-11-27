@@ -680,6 +680,10 @@ local function OnPostClick(self, mouseButton, down)
 		S.phraseArmed and ", with a line" or ""), S.current.name)
 	ns.pendingClick = { name = S.current.name, at = GetTime(),
 		buffKey = S.current.buff and S.current.buff.key,
+		-- An event withheld the spell id, and its target alone is not enough.
+		-- The cast can use this only while the client's own running-macro
+		-- answer binds it to the Manners bar press.
+		fromBar = S.isBar == true,
 		selfCast = S.armed ~= nil and S.armed.selfCast == true,
 		-- Whether the macro that ran carried the spoken line, for a refusal to
 		-- tell a press that thanked them from one that went out silent

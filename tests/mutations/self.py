@@ -176,7 +176,7 @@ mutate("Prompt/Press.lua",
 
 # Settled as a press on somebody else: the ledger writes a row under you.
 mutate("Clicks.lua",
-       "\tif pending.onSelf then return SettleSelf(pending, spellId, castGUID) end\n",
+       "\tif pending.onSelf then return SettleSelf(pending, spellId, castGUID, boundToPress) end\n",
        "",
        "self: press filed in the ledger",
        expect="the press wrote", script=S)
@@ -197,7 +197,7 @@ mutate("Favours.lua",
 
 # A different spell going out taken for your buff.
 mutate("Clicks.lua",
-       "\tif not SpellIsOurs(spellId, pending.buffKey) then\n\t\tlocal why = L[\"|cffffffff%s|r went out instead\"]:format(SpellLabel(spellId))\n\t\tSayStillOwed(pending.name, why)\n",
+       "\tif not SpellIsOurs(spellId, pending.buffKey, boundToPress) then\n\t\tlocal why = L[\"|cffffffff%s|r went out instead\"]:format(SpellLabel(spellId))\n\t\tSayStillOwed(pending.name, why)\n",
        "\tif false then\n\t\tlocal why = L[\"|cffffffff%s|r went out instead\"]:format(SpellLabel(spellId))\n\t\tSayStillOwed(pending.name, why)\n",
        "self: any spell counts as yours",
        expect="a Frostbolt was taken for your buff", script=S)

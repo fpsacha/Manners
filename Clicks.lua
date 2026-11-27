@@ -74,10 +74,12 @@ local function ShowOutcome(kind, name, detail, buffKey)
 end
 
 -- Did the id the game reported belong to the buff we armed? Every rank and the
--- raid-wide version count. nil (the client would not say) settles: one secret
--- value must not make every favour permanent.
-local function SpellIsOurs(spellId, buffKey)
-	if spellId == nil or not buffKey then return true end
+-- raid-wide version count. A withheld id identifies nothing: target and timing
+-- alone may be an unrelated cast. It is accepted only when the event is
+-- separately bound to a press of Manners' own running bar macro.
+local function SpellIsOurs(spellId, buffKey, boundToPress)
+	if spellId == nil then return boundToPress == true end
+	if not buffKey then return false end
 	-- One of your class's own (Buffs.lua, VANILLA_OWN): its ranks, or any
 	-- spell by the name the macro cast, since that is what the game picked
 	-- the rank by -- a rank the table lacks is still the press's own cast.
@@ -89,13 +91,13 @@ local function SpellIsOurs(spellId, buffKey)
 		return ns.OWN_BY_ID[spellId] == own or SpellNameFor(spellId) == ns.BuffName(own)
 	end
 	local buff = ns.FindBuff(caps.class, buffKey)
-	if not buff then return true end
+	if not buff then return false end
 	return ns.BUFF_BY_ID[spellId] == buff
 end
 
 -- A spell id as somebody reads it; the number where the client will not name it.
 local function SpellLabel(spellId)
-	return SpellNameFor(spellId) or tostring(spellId)
+	return SpellNameFor(spellId) or (type(spellId) == "number" and tostring(spellId)) or L["the spell"]
 end
 
 -- Nothing reached them, so what the click optimistically wrote is cut back:
@@ -446,9 +448,9 @@ end
 -- the debts and the requests are not told; the retry cooldown and the rotation
 -- pointer are. Kept for a late refusal like any settle, which backs you off as
 -- it would anybody.
-local function SettleSelf(pending, spellId, castGUID)
+local function SettleSelf(pending, spellId, castGUID, boundToPress)
 	ns.pendingClick = nil
-	if not SpellIsOurs(spellId, pending.buffKey) then
+	if not SpellIsOurs(spellId, pending.buffKey, boundToPress) then
 		local why = L["|cffffffff%s|r went out instead"]:format(SpellLabel(spellId))
 		SayStillOwed(pending.name, why)
 		RewindClick(pending)
@@ -606,7 +608,7 @@ do
 	end
 end
 
-local function SettlePendingClick(landedOn, spellId, castGUID)
+local function SettlePendingClick(landedOn, spellId, castGUID, boundToPress)
 	local pending = ns.pendingClick
 	if not pending then return end
 	-- No break-free test here: the break-free button's PreClick lets the
@@ -635,9 +637,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	local late = math.min(SETTLE_SECONDS, math.max(SENT_SECONDS, ns.SpellQueueWindow() + 0.1))
 	if GetTime() - pending.at > late then return end
 
-	if pending.onSelf then return SettleSelf(pending, spellId, castGUID) end
+	if pending.onSelf then return SettleSelf(pending, spellId, castGUID, boundToPress) end
 
-	local ours = SpellIsOurs(spellId, pending.buffKey)
+	local ours = SpellIsOurs(spellId, pending.buffKey, boundToPress)
 
 	-- `why` is the reason this favour is still owed, nil if it is not.
 	-- `inferred` is nil where the client itself named the person, otherwise
@@ -1114,7 +1116,11 @@ function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 	if ns.Prompt and ns.Prompt.SyncCooldown then
 		ns.Guard("cooldown sweep", ns.Prompt.SyncCooldown, ns.Prompt)
 	end
-	SettlePendingClick(plain(target), plain(spellId), plain(castGUID))
+	local running = type(_G.GetRunningMacro) == "function" and plain(_G.GetRunningMacro()) or nil
+	local macroIndex = ns.BarMacroIndex and ns.BarMacroIndex() or 0
+	local boundToPress = ns.pendingClick and ns.pendingClick.fromBar == true
+		and type(running) == "number" and macroIndex ~= 0 and running == macroIndex or false
+	SettlePendingClick(plain(target), plain(spellId), plain(castGUID), boundToPress)
 	-- The bar macro holds back for the last moments of the cooldown this cast
 	-- began (the click macro section, below).
 	if ns.NoteBarCooldown then ns.Guard("bar macro cooldown", ns.NoteBarCooldown) end
