@@ -77,6 +77,7 @@ local L = ns.L
 local Prompt = ns.Prompt
 local R, S, lib = Prompt.regions, Prompt.state, Prompt.lib
 local SetLine, EntryIcon = lib.SetLine, lib.EntryIcon
+local Layout = assert(ns.CombatLayout, "Manners Combat layout API is missing")
 local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 local plain = ns.plain
@@ -105,8 +106,6 @@ local STATE = "mannersbreakfree"
 -- How long the fade in and out takes.
 local FADE = 0.2
 local DRIVER = "[combat] fight; peace"
--- Between the prompt's right edge and this button: a mis-click casts it.
-local GAP = 10
 -- How long after a press of this button its spell going out is waited for.
 local SUCCEED_SECONDS = 1
 -- How long a loss of control the game would not name is taken as one, from the
@@ -404,13 +403,11 @@ end
 -- while the prompt is hidden.
 local function Place(p)
 	placedIcon, placedScale = p.iconSize, p.scale
-	local size = math.floor(math.max(24, math.min(48, tonumber(p.iconSize) or 30)) * (tonumber(p.scale) or 1) + 0.5)
+	local size = Layout.Size(p)
 	local key = tostring(size)
 	if key == placedKey then return end
 	placedKey = key
-	button:ClearAllPoints()
-	button:SetPoint("LEFT", R.button, "RIGHT", GAP, 0)
-	button:SetSize(size, size)
+	Layout.PlaceRight(button, R.button, p)
 end
 
 -- A press, by its key or a left click: in a fight too (an insecure PreClick

@@ -126,6 +126,7 @@ local COMBAT_KEYS = {
 	CuresRemembered = true, CureLines = true, ForgetCureRead = true,
 	CureSuspend = true,
 	BreakFree = true, MendPet = true, CureFight = true, CureNeed = true,
+	CombatLayout = true, ReactiveWards = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	OptionsPage = true, WindowLayout = true,
 	ContextDecision = true, ContextTarget = true,
@@ -133,6 +134,7 @@ local COMBAT_KEYS = {
 }
 local COMBAT_WRITES = {
 	BreakFree = true, MendPet = true, CureFight = true, CureNeed = true,
+	CombatLayout = true, ReactiveWards = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	CureFightKnown = true, ProbeCapabilities = true,
 	ClassHasCures = true, CureLearned = true, CureInfo = true,

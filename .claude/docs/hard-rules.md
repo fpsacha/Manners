@@ -88,6 +88,12 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   withholds is never compared or boolean-tested: a withheld debuff is passed
   over, and where the client withholds them (Forever, retail) with no list of
   what you can remove, only you and your target are read.
+  Reactive ward buttons (`Modules/Combat/Wards.lua`, Manners: Combat) pre-arm
+  a known Fire Ward and Frost Ward out of combat. They reveal one macro only
+  after `UNIT_COMBAT` supplies a plain player `DAMAGE` amount and an
+  unambiguous numeric fire or frost school mask. They never infer a school
+  from secrets, names or the combat log. On clients with secret combat values
+  the feature makes no runtime frame and no options control.
   Gone in 1.12, when Manners went back to its essentials: the fight key (*In a
   fight, my key casts*, `Prompt/FightKey.lua`), *Hide the prompt in a fight*
   (the hide snippet in `Prompt/Fight.lua`), *No flashes in a fight* and *Dim

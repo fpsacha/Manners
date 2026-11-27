@@ -9,10 +9,10 @@ Mock.reset()
 local ns = load(scenario, true)
 if ns then
 	drive(scenario, ns)
-	if ns.BreakFree or ns.MendPet or ns.CureFight or ns.CureNeed or ns.CureScan or ns.CureLines then
+	if ns.BreakFree or ns.MendPet or ns.CureFight or ns.ReactiveWards or ns.CureNeed or ns.CureScan or ns.CureLines then
 		fail(scenario, "the core loaded a Combat-owned object without the module")
 	end
-	for _, key in ipairs({ "cures", "curesStrangers", "curesSelf", "cureSeconds", "curesFight" }) do
+	for _, key in ipairs({ "cures", "curesStrangers", "curesSelf", "cureSeconds", "curesFight", "reactiveWards" }) do
 		if H.findOption(ns.optionsTable, key) then
 			fail(scenario, key .. " was built by the core without Manners: Combat")
 		end
@@ -26,12 +26,16 @@ if ns then
 		or ns.db.profile.beast.fightMend ~= false then
 		fail(scenario, "a Combat feature is on by default")
 	end
+	if ns.db.profile.prompt.reactiveWards ~= false then
+		fail(scenario, "reactive wards are on by default")
+	end
 
 	local module = loadModule(scenario, "Modules/Combat/Manners_Combat.toc")
 	local api = rawget(_G, "MannersAPI")
 	if not module then return end
 	if not (api and api:ModuleLoaded("combat")) then fail(scenario, "the module did not register") end
-	if not (ns.BreakFree and ns.MendPet and ns.CureFight and ns.CureNeed and ns.CureScan and ns.CureLines) then
+	if not (ns.BreakFree and ns.MendPet and ns.CureFight and ns.ReactiveWards
+		and ns.CureNeed and ns.CureScan and ns.CureLines) then
 		fail(scenario, "the module did not plug in all three buttons and the cure display")
 	end
 end

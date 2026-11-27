@@ -840,6 +840,9 @@ local defaults = {
 			-- A cure assigned to Plain, Shift or Ctrl by the Combat module.
 			-- Kept per class because profiles are shared by every character.
 			cureFightMods = {},
+			-- Fire Ward or Frost Ward after a plain school-damage read in a
+			-- fight, on a Combat-module secure button. Off by default.
+			reactiveWards = false,
 			-- The options window fading after a change on Look, so the prompt
 			-- shows behind it (Options/Window/Window.lua, PeekTarget). Off since
 			-- 1.11.20: players found it in the way.
@@ -6842,6 +6845,8 @@ function addon:TickBody()
 	if mendPet and mendPet:Wanted() then ns.Guard("mend pet", mendPet.Refresh, mendPet) end
 	local cureFight = ns.CureFight
 	if cureFight and cureFight:Wanted() then ns.Guard("cure in a fight", cureFight.Refresh, cureFight) end
+	local wards = ns.ReactiveWards
+	if wards and wards:Wanted() then ns.Guard("reactive wards", wards.Refresh, wards) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
@@ -7164,6 +7169,8 @@ function addon:PLAYER_REGEN_ENABLED()
 	if ns.MendPet then ns.Guard("mend pet release", ns.MendPet.Release, ns.MendPet) end
 	-- The cure button taken down and armed for the next fight (Prompt/CureFight.lua).
 	if ns.CureFight then ns.Guard("cure fight release", ns.CureFight.Release, ns.CureFight) end
+	-- The ward buttons taken down and armed for the next fight.
+	if ns.ReactiveWards then ns.Guard("reactive wards release", ns.ReactiveWards.Release, ns.ReactiveWards) end
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed

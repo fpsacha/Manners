@@ -251,9 +251,9 @@ mutate("Options/Start.lua",
 
 mutate("Options/Advanced.lua",
        "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\",\n"
-       "\t\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
+       "\t\"prompt.cureFightMods\", \"prompt.reactiveWards\", \"prompt.fightButtons\",\n",
        "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\",\n"
-       "\t\"prompt.cureFightMods\", \"prompt.fightButtons\",\n",
+       "\t\"prompt.cureFightMods\", \"prompt.reactiveWards\", \"prompt.fightButtons\",\n",
        "breakfree: In a fight's reset leaves the switch",
        expect="advanced: put these back to default on In a fight", script=S)
 

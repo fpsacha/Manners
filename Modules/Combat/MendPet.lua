@@ -30,6 +30,7 @@ local ns = assert(MannersAPI:ModuleContext("combat"), "Manners module API is mis
 local L = ns.L
 local Prompt = ns.Prompt
 local R = Prompt.regions
+local Layout = assert(ns.CombatLayout, "Manners Combat layout API is missing")
 local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 local plain = ns.plain
@@ -92,8 +93,6 @@ _G["BINDING_NAME_CLICK MannersMendPet:LeftButton"] = L["Mend Pet in a fight"]
 
 local STATE = "mannersmendpet"
 local DRIVER = "[combat] fight; peace"
--- Between the prompt's (or the break-free button's) right edge and this button.
-local GAP = 10
 -- How long after a press of this button its spell going out is waited for.
 local SUCCEED_SECONDS = 1
 -- A repaint after a health event waits this long; the last one is not lost.
@@ -222,16 +221,14 @@ end
 -- anchored to a frame (never a region: CLAUDE.md), the size of the prompt's icon.
 local function Place(p)
 	placedIcon, placedScale = p.iconSize, p.scale
-	local size = math.floor(math.max(24, math.min(48, tonumber(p.iconSize) or 30)) * (tonumber(p.scale) or 1) + 0.5)
+	local size = Layout.Size(p)
 	local bf = ns.BreakFree
 	local beside = bf and bf.Applies() and bf:Button() or nil
 	placedBeside = beside ~= nil
 	local key = size .. ":" .. tostring(placedBeside)
 	if key == placedKey then return end
 	placedKey = key
-	button:ClearAllPoints()
-	button:SetPoint("LEFT", beside or R.button, "RIGHT", GAP, 0)
-	button:SetSize(size, size)
+	Layout.PlaceRight(button, beside or R.button, p)
 end
 
 -- A press, by its key or a left click: in a fight too. The press the prompt
