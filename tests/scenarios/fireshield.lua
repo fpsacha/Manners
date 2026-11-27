@@ -337,6 +337,8 @@ do
 		if not ns.pendingClick then fail(scenario, "your own cast event was taken for the pet's") end
 		ns.PetCastLanded("pet", "Cast-2", 3110)
 		if not ns.pendingClick then fail(scenario, "the pet's Firebolt answered the press") end
+		ns.PetCastLanded("pet", "Cast-secret", Mock.SECRET)
+		if not ns.pendingClick then fail(scenario, "the pet's withheld spell id answered the press") end
 		ns.PetCastLanded("pet", "Cast-3", 11771)
 		if ns.pendingClick then fail(scenario, "the imp's Fire Shield did not answer the press") end
 	end)
