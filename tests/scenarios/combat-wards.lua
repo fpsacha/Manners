@@ -23,6 +23,7 @@ do
 	Mock.knownSpells = { [10225] = true, [28609] = true }
 	Mock.secureActions = true
 	local original = _G.C_UnitAuras
+	Mock.spellUsable = {}
 	local aura = nil
 	rawset(_G, "C_UnitAuras", setmetatable({
 		GetAuraDataByIndex = function(unit, index, filter)
@@ -67,6 +68,22 @@ do
 		if not shown(ns, "fire") or shown(ns, "frost") then
 			fail(scenario, "fire damage did not reveal Fire Ward alone")
 		end
+		Mock.spellUsable[10225] = { usable = Mock.SECRET, noMana = false }
+		Mock.frameEvent("UNIT_COMBAT", "player", "DAMAGE", "", 100, FIRE)
+		if shown(ns, "fire") then fail(scenario, "a secret usability answer revealed Fire Ward") end
+		Mock.spellUsable[10225] = { usable = false, noMana = true }
+		Mock.frameEvent("UNIT_COMBAT", "player", "DAMAGE", "", 100, FIRE)
+		if shown(ns, "fire") then fail(scenario, "insufficient mana revealed Fire Ward") end
+		Mock.spellUsable[10225] = { usable = false, noMana = false }
+		Mock.frameEvent("UNIT_COMBAT", "player", "DAMAGE", "", 100, FIRE)
+		if shown(ns, "fire") then fail(scenario, "an unusable Fire Ward was revealed") end
+		Mock.spellUsable[10225] = { usable = true, noMana = false }
+		Mock.spellCooldowns = { [10225] = { duration = 30 } }
+		Mock.frameEvent("UNIT_COMBAT", "player", "DAMAGE", "", 100, FIRE)
+		if shown(ns, "fire") then fail(scenario, "Fire Ward's cooldown revealed its button") end
+		Mock.spellCooldowns = nil
+		Mock.frameEvent("UNIT_COMBAT", "player", "DAMAGE", "", 100, FIRE)
+		if not shown(ns, "fire") then fail(scenario, "a ready Fire Ward did not reappear") end
 		Mock.frameEvent("UNIT_COMBAT", "player", "DAMAGE", "", 75, FROST)
 		if shown(ns, "fire") or not shown(ns, "frost") then
 			fail(scenario, "frost damage did not replace Fire Ward with Frost Ward")
@@ -112,25 +129,27 @@ do
 end
 
 do
-	local scenario = "combat-wards: secret UNIT_COMBAT clients do not fake school damage"
-	Mock.reset()
-	Mock.setFlavour("camelot")
-	Mock.class = "MAGE"
-	Mock.knownSpells = { [10225] = true, [28609] = true }
-	local ns = load(scenario)
-	if ns then
-		drive(scenario, ns)
-		ns.db.profile.prompt.reactiveWards = true
-		ns.ReactiveWards:Refresh()
-		if ns.ReactiveWards:Button("fire") or ns.ReactiveWards:Button("frost") then
-			fail(scenario, "a secret-restricted client made ward buttons")
+	for _, flavour in ipairs({ "camelot", "mainline" }) do
+		local scenario = "combat-wards: " .. flavour .. " does not fake secret school damage"
+		Mock.reset()
+		Mock.setFlavour(flavour)
+		Mock.class = "MAGE"
+		Mock.knownSpells = { [10225] = true, [28609] = true }
+		local ns = load(scenario)
+		if ns then
+			drive(scenario, ns)
+			ns.db.profile.prompt.reactiveWards = true
+			ns.ReactiveWards:Refresh()
+			if ns.ReactiveWards:Button("fire") or ns.ReactiveWards:Button("frost") then
+				fail(scenario, "a secret-restricted client made ward buttons")
+			end
+			local control = H.findOption(ns.optionsTable, "reactiveWards")
+			if not control or control.hidden() ~= true then
+				fail(scenario, "the unsupported client's options offered reactive wards")
+			end
 		end
-		local control = H.findOption(ns.optionsTable, "reactiveWards")
-		if not control or control.hidden() ~= true then
-			fail(scenario, "the unsupported client's options offered reactive wards")
-		end
+		Mock.reset()
 	end
-	Mock.reset()
 end
 
 do
