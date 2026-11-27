@@ -7,6 +7,23 @@
   reminders to tanks and reliably identified melee players, with a separate
   choice to show them only in combat inside dungeons and raids.
 
+### Fixes
+- **Own food remains authoritative.** A secret or refused meal-aura read no
+  longer lets a second food prompt interrupt an active meal.
+- **Failed service delivery stays pending.** A blocked healthstone or Soulstone
+  trade no longer consumes the request, and outside-instance service rules do
+  not fail open when the client's instance answer is unreadable.
+- **New requests replace stale ones.** A recognised request filtered during
+  combat clears the sender's older pending intent instead of leaving it to be
+  served later.
+- **Reactive wards must be castable.** A ward button appears only when the
+  matching spell is known, usable, funded and off cooldown.
+- **Module chooser and migration state are safer.** The one-time chooser belongs
+  to the profile that scheduled it, retries if it was not shown, and shared
+  profiles reconcile modules per character without overriding an explicit off.
+- **A press settles only its own cast.** A secret spell ID from an unrelated
+  cast can no longer clear a favour or consume a request.
+
 ## 1.12.5
 
 *27 November 2026*
