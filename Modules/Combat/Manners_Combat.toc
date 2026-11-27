@@ -2,7 +2,7 @@
 ## Title: Manners: Combat
 ## Notes: Optional in-fight ward, cure, break-free and Mend Pet buttons for Manners.
 ## Author: Sacha
-## Version: 1.12.4
+## Version: 1.12.5
 ## Dependencies: Manners
 ## DefaultState: disabled
 ## X-License: MIT

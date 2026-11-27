@@ -2,7 +2,7 @@
 ## Title: Manners: Achievements
 ## Notes: Optional quiet manners achievements for Manners.
 ## Author: Sacha
-## Version: 1.12.4
+## Version: 1.12.5
 ## Dependencies: Manners
 ## DefaultState: disabled
 ## SavedVariables: MannersAchievementsDB

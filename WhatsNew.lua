@@ -5,6 +5,28 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "1.12.5", date = "27 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Existing module choices are restored.|r Profiles from before optional modules enable the folders their saved My Buffs, Services or Combat settings need, once, without turning anything on for a new or intentionally-off profile.",
+			"|cffffd100Outline.|r A thirtieth look, a clean near-black prompt with a crisp black outline and a square spell socket, is now available under Look.",
+			"|cffffd100Reactive wards on classic clients.|r Classic Era and TBC can show a pre-armed Fire Ward or Frost Ward secure button after a concrete matching damage event.",
+		} },
+		{ title = "Changes", accent = "7cc4ff", entries = {
+			"|cff7cc4ffModule switches.|r An unloaded module can be enabled for the next reload during combat; a loaded module cannot be suspended while protected frames are locked.",
+			"|cff7cc4ffClass colours.|r Dark prompts use the game's exact class colours instead of lightened tints.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Will of the Forsaken for Sleep.|r The loss-of-control event's index is read and a briefly empty result is rechecked safely, while a plainly reported stun still does not spend the racial cooldown.",
+			"|cffff9a52Own buffs and services survive the split.|r Rogue poisons and stones, Druid self-buffs including Thorns, and saved Mage service requests are restored by enabling My Buffs or Services for existing profiles.",
+			"|cffff9a52Keyboard control in Settings.|r Closing or losing the options window now releases key capture, so WASD and Escape return to the game.",
+			"|cffff9a52Combat-module teardown.|r Delayed CureFight, Mend Pet and BreakFree callbacks stop after Combat is switched off or suspended.",
+			"|cffff9a52Favour settlement race.|r A delayed cast can no longer clear a newer favour that replaced the debt which the press originally answered.",
+			"|cffff9a52Withheld own-spell range.|r A secret range result is no longer treated as proof that an own spell cannot target the player.",
+		} },
+		{ title = "Reliability", accent = "7cc4ff", entries = {
+			"|cff7cc4ffPackage and test gates.|r A killed scenario worker, missing package job or dead TOC, XML or library reference now fails validation instead of passing a structural package.",
+		} },
+	} },
 	{ version = "1.12.4", date = "27 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Optional modules load cleanly.|r The binding XML and the reload action are fixed in a small hotfix for 1.12.3.",
@@ -55,17 +77,6 @@ ns.WhatsNew = {
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Tracking after a death.|r Find Minerals and the other trackings are reminded again after you die, even when the minimap still shows them on (thanks to aisenfaire).",
 			"|cffff9a52No imbue for a fishing pole.|r A shaman with a fishing pole in the main hand is no longer reminded of a weapon imbue (thanks to LT2138).",
-		} },
-	} },
-	{ version = "1.12.1", date = "24 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100No more achievements.|r The milestones, their toasts, the hall of fame and the ledger's titles are gone.",
-			"|cffffd100A truly simple Simple view.|r Just the essentials, about a tenth of the options, and on for everybody who never unticked it.",
-		} },
-		{ title = "Changes", accent = "7cc4ff", entries = {
-			"|cff7cc4ffBlessings in a dungeon.|r New checks of a paladin's party in a dungeon.",
-			"|cff7cc4ffThorns on your target.|r |cffffffffAlso offer Thorns to my target|r (Who to buff, under Offer to) offers it to whoever you target, whatever Offer to says (thanks to tcurse).",
-			"|cff7cc4ffQuieter chat.|r |cffffffffShow what Manners is doing in my chat window|r is now off by default, and |cffffffffSend Manners messages to|r (Start here) puts the lines in a chat tab of your own (thanks to YourSin).",
 		} },
 	} },
 }

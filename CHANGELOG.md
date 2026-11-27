@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.12.5
+
+*27 November 2026*
+
+### Highlights
+- **Existing module choices are restored.** Profiles from before optional
+  modules enable the folders their saved My Buffs, Services or Combat settings
+  need, once, without turning anything on for a new or intentionally-off profile.
+- **Outline.** A thirtieth look, a clean near-black prompt with a crisp black
+  outline and a square spell socket, is now available under Look.
+- **Reactive wards on classic clients.** Classic Era and TBC can show a
+  pre-armed Fire Ward or Frost Ward secure button after a concrete matching
+  damage event. The option is off by default; clients that withhold combat
+  values do not guess.
+
+### Changes
+- **Module switches.** An unloaded module can be enabled for the next reload
+  during combat; a loaded module cannot be suspended while protected frames
+  are locked.
+- **Class colours.** Dark prompts use the game's exact class colours instead of
+  lightened tints. A light-ground look still adjusts them only as needed to
+  keep the name readable.
+
+### Fixes
+- **Will of the Forsaken for Sleep.** The loss-of-control event's index is read
+  and a briefly empty result is rechecked safely, while a plainly reported
+  stun still does not spend the racial cooldown.
+- **Own buffs and services survive the split.** Rogue poisons and stones, Druid
+  self-buffs including Thorns, and saved Mage service requests are restored by
+  enabling My Buffs or Services for existing profiles.
+- **Keyboard control in Settings.** Closing or losing the options window now
+  releases key capture, so WASD and Escape return to the game.
+- **Combat-module teardown.** Delayed CureFight, Mend Pet and BreakFree
+  callbacks stop after Combat is switched off or suspended.
+- **Favour settlement race.** A delayed cast can no longer clear a newer favour
+  that replaced the debt which the press originally answered.
+- **Withheld own-spell range.** A secret range result is no longer treated as
+  proof that an own spell cannot target the player.
+
+### Reliability
+- **Package and test gates.** A killed scenario worker, missing package job or
+  dead TOC, XML or library reference now fails validation instead of passing a
+  structural package.
+
 ## 1.12.4
 
 *27 November 2026*
