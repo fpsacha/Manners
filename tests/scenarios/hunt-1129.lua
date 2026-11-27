@@ -47,7 +47,7 @@ local function ownWith(scenario, class, names, known, helpful, body)
 			IsSpellPassive = function() return false end,
 			IsSpellHelpful = function(id) return helpful[id] == true end,
 			IsSpellInRange = function(id, unit)
-				if unit == "player" and PET_ONLY[id] then return nil end
+				if unit == "player" and PET_ONLY[id] then return false end
 				return true
 			end,
 		}, { __index = baseSpell }))
@@ -108,6 +108,28 @@ do
 		Mock.printed = {}
 		cast(ns, SHIELD, "Rex")
 		if #(ns.db.char.ownSpells or {}) ~= 1 then fail(scenario, "judged by a cast at the pet") end
+	end)
+end
+
+do
+	local scenario = "hunt-1129: a withheld range to you does not prove a spell is pet-only"
+	local SHIELD = 6347
+	PET_ONLY = {}
+	ownWith(scenario, "WARLOCK", { [SHIELD] = "Soul Ward" }, { SHIELD }, { [SHIELD] = true }, function(ns)
+		Mock.unitNames = { pet = { "Rex" } }
+		addSpell(ns, "Soul Ward")
+		local spells = C_Spell
+		rawset(_G, "C_Spell", setmetatable({
+			IsSpellInRange = function(_, unit)
+				if unit == "player" then return Mock.SECRET end
+				return true
+			end,
+		}, { __index = spells }))
+		Mock.printed = {}
+		cast(ns, SHIELD, "Rex")
+		if #(ns.db.char.ownSpells or {}) ~= 1 then
+			fail(scenario, "judged after a range answer the client withheld")
+		end
 	end)
 end
 

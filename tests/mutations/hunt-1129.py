@@ -12,6 +12,12 @@ mutate("Modules/MyBuffs/OwnSpells.lua",
        expect="hunt-1129: a spell that can only land on the pet", script=S)
 
 mutate("Modules/MyBuffs/OwnSpells.lua",
+       "ns.plain(range(id, \"player\")) == false",
+       "ns.plain(range(id, \"player\")) == nil",
+       "hunt-1129: a withheld player range is a pet-only spell",
+       expect="hunt-1129: a withheld range to you does not prove", script=S)
+
+mutate("Modules/MyBuffs/OwnSpells.lua",
        "\t\t\te.name, e.seen = name, seen or nil\n\t\t\tout[#out + 1] = e\n",
        "\t\t\tout[#out + 1] = { id = e.id, name = name, seen = seen or nil }\n",
        "hunt-1129: the repair makes new entry tables",

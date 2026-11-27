@@ -413,11 +413,11 @@ do
 			and ns.plain(UnitCanAssist("player", "target")) == true
 			and (type(range) ~= "function" or ns.plain(range(id, "target")) ~= nil) or nil
 	end
-	-- Only a spell the client says cannot be cast on you (Mend Pet) is read from a
-	-- cast at the pet; one that can land on you waits for a cast on you.
+	-- Only a concrete "out of range" (a pet-only spell such as Mend Pet) is read
+	-- from a cast at the pet. A withheld answer says nothing about whose spell it was.
 	local function CannotTargetMe(id)
 		local range = C_Spell and C_Spell.IsSpellInRange
-		return type(range) == "function" and ns.plain(range(id, "player")) == nil
+		return type(range) == "function" and ns.plain(range(id, "player")) == false
 	end
 	local succeeded = addon.UNIT_SPELLCAST_SUCCEEDED
 	function addon:UNIT_SPELLCAST_SUCCEEDED(event, unit, castGUID, spellId, ...)
