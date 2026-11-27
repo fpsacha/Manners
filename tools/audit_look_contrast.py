@@ -43,7 +43,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 LOOKS = ["glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge",
          "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon",
-         "firemage", "priest", "rogue", "monk", "demonhunter", "evoker", "ghost", "hairline", "pill", "slate"]
+         "firemage", "priest", "rogue", "monk", "demonhunter", "evoker", "ghost", "hairline", "pill", "slate", "outline"]
 
 
 def open_grounds():

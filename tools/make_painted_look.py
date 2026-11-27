@@ -148,7 +148,8 @@ KEYCAP_STRIP = 6
 # The looks whose keycap is hidden unless the player shows it (Show my key on
 # the prompt, "As the look has it"): the classic and the minimal ones. A
 # meta.json may say otherwise with keycap_shown.
-KEYCAP_HIDDEN = {"glass", "framed", "toast", "arcane", "luxe", "minimal", "ghost", "hairline", "pill", "slate"}
+KEYCAP_HIDDEN = {"glass", "framed", "toast", "arcane", "luxe", "minimal", "ghost", "hairline", "pill", "slate",
+                 "outline"}
 # The round mask's side, in texels.
 MASK_PX = 128
 # The largest texture side written.

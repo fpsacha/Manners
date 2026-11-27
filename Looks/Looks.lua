@@ -284,7 +284,7 @@ local NATIVE = {
 Looks.CATEGORIES = { "minimal", "classic", "themed", "class" }
 Looks.CATEGORY_TITLE = { minimal = L["Minimal"], classic = L["Classic"], themed = L["Themed"], class = L["Class"] }
 local SHELVES = {
-	minimal = { "minimal", "ghost", "hairline", "pill", "slate", "luxe" },
+	minimal = { "minimal", "ghost", "hairline", "pill", "slate", "outline", "luxe" },
 	classic = { "glass", "framed", "toast", "arcane" },
 	themed = { "ribbon", "letter", "warchief", "gearworks" },
 	class = { "frost", "archmage", "firemage", "fel", "wild", "lightbringer", "stormcaller", "ebon", "leather",
@@ -305,7 +305,7 @@ Looks.FOR_CLASS = {
 -- New. Emptied when the next release begins.
 Looks.NEW = {
 	firemage = true, priest = true, rogue = true, monk = true, demonhunter = true, evoker = true,
-	ghost = true, hairline = true, pill = true, slate = true,
+	ghost = true, hairline = true, pill = true, slate = true, outline = true,
 }
 local CATEGORY, SHELF, RANK = {}, {}, {}
 for i, cat in ipairs(Looks.CATEGORIES) do

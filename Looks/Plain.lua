@@ -57,6 +57,7 @@ local PLAIN = {
 	{ key = "hairline", title = L["Hairline"], description = L["a framed icon and one fine line, no panel"], order = 1.4, category = "minimal" },
 	{ key = "pill", title = L["Pill"], description = L["a rounded pane, a pale rim"], order = 1.5, category = "minimal" },
 	{ key = "slate", title = L["Slate"], description = L["a dark pane in a steel edge"], order = 1.6, category = "minimal" },
+	{ key = "outline", title = L["Outline"], description = L["a clean dark bar in a black outline"], order = 1.7, category = "minimal" },
 }
 
 -- A fight: the text this dim, the icon greyed and this dim, the painting this
