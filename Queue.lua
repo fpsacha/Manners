@@ -883,11 +883,15 @@ do
 	end
 end
 
--- The debt is paid. Written through, so a reload cannot raise it again.
-function ns.SettleFavour(name)
-	if not name then return end
+-- The debt is paid. An expected record means the press that asked to clear it
+-- can only clear that exact debt; a newer favour replaced it in the meantime.
+function ns.SettleFavour(...)
+	local name, expected = ...
+	if not name then return false end
+	if select("#", ...) > 1 and owed[name] ~= expected then return false end
 	owed[name] = nil
 	SaveDebts()
+	return true
 end
 
 ---------------------------------------------------------------------------

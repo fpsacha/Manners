@@ -13,6 +13,7 @@ local Prompt = ns.Prompt
 local S, R, lib = Prompt.state, Prompt.regions, Prompt.lib
 local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
+local owed = ns.owed
 local NoteVerdicts, Retired, LightFuse = lib.NoteVerdicts, lib.Retired, lib.LightFuse
 
 -- When PreClick last took a press: one press delivers a down and an up, and
@@ -127,6 +128,25 @@ local function HoldLine(entry, verdicts)
 	if ns.FlyingCastFails() then return true end
 	return false
 end
+
+-- A cast can take a moment for the client to report. The debt that was on the
+-- prompt at press time is the only one this press may settle; a favour arriving
+-- before the answer must survive as a new, separate debt.
+local function SnapshotPressDebts(pending)
+	local debts = {}
+	local function remember(name)
+		if type(name) == "string" then debts[name] = owed[name] end
+	end
+	remember(pending.name)
+	if pending.group then
+		for _, name in ipairs(pending.group.members) do remember(name) end
+	end
+	for _, key in ipairs({ "shoutMembers", "wideMembers" }) do
+		for _, name in ipairs(pending[key] or {}) do remember(name) end
+	end
+	pending.debts = debts
+end
+
 -- For /manners selftest (Selftest.lua), which asks it of your target.
 ns.HoldLine = HoldLine
 -- For the bar macro's hold at the end of a cooldown (Clicks.lua).
@@ -737,6 +757,7 @@ local function OnPostClick(self, mouseButton, down)
 		end
 		ns.pendingClick.wideMembers = names
 	end
+	SnapshotPressDebts(ns.pendingClick)
 	-- Everybody the group cast covers waits out the same cooldown as the
 	-- person it is aimed at, or they come straight back as single offers
 	-- while their auras still read the buff as missing.
