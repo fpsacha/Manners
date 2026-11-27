@@ -274,3 +274,34 @@ for _, row in ipairs({ { "data", "wotfneed: a plain stun is read as one in the d
 		release(ns)
 	end, { shape = shape, nobody = true, people = {} })
 end
+
+-- ------------------------------------------------------------------ 13
+-- Forever can announce the loss before the active list has the type. Even
+-- when HasFullControl still says true at that instant, keep asking briefly:
+-- a later SLEEP read is the need, without waiting for another loss event.
+with("wotfneed: an empty first report rechecks until sleep is readable", function(ns, scenario)
+	pull(ns)
+	Mock.lossOfControl = {}
+	Mock.frameEvent("PLAYER_CONTROL_LOST")
+	Mock.frameEvent("LOSS_OF_CONTROL_ADDED", 1)
+	if lit(ns) then fail(scenario, "lit before anything named a breakable loss") end
+	Mock.lossOfControl = { { locType = "SLEEP", spellID = 700 } }
+	Mock.runTimers(1)
+	if not lit(ns) then fail(scenario, "did not find SLEEP on the bounded recheck") end
+	regain()
+	release(ns)
+end, { nobody = true, people = {}, control = true })
+
+-- ------------------------------------------------------------------ 14
+-- LOSS_OF_CONTROL_ADDED's argument is an event index, not a unit. Forever can
+-- make that record readable while the active count remains withheld.
+with("wotfneed: the added event index exposes sleep before the active count", function(ns, scenario)
+	pull(ns)
+	Mock.lossOfControl = { [7] = { locType = "SLEEP", spellID = 700 } }
+	Mock.lossOfControlCount = Mock.SECRET
+	Mock.frameEvent("LOSS_OF_CONTROL_ADDED", 7)
+	if not lit(ns) then fail(scenario, "did not read the SLEEP record at the event index") end
+	Mock.lossOfControlCount = nil
+	regain()
+	release(ns)
+end, { nobody = true, people = {} })

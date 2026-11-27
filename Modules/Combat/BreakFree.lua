@@ -46,16 +46,18 @@
 -- file name, the spell known), never asked per scan. Whether you need to: the
 -- loss of control the client reports (C_LossOfControl, in either of its two
 -- shapes), or UnitIsCharmed, read on the client's events and cached. A plain
--- read stays the authority (a plain stun with control lost is no reason). Where
--- the game withholds the answer (a secret type, record or count) or has no API
--- to ask, losing control of your character in the fight is the need itself:
--- PLAYER_CONTROL_LOST, or a LOSS_OF_CONTROL_ADDED whose type is secret, lights
--- it. That guess ends on PLAYER_CONTROL_GAINED, HasFullControl plainly true,
--- the fight's release, or UNSURE_SECONDS after the last such event where
--- HasFullControl cannot be read (GitHub issue 33). Whether it is ready: our
--- own press followed by the spell going out, else the client's own cooldown
--- where it is plain; unknown counts as ready, since a refused cast burns
--- nothing.
+-- read stays the authority (a plain stun with control lost is no reason). A
+-- LOSS_OF_CONTROL_ADDED event is first read at its numeric eventIndex: an
+-- empty list is retried for a bounded window, so a record published late
+-- (SLEEP, for example) can become readable without another event. Where the
+-- game withholds the answer (a secret type, record or count) or has no API to
+-- ask, losing control in the fight is the need itself. A plain empty report is
+-- never guessed from. The guess ends on PLAYER_CONTROL_GAINED, HasFullControl
+-- plainly true, the fight's release, or UNSURE_SECONDS after the last such
+-- event where HasFullControl cannot be read (GitHub issue 33). Whether it is
+-- ready: our own press followed by the spell going out, else the client's own
+-- cooldown where it is plain; unknown counts as ready, since a refused cast
+-- burns nothing.
 --
 -- A press here lets the prompt's waiting press go (the pending-click guard):
 -- pressed from habit while feared, the prompt files a press that never goes
@@ -128,7 +130,12 @@ local afflicted = false
 -- whose type was secret), and whether `afflicted` is that guess alone: the
 -- game withheld the type, or has no loss-of-control API, and control is gone.
 local lostAt
+-- The event index from LOSS_OF_CONTROL_ADDED can name a record before the
+-- active count says it is present. Keep it for the bounded rereads.
+local lossEventIndex
 local guessed = false
+-- Whether an empty or withheld read is still being retried in this window.
+local retrying = false
 -- The last loss of control seen: { kind, how, at }; `how` is plain, secret or
 -- no API.
 local lastLoss
@@ -207,10 +214,12 @@ end
 -- The loss of control the client reports, in whichever shape it has: the
 -- table form (GetActiveLossOfControlDataCount, GetActiveLossOfControlData) or
 -- the older one (GetNumEvents, GetEventInfo, whose first return is the type).
+-- The event index is tried before the sequential active list because Forever
+-- can publish it before the count catches up.
 -- Answers whether one is a type `row` breaks, the first type seen, and how it
 -- came. Called directly after type() checks (an event's path, under the
 -- frame's Guard): a secret is made plain, and plain secret is never a reason.
-local function ReadLoss(row)
+local function ReadLoss(row, eventIndex)
 	local api = _G.C_LossOfControl
 	if type(api) ~= "table" then return false, nil, "no API" end
 	local count, info
@@ -229,10 +238,8 @@ local function ReadLoss(row)
 	else
 		return false, nil, "no API"
 	end
-	if type(count) ~= "number" then return false, "?", "secret" end
 	local first, how
-	for i = 1, math.min(count, 8) do
-		local raw = info(i)
+	local function inspect(raw)
 		local kind = plain(raw)
 		if type(kind) == "string" then
 			if row.breaks[kind] then return true, kind, "plain" end
@@ -240,35 +247,55 @@ local function ReadLoss(row)
 		elseif type(raw) ~= "nil" then
 			first, how = first or "?", how or "secret"
 		end
+		return false
 	end
-	return false, first, how
+	local index = plain(eventIndex)
+	if type(index) == "number" and index >= 1 then
+		local hit, kind, readHow = inspect(info(index))
+		if hit then return hit, kind, readHow end
+	end
+	if type(count) ~= "number" then return false, first or "?", how or "secret" end
+	for i = 1, math.min(count, 8) do
+		if i ~= index then
+			local hit, kind, readHow = inspect(info(i))
+			if hit then return hit, kind, readHow end
+		end
+	end
+	return false, first, how or "empty"
 end
 
 -- Afflicted by something the row breaks: a loss of control of its types, or
 -- charmed by UnitIsCharmed alone (a charm the client reports nowhere else).
 -- Kept in `afflicted`; asked on the client's events, never per scan.
-local function Read()
+local function Read(eventIndex)
 	local info = Known()
 	if not info then
-		afflicted, guessed = false, false
+		afflicted, guessed, retrying = false, false, false
 		return nil, nil
 	end
-	local hit, kind, how = ReadLoss(info.row)
+	local hit, kind, how = ReadLoss(info.row, eventIndex)
 	if not hit and info.row.breaks.CHARM and plain(UnitIsCharmed("player")) == true then
 		hit = true
 	end
+	if how == "plain" then lostAt = nil end
 	-- A plain read stays the authority. Only where the game withholds the type
-	-- or has no API to ask, losing control of your character in the fight is
-	-- the need: until control is plainly back, or nothing says it ended for
-	-- UNSURE_SECONDS.
-	guessed = false
-	if not hit and lostAt and (how == "secret" or how == "no API") then
+	-- or has no populated API to ask yet, losing control of your character in
+	-- the fight is the need: until control is plainly back, a plain type says
+	-- otherwise, or nothing says it ended for UNSURE_SECONDS. A plainly true
+	-- HasFullControl does not light it, but the short window still rechecks in
+	-- case the loss event arrived before the API's record did.
+	guessed, retrying = false, false
+	if not hit and lostAt and (how == "secret" or how == "empty" or how == "no API") then
 		local full
 		if type(_G.HasFullControl) == "function" then full = plain(_G.HasFullControl()) end
-		if full == false or (full == nil and GetTime() - lostAt <= UNSURE_SECONDS) then
-			guessed = true
+		local age = GetTime() - lostAt
+		if age <= UNSURE_SECONDS then
+			retrying = true
 		else
 			lostAt = nil
+		end
+		if lostAt and how ~= "empty" and (full == false or full == nil) then
+			guessed = true
 		end
 	end
 	afflicted = hit == true or guessed
@@ -619,7 +646,7 @@ end
 function BreakFree:Release()
 	promptPainted, iconBefore, litShown = false, nil, false
 	-- A guess ends with the fight.
-	lostAt, guessed = nil, false
+	lostAt, lossEventIndex, guessed, retrying = nil, nil, false, false
 	Read()
 	dirty = true
 	self:Refresh()
@@ -686,9 +713,10 @@ local function Changed(was)
 		ns.Guard("break free", Prompt.Refresh, Prompt)
 	end
 	litShown = lit
-	-- Asked again each second while it lasts: an effect can end with no event
-	-- this client sends.
-	if afflicted and not recheckDue and C_Timer and C_Timer.After then
+	-- Asked again each second while it lasts, and for the short window after
+	-- an empty or withheld loss report: an effect can end with no event, and a
+	-- record can arrive after LOSS_OF_CONTROL_ADDED.
+	if (afflicted or retrying) and not recheckDue and C_Timer and C_Timer.After then
 		recheckDue = true
 		C_Timer.After(1, Recheck)
 	end
@@ -699,7 +727,7 @@ Recheck = function()
 	if not Active() then return end
 	ns.Guard("break free", function()
 		local was = afflicted
-		Read()
+		Read(lossEventIndex)
 		Changed(was)
 	end)
 end
@@ -743,17 +771,21 @@ local function OnEvent(event, unit, _, spellId)
 		return
 	end
 	if event == "PLAYER_CONTROL_LOST" then
-		lostAt = GetTime()
+		lostAt, lossEventIndex = GetTime(), nil
 	elseif event == "PLAYER_CONTROL_GAINED" then
-		lostAt = nil
+		lostAt, lossEventIndex, retrying = nil, nil, false
 	end
 	local was = afflicted
-	local kind, how = Read()
+	local index = event == "LOSS_OF_CONTROL_ADDED" and plain(unit) or nil
+	if type(index) == "number" then lossEventIndex = index end
+	local kind, how = Read(lossEventIndex)
 	-- A fresh report the game would not name starts the guess again, also while
-	-- one is running: a second fear inside the first guess.
-	if event == "LOSS_OF_CONTROL_ADDED" and how == "secret" and (not afflicted or guessed) then
+	-- one is running: a second fear inside the first guess. An empty report is
+	-- the same timing case; a plain STUN still ends the window without a guess.
+	if event == "LOSS_OF_CONTROL_ADDED" and (how == "secret" or how == "empty")
+		and (not afflicted or guessed) then
 		lostAt = GetTime()
-		kind, how = Read()
+		kind, how = Read(lossEventIndex)
 	end
 	if event == "LOSS_OF_CONTROL_ADDED" then
 		lastLoss = { kind = kind or "none", how = how or "plain", at = GetTime() }

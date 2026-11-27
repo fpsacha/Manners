@@ -86,6 +86,64 @@ do
 end
 
 do
+	local scenario = "modules migration: old active Combat switches load Combat"
+	Mock.reset()
+	Mock.sv.profile = {
+		optionalModulesMigrated = true,
+		prompt = { breakFree = true, cureFight = false, reactiveWards = false },
+		beast = { fightMend = false },
+	}
+	local realDB, realC = rawget(_G, "MannersDB"), rawget(_G, "C_AddOns")
+	rawset(_G, "MannersDB", { profiles = { Default = Mock.sv.profile } })
+	local states = { Manners_Combat = 0 }
+	rawset(_G, "C_AddOns", {
+		GetAddOnEnableState = function(folder) return states[folder] or 0 end,
+		EnableAddOn = function(folder) states[folder] = 2 end,
+		DisableAddOn = function(folder) states[folder] = 0 end,
+	})
+	local ns = load(scenario, true)
+	if not ns then
+		rawset(_G, "MannersDB", realDB)
+		rawset(_G, "C_AddOns", realC)
+		return
+	end
+	drive(scenario, ns)
+	if states.Manners_Combat ~= 2 or ns.db.profile.optionalCombatMigrated ~= true then
+		fail(scenario, "the old active Combat profile was not migrated and marked")
+	end
+	if ns.db.profile.prompt.breakFree ~= true then
+		fail(scenario, "the saved Combat switch changed during migration")
+	end
+	rawset(_G, "MannersDB", realDB)
+	rawset(_G, "C_AddOns", realC)
+end
+
+do
+	local scenario = "modules migration: any active legacy Combat-only switch loads Combat"
+	for _, profile in ipairs({
+		{ prompt = { cureFight = true }, beast = { fightMend = false } },
+		{ prompt = { cureFight = false, reactiveWards = true }, beast = { fightMend = false } },
+		{ prompt = { cureFight = false }, beast = { fightMend = true } },
+	}) do
+		Mock.reset()
+		Mock.sv.profile = profile
+		local realDB, realC = rawget(_G, "MannersDB"), rawget(_G, "C_AddOns")
+		rawset(_G, "MannersDB", { profiles = { Default = Mock.sv.profile } })
+		local states = { Manners_Combat = 0 }
+		rawset(_G, "C_AddOns", {
+			GetAddOnEnableState = function(folder) return states[folder] or 0 end,
+			EnableAddOn = function(folder) states[folder] = 2 end,
+			DisableAddOn = function(folder) states[folder] = 0 end,
+		})
+		local ns = load(scenario, true)
+		if ns then drive(scenario, ns) end
+		if states.Manners_Combat ~= 2 then fail(scenario, "an active Combat switch stayed disabled") end
+		rawset(_G, "MannersDB", realDB)
+		rawset(_G, "C_AddOns", realC)
+	end
+end
+
+do
 	local scenario = "modules migration #62: old active consumable choices load My Buffs"
 	Mock.reset()
 	Mock.class = "ROGUE"
@@ -141,14 +199,14 @@ do
 		return
 	end
 	drive(scenario, ns)
-	if states.Manners_MyBuffs or states.Manners_Services then
+	if states.Manners_MyBuffs or states.Manners_Services or states.Manners_Combat then
 		fail(scenario, "a new profile enabled an optional folder")
 	end
 	Mock.sv.profile.optionalModulesMigrated = nil
 	Mock.sv.profile.sources.self = false
 	rawset(_G, "MannersDB", { profiles = { Default = Mock.sv.profile } })
 	MannersAPI:MigrateOptionalModules(true)
-	if states.Manners_MyBuffs or states.Manners_Services then
+	if states.Manners_MyBuffs or states.Manners_Services or states.Manners_Combat then
 		fail(scenario, "an intentional off profile was enabled")
 	end
 	if ns.db.profile.optionalModulesMigrated ~= true then

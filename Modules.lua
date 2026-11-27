@@ -491,6 +491,14 @@ local function LegacyMyBuffsActive(profile)
 	return type(sources) == "table" and sources.self == true
 end
 
+local function LegacyCombatActive(profile)
+	local prompt = type(profile) == "table" and profile.prompt or nil
+	local beast = type(profile) == "table" and profile.beast or nil
+	return type(prompt) == "table" and (prompt.breakFree == true or prompt.cureFight == true
+			or prompt.reactiveWards == true)
+		or type(beast) == "table" and beast.fightMend == true
+end
+
 local function LegacyServicesActive(profile)
 	local sources = type(profile) == "table" and profile.sources or nil
 	if sources and sources.courtesyTarget == true then return true end
@@ -518,9 +526,9 @@ end
 -- explicit marker so a later intentional disable is never undone.
 function api:MigrateOptionalModules(legacyProfile)
 	local profile = api:GetProfile()
-	if type(profile) ~= "table" or profile.optionalModulesMigrated == true then return false end
+	if type(profile) ~= "table" then return false end
 	local changed = false
-	if legacyProfile == true then
+	if legacyProfile == true and profile.optionalModulesMigrated ~= true then
 		if LegacyMyBuffsActive(profile) then
 			changed = api:SetModuleEnabled("mybuffs", true) or changed
 		end
@@ -528,7 +536,13 @@ function api:MigrateOptionalModules(legacyProfile)
 			changed = api:SetModuleEnabled("services", true) or changed
 		end
 	end
-	profile.optionalModulesMigrated = true
+	if legacyProfile == true and profile.optionalCombatMigrated ~= true then
+		if LegacyCombatActive(profile) then
+			changed = api:SetModuleEnabled("combat", true) or changed
+		end
+		profile.optionalCombatMigrated = true
+	end
+	if profile.optionalModulesMigrated ~= true then profile.optionalModulesMigrated = true end
 	return changed
 end
 

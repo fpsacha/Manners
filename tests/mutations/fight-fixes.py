@@ -10,8 +10,8 @@ P = "fight-fix: "
 # --- 1. a second secret loss of control inside the guess starts it again
 
 mutate(BF,
-       '\tif event == "LOSS_OF_CONTROL_ADDED" and how == "secret" and (not afflicted or guessed) then\n',
-       '\tif event == "LOSS_OF_CONTROL_ADDED" and how == "secret" and not afflicted then\n',
+       '\tif event == "LOSS_OF_CONTROL_ADDED" and (how == "secret" or how == "empty")\n\t\tand (not afflicted or guessed) then\n',
+       '\tif event == "LOSS_OF_CONTROL_ADDED" and (how == "secret" or how == "empty")\n\t\tand not afflicted then\n',
        "fight-fix: a second secret fear inside the guess does not start it again",
        expect=P + "a second secret fear inside the guess keeps break free lit ten seconds from it", script=S)
 
