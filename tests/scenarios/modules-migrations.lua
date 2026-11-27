@@ -719,7 +719,7 @@ do
 	Mock.frameEvent("PLAYER_ENTERING_WORLD", true, false)
 	Mock.runTimers(1)
 	Mock.runTimers(2)
-	if opened ~= 1 or not ns.db.profile.moduleWelcome1125 or not MannersAPI:ModuleWelcomeOpen() then
+	if opened ~= 1 or ns.db.profile.moduleWelcome1125 ~= true or not MannersAPI:ModuleWelcomeOpen() then
 		fail(scenario, ("chooser open %s, marker %s, visible %s")
 			:format(tostring(opened), tostring(ns.db.profile.moduleWelcome1125), tostring(MannersAPI:ModuleWelcomeOpen())))
 	end
@@ -731,4 +731,153 @@ do
 	ns.OpenOptions = oldOpen
 	ns.db.profile.moduleWelcome1125 = marker
 	Mock.reset()
+end
+
+do
+	local scenario = "modules: chooser is marked only when actually presented"
+	Mock.reset()
+	local ns = load(scenario)
+	if not ns then return end
+	drive(scenario, ns)
+	local opened = 0
+	local oldOpen = ns.OpenOptions
+	ns.OpenOptions = function(page, quiet)
+		if page ~= "modules" or quiet ~= true then fail(scenario, "wrong chooser arguments") end
+		opened = opened + 1
+	end
+	Mock.frameEvent("PLAYER_ENTERING_WORLD", true, false)
+	if ns.db.profile.moduleWelcome1125 == true or MannersAPI:ModuleWelcomeOpen() then
+		fail(scenario, "the one-second delay consumed the notice before presenting it")
+	end
+	Mock.inCombat = true
+	Mock.runTimers(1)
+	if ns.db.profile.moduleWelcome1125 == true or MannersAPI:ModuleWelcomeOpen() or opened ~= 0 then
+		fail(scenario, "combat consumed the chooser")
+	end
+	Mock.inCombat = false
+	Mock.frameEvent("PLAYER_REGEN_ENABLED")
+	if opened ~= 1 or ns.db.profile.moduleWelcome1125 ~= true or not MannersAPI:ModuleWelcomeOpen() then
+		fail(scenario, "leaving combat did not present the outstanding chooser")
+	end
+	MannersAPI:DismissModuleWelcome()
+	ns.OpenOptions = oldOpen
+	Mock.reset()
+end
+
+do
+	local scenario = "modules: chooser retries when the delayed window cannot present"
+	Mock.reset()
+	local ns = load(scenario)
+	if not ns then return end
+	drive(scenario, ns)
+	local opened, oldOpen = 0, ns.OpenOptions
+	Mock.frameEvent("PLAYER_ENTERING_WORLD", true, false)
+	ns.OpenOptions = nil
+	Mock.runTimers(1)
+	if ns.db.profile.moduleWelcome1125 == true or MannersAPI:ModuleWelcomeOpen() then
+		fail(scenario, "an unavailable window consumed the chooser")
+	end
+	ns.OpenOptions = function() opened = opened + 1 end
+	Mock.frameEvent("PLAYER_REGEN_ENABLED")
+	if opened ~= 1 or ns.db.profile.moduleWelcome1125 ~= true then
+		fail(scenario, "the chooser did not retry the unpresented notice")
+	end
+	MannersAPI:DismissModuleWelcome()
+	ns.OpenOptions = oldOpen
+	Mock.reset()
+end
+
+do
+	local scenario = "modules: chooser callback stays bound to its profile"
+	Mock.reset()
+	local ns = load(scenario)
+	if not ns then return end
+	drive(scenario, ns)
+	local first, opened = ns.db.profile, 0
+	local oldOpen = ns.OpenOptions
+	ns.OpenOptions = function(page)
+		if page ~= "modules" then fail(scenario, "wrong chooser page") end
+		opened = opened + 1
+	end
+	Mock.frameEvent("PLAYER_ENTERING_WORLD", true, false)
+	ns.db:SetProfile("Alt")
+	local second = ns.db.profile
+	Mock.runTimers(2)
+	if opened ~= 1 or second.moduleWelcome1125 ~= true or first.moduleWelcome1125 == true then
+		fail(scenario, "the delayed chooser presented or marked the wrong profile")
+	end
+	if not MannersAPI:DismissModuleWelcome() or MannersAPI:ModuleWelcomeOpen() then
+		fail(scenario, "the presented profile did not dismiss its chooser")
+	end
+	ns.OpenOptions = oldOpen
+	Mock.reset()
+end
+
+do
+	local scenario = "modules migration: a shared profile migrates each character once"
+	Mock.reset()
+	Mock.playerName = { "Alice", "Mockrealm" }
+	Mock.sv.profile = {
+		optionalModulesMigrated = true,
+		optionalCombatMigrated = true,
+		sources = { self = true, asked = true, courtesyRefresh = true },
+		prompt = { breakFree = true },
+	}
+	local realDB, realC = rawget(_G, "MannersDB"), rawget(_G, "C_AddOns")
+	rawset(_G, "MannersDB", { profiles = { Default = Mock.sv.profile } })
+	local enabled, calls = {}, 0
+	rawset(_G, "C_AddOns", {
+		GetAddOnEnableState = function(folder, character)
+			return enabled[character .. ":" .. folder] == true and 2 or 0
+		end,
+		EnableAddOn = function(folder, character)
+			calls = calls + 1
+			enabled[character .. ":" .. folder] = true
+		end,
+		DisableAddOn = function(folder, character)
+			enabled[character .. ":" .. folder] = nil
+		end,
+	})
+	local ns = load(scenario, true)
+	if not ns then
+		rawset(_G, "MannersDB", realDB)
+		rawset(_G, "C_AddOns", realC)
+		return
+	end
+	drive(scenario, ns)
+	local firstCalls = calls
+	Mock.playerName = { "Beth", "Mockrealm" }
+	MannersAPI:MigrateOptionalModules(true)
+	if calls ~= firstCalls + 3 then
+		fail(scenario, "the second character did not migrate every required folder")
+	end
+	enabled["Beth:Manners_MyBuffs"] = nil
+	MannersAPI:MigrateOptionalModules(true)
+	if calls ~= firstCalls + 3 then
+		fail(scenario, "an intentional per-character disable was enabled again")
+	end
+	rawset(_G, "MannersDB", realDB)
+	rawset(_G, "C_AddOns", realC)
+	Mock.reset()
+end
+
+do
+	local scenario = "modules migration: marker-only profile state still counts as unvisited"
+	Mock.reset()
+	local ns = load(scenario)
+	if not ns then return end
+	drive(scenario, ns)
+	ns.db.keys = { char = "Alice - Mockrealm" }
+	ns.db.sv.profiles = {
+		["Alice - Mockrealm"] = {
+			optionalModulesMigrated = true,
+			optionalCombatMigrated = true,
+			optionalModulesMigratedCharacters = { ["Alice - Mockrealm"] = true },
+			optionalCombatMigratedCharacters = { ["Alice - Mockrealm"] = true },
+		},
+	}
+	ns.db.sv.profileKeys = {}
+	if ns.Setup.OwnProfileExists() then
+		fail(scenario, "migration-only profile state made the character profile count as real")
+	end
 end

@@ -273,8 +273,12 @@ local function OnlyVisited(own)
 			for k, v in pairs(value) do
 				if not (k == "carried" and v == true) then return false end
 			end
+		elseif (key == "optionalModulesMigratedCharacters"
+				or key == "optionalCombatMigratedCharacters") and type(value) == "table" then
+			for _, done in pairs(value) do if done ~= true then return false end end
 		elseif not ((key == "firstRun" and (value == "pending" or value == "existing"))
 			or key == "optionalModulesMigrated" and value == true
+			or key == "optionalCombatMigrated" and value == true
 			or key == "moduleWelcome1125" and value == true) then
 			return false
 		end
