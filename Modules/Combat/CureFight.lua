@@ -197,6 +197,10 @@ local function Profile()
 	return ns.db and ns.db.profile
 end
 
+local function Active()
+	return ns.ModuleActive and ns.ModuleActive("combat") == true
+end
+
 local function Secret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
 end
@@ -522,7 +526,10 @@ local function Schedule()
 	local timer = _G.C_Timer
 	if type(timer) ~= "table" or type(timer.After) ~= "function" then return end
 	flushDue = true
-	timer.After(FLUSH, function() ns.Guard("cure in a fight", Flush) end)
+	timer.After(FLUSH, function()
+		flushDue = false
+		if Active() then ns.Guard("cure in a fight", Flush) end
+	end)
 end
 
 local function Recheck()
@@ -532,8 +539,10 @@ local function Recheck()
 	recheckDue = true
 	timer.After(RECHECK, function()
 		recheckDue = false
-		slots[1].paintedKey, slots[2].paintedKey = nil, nil
-		ns.Guard("cure in a fight", Paint)
+		if Active() then
+			slots[1].paintedKey, slots[2].paintedKey = nil, nil
+			ns.Guard("cure in a fight", Paint)
+		end
 	end)
 end
 
