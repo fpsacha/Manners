@@ -31,7 +31,7 @@ end
 -- name, his level, whether he is mounted, and which items were counted.
 local world
 local TOUCHED = { "C_Item", "C_Spell", "C_UnitAuras", "UnitLevel", "IsMounted", "IsSpellKnown", "IsPlayerSpell",
-	"IsResting" }
+	"IsResting", "issecretvalue" }
 
 local function install(ns)
 	rawset(_G, "C_Spell", nil)
@@ -64,7 +64,9 @@ local function install(ns)
 	rawset(_G, "C_UnitAuras", setmetatable({
 		GetAuraDataBySpellName = function(unit, name)
 			if unit ~= "player" then return nil end
-			if world.refuse then return Mock.SECRET end
+			if world.refuse then return world.secret end
+			if name ~= FED_NAME and world.refuseMeal then return world.secret end
+			if name ~= FED_NAME and world.throwMeal then error("meal aura read refused") end
 			local expires = world.auras[name]
 			if expires == nil then return nil end
 			return { name = name, expirationTime = expires, sourceUnit = "player" }
@@ -79,9 +81,14 @@ local function with(scenario, opts, body)
 	Mock.setFlavour(opts.flavour or "camelot")
 	Mock.class = opts.class or "WARRIOR"
 	world = { bags = opts.bags or {}, level = opts.level or 60, auras = opts.auras or {}, counted = {},
-		mounted = false, meals = {}, fed = nil, refuse = false }
+		mounted = false, meals = {}, fed = nil, refuse = false, refuseMeal = false, throwMeal = false,
+		secret = "secret meal aura" }
 	local saved = {}
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
+	local realSecret = issecretvalue
+	rawset(_G, "issecretvalue", function(value)
+		return value == world.secret or realSecret(value)
+	end)
 	local undo = strangers({})
 	local ok, err = pcall(function()
 		local ns = load(scenario)
@@ -437,6 +444,30 @@ do
 		world.mounted = false
 		Mock.advance(1)
 		if not mine(ns) then fail(scenario, "dismounted, and nothing is offered") end
+	end)
+end
+
+do
+	local scenario = "wellfed: a secret or thrown meal read never offers a second food"
+	with(scenario, { on = true }, function(ns, data)
+		local best = data[1]
+		stock(ns, { [best[1]] = 2 })
+		if not mine(ns) then
+			fail(scenario, "SKIPPED -- food was not offered with a plain absent meal aura")
+			return
+		end
+		world.refuseMeal = true
+		Mock.advance(1)
+		if mine(ns) then fail(scenario, "a secret meal read offered " .. key(mine(ns))) end
+		world.refuseMeal = false
+		Mock.advance(1)
+		if not mine(ns) then fail(scenario, "a plain absent meal aura did not offer after the secret") end
+		world.throwMeal = true
+		Mock.advance(1)
+		if mine(ns) then fail(scenario, "a thrown meal read offered " .. key(mine(ns))) end
+		world.throwMeal = false
+		Mock.advance(1)
+		if not mine(ns) then fail(scenario, "a plain absent meal aura did not offer after the throw") end
 	end)
 end
 

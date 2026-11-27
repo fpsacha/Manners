@@ -4456,7 +4456,10 @@ do
 		end
 		for _, name in ipairs(eatNames) do
 			local ok, aura = pcall(byName, "player", name)
-			if ok and type(aura) == "table" then return true end
+			-- This restricted aura read may throw or return a secret. Only a plain
+			-- nil is absence; an unread answer must keep a second meal off.
+			if not ok or Withheld(aura) then return true end
+			if type(aura) == "table" then return true end
 		end
 		return false
 	end
