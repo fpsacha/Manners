@@ -132,6 +132,15 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
     token; (6) why Forever's `sourceUnit` is nil with a nameplate up at all (the
     trail lines and the last-favour line show which case); (7) retail 12.x:
     whether a stranger's spellID or GUID is secret in the open world.
+  - Battle Shout's opt-in recipient filter (`buff.recipientMelee`) takes a
+    tank role, a class whose every spec is melee (warrior, rogue, death knight,
+    demon hunter), or a plainly returned inspect spec. The supported hybrid
+    spec ids are Retribution/Protection paladin, Feral/Guardian druid,
+    Enhancement shaman and Windwalker/Brewmaster monk. Mists and retail expose
+    `C_SpecializationInfo.GetInspectSpecialization` for group members; Classic
+    Era, Burning Crusade and Forever do not provide a reliable hybrid spec
+    for this path, so an unknown hybrid is skipped there while tanks and pure
+    melee classes still work.
   - mists and mainline: a single buff on a group member lands party-wide
     (`wideCasts`), shouts reach 100 yards, their own `rankLevel`; mists' raid
     buff kinds do not stack (`alike`); mainline's own buffs are a rogue's

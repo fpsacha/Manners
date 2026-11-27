@@ -65,6 +65,18 @@ mutate("Core.lua",
        expect="wellfed: not while a meal is on", script=S)
 
 mutate("Core.lua",
+       "\t\t\tif not ok or Withheld(aura) then return true end\n",
+       "\t\t\tif not ok then return true end\n",
+       "wellfed: a secret active-meal read taken as absent",
+       expect="wellfed: a secret or thrown meal read", script=S)
+
+mutate("Core.lua",
+       "\t\t\tif not ok or Withheld(aura) then return true end\n",
+       "\t\t\tif Withheld(aura) then return true end\n",
+       "wellfed: a thrown active-meal read taken as absent",
+       expect="wellfed: a secret or thrown meal read", script=S)
+
+mutate("Core.lua",
        "\t\t\tif type(_G.IsMounted) == \"function\" and plain(_G.IsMounted()) == true then\n",
        "\t\t\tif false then\n",
        "wellfed: food offered mounted",

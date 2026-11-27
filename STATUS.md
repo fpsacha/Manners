@@ -12,17 +12,19 @@ stands now. Keep it short: what ships goes to the history file or away.
 Wago and installed in WoW Forever. ZIP SHA-256:
 `62BFE39B96AC86F759551ED2F8EB0F315FF89C3CE4EB1E92C45AD9FEFE9B7725`.*
 
-- **In flight:** nothing on the release commit. The completed swarm branches
-  are merged; their worktrees are historical until removed. 1.12.5 CI and the
-  release workflow both passed, and the installed six-folder package verified
-  878 files with the bundled libraries.
-- **Validated:** the focused scenarios, their mutations, the full Forever
-  adversarial suite, Retail module scenarios, quick checks and package install
-  all pass. #33, #59, #60, #62, #63 and #64 are closed for 1.12.5.
+- **In flight:** 1.12.6's game-context pass is on `context-pass-1126`: secret
+  meal reads, failed Service placement, stale request supersession, cast
+  identity, ward usability, profile/module migration and the #65 Battle Shout
+  controls. It is ready to merge after the final changed-mutation pass.
+- **Validated:** the focused scenarios and mutations, all five-client Battle
+  Shout cases, the full Forever adversarial suite, the 140-step flavour gate's
+  client files, and `check.py --lint --anchors --quick` pass. 1.12.5 remains
+  released with #33, #59, #60, #62, #63 and #64 closed.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** #21 still needs the player's client and log. #65 is
-  an enhancement request for Battle Shout reminders, not a release blocker.
-- **Next:** watch nightly selftest; then implement #65 separately if approved.
+  fixed in the next branch, with unknown hybrid roles excluded rather than
+  guessed on clients that cannot identify their specialisation.
+- **Next:** merge `context-pass-1126`, run changed mutations, then prepare 1.12.6.
 - **Watch out:** all optional folders now start enabled. 1.12.5's one-time
   login chooser lets players turn individual modules off; existing saved-off
   choices remain off. Reactive wards are Classic Era/TBC only because Forever

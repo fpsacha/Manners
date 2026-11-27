@@ -361,11 +361,19 @@ for _, case in ipairs({
 }) do
 	local scenario = "groupbuffs: " .. case.label .. ", they are buffed one by one"
 	local realUsable = rawget(_G, "IsUsableSpell")
+	local realSpells = rawget(_G, "C_Spell")
 	if case.unusable then
 		IsUsableSpell = function(id) if id == BRILLIANCE then return false, false end return true, false end
 	elseif case.noMana then
 		-- The client's "not for want of mana": the group spell costs more.
 		IsUsableSpell = function(id) if id == BRILLIANCE then return false, true end return true, false end
+	end
+	-- A modern C_ table may be present as well. A partial one saying "yes"
+	-- must not erase an explicit legacy no from the same client.
+	if case.unusable or case.noMana then
+		local base = C_Spell or {}
+		rawset(_G, "C_Spell", setmetatable({ IsSpellUsable = function() return true, false end },
+			{ __index = base }))
 	end
 	local ns, restore = session(scenario, case.env)
 	if ns then
@@ -383,6 +391,7 @@ for _, case in ipairs({
 		restore()
 	end
 	rawset(_G, "IsUsableSpell", realUsable)
+	rawset(_G, "C_Spell", realSpells)
 end
 
 -- ------------------------------------------------------------ groupbuffs-5

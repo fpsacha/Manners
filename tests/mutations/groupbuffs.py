@@ -251,6 +251,14 @@ mutate("Phrases.lua",
 
 # ------------------------------------------------ review round: mana
 mutate("GroupBuffs.lua",
+       "\tlocal check = _G.IsUsableSpell\n"
+       "\tif type(check) ~= \"function\" then check = C_Spell and C_Spell.IsSpellUsable end\n",
+       "\tlocal check = C_Spell and C_Spell.IsSpellUsable\n"
+       "\tif type(check) ~= \"function\" then check = _G.IsUsableSpell end\n",
+       "groupbuffs: a partial modern usability table hides an explicit no",
+       expect="groupbuffs: the client says it cannot be cast, they are buffed one by one", script=S)
+
+mutate("GroupBuffs.lua",
        "\tlocal usable = UsableAnswer(spellId)\n\treturn usable ~= false\n",
        "\tlocal usable, noMana = UsableAnswer(spellId)\n\treturn not (usable == false and noMana ~= true)\n",
        "groupbuffs: too little mana for the group spell is no obstacle",

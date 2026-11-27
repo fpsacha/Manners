@@ -195,6 +195,14 @@ mutate("Requests.lua",
        expect="a request in a fight is offered after it",
        script="runscenarios.py")
 
+# A newer request rejected in combat left the previous standing intent alive.
+mutate("Requests.lua",
+       "\t\t\tif Made(requests[i], guid, short, nil) then table.remove(requests, i) end\n",
+       "\t\t\tif not InCombatLockdown() and Made(requests[i], guid, short, nil) then table.remove(requests, i) end\n",
+       "rejected combat requests do not supersede older intent",
+       expect="a rejected combat request supersedes the older intent",
+       script="runscenarios.py")
+
 # A request standing when the fight starts let go during it.
 mutate("Requests.lua",
        "\t\t\tif Live(request, now) and not request.held then request.fight = true end\n",

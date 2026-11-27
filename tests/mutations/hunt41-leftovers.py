@@ -136,8 +136,8 @@ mutate("Queue.lua",
 
 # The scan's walk is not handed the list.
 mutate("Queue.lua",
-       "\tlocal opts = { unpaid = UNPAID, tanksOutside = tanksOutside }\n",
-       "\tlocal opts = { tanksOutside = tanksOutside }\n",
+       "\t\tunpaid = UNPAID, tanksOutside = tanksOutside,\n",
+       "\t\ttanksOutside = tanksOutside,\n",
        "hunt41-leftovers: the queue's walk is not told what was left out",
        expect=P + "vanilla: his Kings on somebody, out of mana for it, is left alone", script=S)
 

@@ -460,6 +460,12 @@ local defaults = {
 			-- takes away an offer somebody gets today"): melee attack power on a
 			-- mage is the wrong buff, and whoever asks for it by name still gets it.
 			skipCasters = true,
+			-- Off: Battle Shout is offered as before. On: only a tank or a
+			-- reliably identified melee recipient keeps an unasked reminder.
+			shoutMelee = false,
+			-- Off: Battle Shout follows the usual timing. On: unasked reminders
+			-- wait until the player is in combat in a dungeon or raid.
+			shoutCombatInstances = false,
 			-- WoW Forever: somebody wearing a Fish Bowl's Boosted Stats (8% to all
 			-- stats, which Kings replaces) is offered the paladin's other blessings
 			-- first, and Kings only when nothing else of his is missing for them
@@ -2224,6 +2230,33 @@ do
 		return false
 	end
 
+	-- Battle Shout's physical attack-power recipients. Class alone is enough
+	-- only for classes whose every spec fights in melee. A hybrid's spec must
+	-- come back plainly from the client's inspect-specialization cache; a
+	-- healer/caster, an uninspected unit and a secret answer are never inferred
+	-- to be melee.
+	local MELEE_CLASSES = { WARRIOR = true, ROGUE = true, DEATHKNIGHT = true, DEMONHUNTER = true }
+	local MELEE_SPECS = {
+		[70] = true, [66] = true, -- Paladin: Retribution, Protection
+		[103] = true, [104] = true, -- Druid: Feral, Guardian
+		[263] = true, -- Shaman: Enhancement
+		[268] = true, [269] = true, -- Monk: Brewmaster, Windwalker
+	}
+	function ns.IsMeleeUnit(unit, class)
+		local roles = _G.UnitGroupRolesAssigned
+		local role = type(roles) == "function" and plain(roles(unit)) or nil
+		-- IsTankUnit also honours a raid's main-tank mark.
+		if role == "TANK" or ns.IsTankUnit(unit) then return true end
+		if role == "HEALER" then return false end
+		class = plain(class or select(2, UnitClass(unit)))
+		if MELEE_CLASSES[class] then return true end
+		local spec = C_SpecializationInfo
+		local inspect = type(spec) == "table" and spec.GetInspectSpecialization or _G.GetInspectSpecialization
+		if type(inspect) ~= "function" then return false end
+		local id = plain(inspect(unit))
+		return type(id) == "number" and MELEE_SPECS[id] == true
+	end
+
 	-- Split in two because the exclusive branch needs the halves apart: "wrong
 	-- spell for this person" holds for the scan, "tried a moment ago" is a
 	-- cooldown. inParty, not inGroup: a shout reaches only the caster's
@@ -2322,6 +2355,19 @@ do
 		-- cannot land. A level nobody read holds nothing back.
 		if buff.lowLevel and opts.targetLevel and opts.targetLevel + 10 < buff.lowLevel then return false end
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
+		-- Battle Shout may be narrowed to recipients it materially serves. Owed
+		-- favours and every chat request keep their existing path, including a
+		-- request that named no buff and an unknown hybrid spec.
+		if buff.recipientMelee and opts.shoutMelee and not (opts.owed or opts.requested)
+			and opts.isMelee ~= true then
+			return false
+		end
+		-- Optional combat timing: only in a dungeon or raid while fighting.
+		-- Requests and favours owed are never held by an opt-in timing choice.
+		if buff.recipientMelee and opts.shoutCombatInstances and not (opts.owed or opts.requested)
+			and opts.shoutCombatAllowed ~= true then
+			return false
+		end
 		-- "Don't offer Might to mages, warlocks and priests" (the scan works out
 		-- opts.casterOnly: Queue.lua), but not for somebody who asked by name.
 		if opts.casterOnly and buff.meleeOnly and not opts.asked then return false end
@@ -3716,6 +3762,15 @@ do
 	-- Read at call time by Queue.lua (SelfBuff, buff.notMeInside).
 	ns.InDungeon = InDungeon
 
+	-- Read once by a queue scan when "only in combat in a dungeon or raid" is on.
+	function ns.ShoutCombatAllowed()
+		if not InDungeon() then return false end
+		local combat = type(_G.InCombatLockdown) == "function" and plain(_G.InCombatLockdown())
+		if combat == true then return true end
+		return type(_G.UnitAffectingCombat) == "function"
+			and plain(_G.UnitAffectingCombat("player")) == true
+	end
+
 	-- The trackings nobody fights with: held back in a battleground or an
 	-- arena (OwnVerdict, "battle"). Every other one finds an enemy. On ns, to
 	-- spare OwnVerdict an upvalue.
@@ -4456,7 +4511,10 @@ do
 		end
 		for _, name in ipairs(eatNames) do
 			local ok, aura = pcall(byName, "player", name)
-			if ok and type(aura) == "table" then return true end
+			-- This restricted aura read may throw or return a secret. Only a plain
+			-- nil is absence; an unread answer must keep a second meal off.
+			if not ok or Withheld(aura) then return true end
+			if type(aura) == "table" then return true end
 		end
 		return false
 	end

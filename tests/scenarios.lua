@@ -1794,7 +1794,7 @@ if a then
 
 		-- Settling has to be written through too, or a reload undoes work this
 		-- session already did.
-		b.pendingClick = { name = "Yorick Vane", at = GetTime() }
+		b.pendingClick = { name = "Yorick Vane", at = GetTime(), buffKey = "intellect" }
 		b.addon:UNIT_SPELLCAST_SENT(nil, "player", "Yorick Vane", nil, 1459)
 		if b.owed["Yorick Vane"] then
 			fail("debts survive a reload", "SKIPPED -- the cast did not settle the debt")
@@ -1923,14 +1923,13 @@ if ns then
 				"the realm suffix made the recipient look like a stranger")
 		end
 
-		-- Unverifiable must never mean "never clear the debt": a client that
-		-- withholds the target or the spell would otherwise make every favour
-		-- permanent, which is worse than the bug.
+		-- Neither target nor spell identifies this press. Waiting on that
+		-- incomplete event would make a hand on the action bar settle it.
 		arm()
 		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, nil, nil)
-		if ns.owed[name] then
+		if not ns.owed[name] then
 			fail("a cast that missed does not settle the debt",
-				"a client that would not say who or what made the debt permanent")
+				"a cast with neither target nor spell settled the debt")
 		end
 	end
 end

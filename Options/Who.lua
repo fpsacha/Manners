@@ -926,6 +926,40 @@ function Page.BuildWhoTab()
 				get = function() return B().skipCasters == true end,
 				set = bSet,
 			},
+			shoutMelee = {
+				type = "toggle",
+				name = L["Only remind tanks and melee with Battle Shout"],
+				desc = L["Off: Battle Shout reminders work as before. On: an unasked reminder is kept for a tank or a recipient reliably known to fight in melee. Pure melee classes are known from their class; hybrid specs are used only where the client can read them, and an unknown hybrid is not guessed. A favour owed, a buff asked for in chat and your existing never-offer list still work as usual. One shout still reaches its whole party or raid."],
+				order = 4.861,
+				width = "full",
+				hidden = function()
+					local buff = ns.FindBuff(ns.caps.class, "battleshout")
+					return not (buff and buff.recipientMelee)
+				end,
+				disabled = function()
+					local buff = ns.FindBuff(ns.caps.class, "battleshout")
+					return not (buff and ns.IsBuffKnown(buff)) or B().skip.battleshout == true
+				end,
+				get = function() return B().shoutMelee == true end,
+				set = bSet,
+			},
+			shoutCombatInstances = {
+				type = "toggle",
+				name = L["Only remind me of Battle Shout in combat in dungeons and raids"],
+				desc = L["Off: Battle Shout follows the usual reminder timing. On: unasked Battle Shout reminders wait until you are in combat inside a dungeon or raid. A favour owed and somebody who asks for a buff in chat are still offered at the usual times."],
+				order = 4.862,
+				width = "full",
+				hidden = function()
+					local buff = ns.FindBuff(ns.caps.class, "battleshout")
+					return not (buff and buff.recipientMelee)
+				end,
+				disabled = function()
+					local buff = ns.FindBuff(ns.caps.class, "battleshout")
+					return not (buff and ns.IsBuffKnown(buff)) or B().skip.battleshout == true
+				end,
+				get = function() return B().shoutCombatInstances == true end,
+				set = bSet,
+			},
 			-- Asked for on GitHub (issue 12): WoW Forever's Fish Bowl, which Kings
 			-- replaces. Only where the camp's Fish Bowl exists, and for a class
 			-- whose strongest blessing is the one at stake.

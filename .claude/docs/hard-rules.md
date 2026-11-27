@@ -94,7 +94,8 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   Reactive ward buttons (`Modules/Combat/Wards.lua`, Manners: Combat) pre-arm
   a known Fire Ward and Frost Ward out of combat. They reveal one macro only
   after `UNIT_COMBAT` supplies a plain player `DAMAGE` amount and an
-  unambiguous numeric fire or frost school mask. They never infer a school
+  unambiguous numeric fire or frost school mask, and the ward is still known,
+  usable with enough mana and ready off cooldown. They never infer a school
   from secrets, names or the combat log. On clients with secret combat values
   the feature makes no runtime frame and no options control.
   Gone in 1.12, when Manners went back to its essentials: the fight key (*In a

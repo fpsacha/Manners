@@ -42,6 +42,8 @@
 --             Might to mages, warlocks and priests" is on (buff.skipCasters;
 --             Core.lua, Castable); anybody who asks for it by name still gets it.
 --   partyOnly reaches your party and nobody else.
+--   recipientMelee  a physical attack-power shout whose opt-in recipient
+--             filter keeps only a tank or a known melee recipient (Core.lua).
 --   groupOnly reaches anybody in your party or raid (a raid member in another
 --             subgroup too), and nobody outside it: Blessing of Salvation.
 --   membersOnly  offered to the members of your party or raid alone, though
@@ -337,6 +339,7 @@ local VANILLA = {
 			ranks = { 25289, 11551, 11550, 11549, 6192, 5242, 6673 },
 			selfCast = true,
 			partyOnly = true,
+			recipientMelee = true,
 		},
 	},
 }
@@ -1958,6 +1961,7 @@ local TBC = {
 			ranks = { 2048, 25289, 11551, 11550, 11549, 6192, 5242, 6673 },
 			selfCast = true,
 			partyOnly = true,
+			recipientMelee = true,
 		},
 		-- After Battle Shout, so Automatic gives that first. Nothing in the
 		-- client's data makes the two exclusive: a party can wear both.
@@ -2824,7 +2828,8 @@ local MISTS = {
 
 	WARRIOR = {
 		-- 10% attack power, as Horn of Winter and a hunter's Trueshot Aura.
-		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true, alike = { 57330, 19506 } },
+		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true, recipientMelee = true,
+			alike = { 57330, 19506 } },
 		-- The warrior's other shout: 10% stamina for the party and raid within
 		-- 100 yards, five minutes (SpellEffect aura 137, target 56, radius 12;
 		-- SkillLineAbility class mask 1; SpellLevels 68), as Power Word:
@@ -3205,7 +3210,7 @@ local MAINLINE = {
 	},
 
 	WARRIOR = {
-		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true },
+		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true, recipientMelee = true },
 	},
 }
 

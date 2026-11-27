@@ -13,6 +13,7 @@ local moduleContexts = {}
 local attached, coreReady = {}, false
 local pendingReload = {}
 local moduleWelcomeOpen = false
+local moduleWelcomeToken
 
 local KNOWN = {
 	{ id = "combat", title = "Manners: Combat" },
@@ -113,6 +114,7 @@ local COMBAT_KEYS = {
 	plain = true, safecall = true, Guard = true, Trail = true, db = true,
 	addon = true, pendingClick = true, ExpirePendingClick = true,
 	ProbeCapabilities = true, SpellKnown = true, SpellNameFor = true,
+	CastReady = true,
 	AddSettingsLine = true, MACRO_LIMIT = true, InRange = true,
 	IsTankUnit = true, ShortName = true, UnitFullName = true,
 	BuffInfo = true, CanCastAnything = true, DebtExpiry = true,
@@ -522,28 +524,69 @@ local function LegacyServicesActive(profile)
 	return false
 end
 
+local function MigrationCharacter()
+	local db = ns.db
+	local keys = db and db.keys
+	local key = type(keys) == "table" and ns.plain(keys.char) or nil
+	if type(key) == "string" and key ~= "" then return key end
+	local name = type(UnitName) == "function" and ns.plain(UnitName("player")) or nil
+	return type(name) == "string" and name ~= "" and name or nil
+end
+
+local function MigrationDone(profile, marker, character)
+	local characters = profile[marker]
+	return type(characters) == "table" and characters[character] == true
+end
+
+local function MarkMigration(profile, marker, character)
+	local characters = profile[marker]
+	if type(characters) ~= "table" then
+		characters = {}
+		profile[marker] = characters
+	end
+	characters[character] = true
+end
+
 -- A folder's game-level addon state is separate from an AceDB profile. Do this
 -- only for profiles that existed before the folders shipped, then leave an
--- explicit marker so a later intentional disable is never undone.
+-- explicit marker for this character/profile pair so another character using
+-- the shared profile is reconciled too, while a later intentional disable is
+-- never undone.
 function api:MigrateOptionalModules(legacyProfile)
 	local profile = api:GetProfile()
 	if type(profile) ~= "table" then return false end
+	local character = MigrationCharacter()
+	if not character then return false end
 	local changed = false
-	if legacyProfile == true and profile.optionalModulesMigrated ~= true then
+	local modulesDone = MigrationDone(profile, "optionalModulesMigratedCharacters", character)
+	local combatDone = MigrationDone(profile, "optionalCombatMigratedCharacters", character)
+	local modulesReady, combatReady = true, true
+	if legacyProfile == true and not modulesDone then
 		if LegacyMyBuffsActive(profile) then
 			changed = api:SetModuleEnabled("mybuffs", true) or changed
+			modulesReady = api:IsModuleEnabled("mybuffs")
 		end
 		if LegacyServicesActive(profile) then
 			changed = api:SetModuleEnabled("services", true) or changed
+			modulesReady = modulesReady and api:IsModuleEnabled("services")
 		end
 	end
-	if legacyProfile == true and profile.optionalCombatMigrated ~= true then
+	if legacyProfile == true and not combatDone then
 		if LegacyCombatActive(profile) then
 			changed = api:SetModuleEnabled("combat", true) or changed
+			combatReady = api:IsModuleEnabled("combat")
 		end
-		profile.optionalCombatMigrated = true
 	end
-	if profile.optionalModulesMigrated ~= true then profile.optionalModulesMigrated = true end
+	if not modulesDone and modulesReady then
+		MarkMigration(profile, "optionalModulesMigratedCharacters", character)
+		modulesDone = true
+	end
+	if not combatDone and combatReady then
+		MarkMigration(profile, "optionalCombatMigratedCharacters", character)
+		combatDone = true
+	end
+	if modulesDone then profile.optionalModulesMigrated = true end
+	if combatDone then profile.optionalCombatMigrated = true end
 	return changed
 end
 
@@ -634,30 +677,77 @@ function api:ModuleWelcomeOpen()
 end
 
 function api:DismissModuleWelcome()
+	local token = moduleWelcomeToken
+	if not token or api:GetProfile() ~= token.profile or token.presented ~= true then return false end
 	moduleWelcomeOpen = false
-	local profile = api:GetProfile()
-	if profile then profile.moduleWelcome1125 = true end
+	moduleWelcomeToken = nil
+	token.profile.moduleWelcome1125 = true
 	if ns.RepaintOptions then ns.RepaintOptions() end
 	return true
 end
 
 -- 1.12.5 is the one release that explains the new default-on folders. Once
--- per profile, after login, open the chooser; the switches keep the player's
--- existing addon state and the marker is saved even if they close the window.
+-- per profile, after login, open the chooser. The marker is written only when
+-- the window was actually presented, and a delayed callback belongs to the
+-- profile that scheduled it even if the player switches profiles meanwhile.
 do
 	local frame = CreateFrame("Frame")
-	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-	frame:SetScript("OnEvent", function(_, _, initial, reload)
-		if not (initial == true or reload == true) then return end
-		local profile = api:GetProfile()
-		if not profile or profile.moduleWelcome1125 == true or moduleWelcomeOpen then return end
-		profile.moduleWelcome1125 = true
+	local serial = 0
+
+	local function ProfileName()
+		local db = ns.db
+		local current = db and db.GetCurrentProfile
+		local name = type(current) == "function" and ns.safecall(current, db) or nil
+		name = ns.plain(name)
+		return type(name) == "string" and name or nil
+	end
+
+	local function CurrentToken(token)
+		return _G.MannersAPI == api and moduleWelcomeToken == token and api:GetProfile() == token.profile
+			and (token.profileName == nil or ProfileName() == token.profileName)
+	end
+
+	local function Attempt(token)
+		if not CurrentToken(token) or token.profile.moduleWelcome1125 == true then
+			if moduleWelcomeToken == token then
+				moduleWelcomeToken, moduleWelcomeOpen = nil, false
+			end
+			return false
+		end
+		if InCombatLockdown() then return false end
+		local opened = type(ns.OpenOptions) == "function"
 		moduleWelcomeOpen = true
+		opened = opened and ns.Guard("module chooser", ns.OpenOptions, "modules", true)
+		if not opened or not CurrentToken(token) then
+			moduleWelcomeOpen = false
+			return false
+		end
+		token.presented, moduleWelcomeOpen = true, true
+		token.profile.moduleWelcome1125 = true
+		if ns.RepaintOptions then ns.RepaintOptions() end
+		return true
+	end
+
+	local function Schedule()
+		local profile = api:GetProfile()
+		if type(profile) ~= "table" or profile.moduleWelcome1125 == true then return end
+		local old = moduleWelcomeToken
+		if old and old.profile == profile and old.presented ~= true then return end
+		serial = serial + 1
+		local token = { serial = serial, profile = profile, profileName = ProfileName() }
+		moduleWelcomeToken, moduleWelcomeOpen = token, false
 		local later = _G.C_Timer and _G.C_Timer.After
-		if type(later) == "function" then
-			later(1, function()
-				if not InCombatLockdown() and ns.OpenOptions then ns.OpenOptions("modules", true) end
-			end)
+		if type(later) == "function" then later(1, function() Attempt(token) end)
+		else Attempt(token)
+		end
+	end
+
+	api:RegisterCallback("ProfileChanged", Schedule)
+	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+	frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+	frame:SetScript("OnEvent", function(_, _, initial, reload)
+		if initial == true or reload == true then Schedule()
+		elseif moduleWelcomeToken then Attempt(moduleWelcomeToken)
 		end
 	end)
 end

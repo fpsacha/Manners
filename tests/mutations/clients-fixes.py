@@ -75,8 +75,8 @@ mutate("Buffs.lua",
        script=S)
 
 mutate("Buffs.lua",
-       "partyOnly = true, alike = { 57330, 19506 } },",
-       "partyOnly = true },",
+       "partyOnly = true, recipientMelee = true,\n\t\t\talike = { 57330, 19506 } },",
+       "partyOnly = true, recipientMelee = true },",
        "clients-fix: Battle Shout over Horn of Winter",
        expect="clients-fix: on Mists battleshout is covered by another class's of its kind",
        script=S)
