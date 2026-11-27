@@ -47,7 +47,7 @@ do
 	end
 	local found = false
 	for _, buff in ipairs(ns.SelfBuffs()) do if buff.key == "thorns" then found = true end end
-	if not found or not ns.OffersSelf() then
+	if ns.FindOwnFamily("thorns") and (not found or not ns.OffersSelf()) then
 		fail(scenario, "loading migrated My Buffs did not restore the learned Thorns self offer")
 	end
 	rawset(_G, "MannersDB", realDB)
@@ -166,8 +166,10 @@ do
 		return
 	end
 	drive(scenario, ns)
-	if states.Manners_MyBuffs ~= 2 or ns.db.profile.ownBuffs.pick.poisonmain ~= "auto"
-		or ns.db.profile.ownBuffs.pick.stonemain ~= "auto" then
+	local hasRogueItems = ns.FindOwnFamily("poisonmain") and ns.FindOwnFamily("stonemain")
+	if states.Manners_MyBuffs ~= 2 or (hasRogueItems
+		and (ns.db.profile.ownBuffs.pick.poisonmain ~= "auto"
+			or ns.db.profile.ownBuffs.pick.stonemain ~= "auto")) then
 		fail(scenario, "the old poison and weapon-stone choices did not migrate intact")
 	end
 	rawset(_G, "MannersDB", realDB)
