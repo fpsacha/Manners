@@ -162,8 +162,8 @@ ns.Looks.previewText = {
 		reason = { l = 0.24507, t = 0.5334, r = 0.72984, b = 0.69469, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
 	},
 	outline = {
-		name = { l = 0.14752, t = 0.29266, r = 0.78629, b = 0.50234, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
-		reason = { l = 0.14752, t = 0.53588, r = 0.78629, b = 0.69717, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+		name = { l = 0.21592, t = 0.29266, r = 0.78629, b = 0.50234, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+		reason = { l = 0.21592, t = 0.53588, r = 0.78629, b = 0.69717, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
 	},
 	pill = {
 		name = { l = 0.23758, t = 0.29308, r = 0.80645, b = 0.50276, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
@@ -325,4 +325,4 @@ ns.Looks.previewTextEarlier = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "b8088a58b0de4200287d35727e2ab1d5530b45f23b245d8a334b7523ed79a347"
+ns.Looks.previewHash = "84a83dd9449fcea0653a223cab65d594b1d31e28652bbd7f2a1de5c687f397fc"

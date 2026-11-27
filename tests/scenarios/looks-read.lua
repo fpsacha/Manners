@@ -86,14 +86,32 @@ local function colours(fs)
 	return out
 end
 
+local function StandardClassCode(code)
+	for _, class in pairs(RAID_CLASS_COLORS) do
+		if type(class) == "table" and type(class.colorStr) == "string"
+			and class.colorStr:lower() == code:sub(3):lower() then
+			return true
+		end
+	end
+	return false
+end
+
 local function held(scenario, ink, fs, what, when)
 	if not fs:IsShown() or tostring(fs._text or "") == "" then return end
 	for _, c in ipairs(colours(fs)) do
+		-- Standard class colours are deliberately exact on dark grounds. The
+		-- dedicated tint scenario proves that identity (and Letter's contrast
+		-- still has to change a pale code); a contrast floor belongs to every
+		-- other colour, not to Blizzard's fixed class palette.
+		if what == "name" and type(c[4]) == "string" and StandardClassCode(c[4]) then
+			-- exact class colour, checked by tint.lua
+		else
 		local at = reads(ink, c[1], c[2], c[3])
 		if at < FLOOR then
 			fail(scenario, ("%s: the %s (%s, \"%s\") reads at %.2f:1 on the look's ground, under %.1f"):format(when, what, c[4],
 				tostring(fs._text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), at, FLOOR))
 			return
+		end
 		end
 	end
 end

@@ -72,6 +72,15 @@ OPEN = open_grounds()
 SIZES = {"default": "", "small": "80x20x6x12", "large": "500x120x32x64"}
 LINES = ["name", "reason", "tag", "rows"]
 FLOORS = {"name": 4.5, "reason": 4.5, "tag": 4.5, "rows": 4.5}
+# Blizzard's standard dark class palette. These are exact on dark grounds;
+# tint.lua holds their values, while every light-ground look still has to alter
+# them and every other line keeps the 4.5:1 floor.
+CLASS_COLOURS = (
+    (0.0, 0.44, 0.87), (0.77, 0.12, 0.23), (1.0, 1.0, 1.0),
+    (1.0, 0.96, 0.41), (0.25, 0.78, 0.92), (1.0, 0.49, 0.04),
+    (0.67, 0.83, 0.45), (0.96, 0.55, 0.73), (0.53, 0.53, 0.93),
+    (0.96, 0.78, 0.56),
+)
 # Pixels to a UI unit, with no supersampling: the measure wants the pixels a
 # player has, not a studio picture.
 PX = 2
@@ -264,7 +273,10 @@ def table(found, looks):
             if not row:
                 continue
             flag = ""
-            if row["p10"] < FLOORS[line]:
+            exact_class = line == "name" and any(
+                all(abs(a - b) < 0.015 for a, b in zip(row["colour"], colour))
+                for colour in CLASS_COLOURS)
+            if not exact_class and row["p10"] < FLOORS[line]:
                 flag = "  UNDER %.1f" % FLOORS[line]
                 under.append((look, line, row))
             out.append("%-13s %-7s %6.2f %6.2f  %s%s" % (look, line, row["p10"], row["low"], where(row), flag))
