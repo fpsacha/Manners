@@ -28,14 +28,16 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
 
 The Manners Discord (invite `https://discord.gg/JHc8YSDvur`, never expires;
 server id 1575227984262988058) is fed one way from GitHub by
-`.github/workflows/discord.yml`: a published release goes to #releases with its
-body (so the GitHub release notes are what players read there too); a new
+`.github/workflows/discord.yml`: a release goes to #releases with its body
+when the Release workflow's tag build succeeds (`workflow_run`; a release made
+with GITHUB_TOKEN never fires `release: published` for other workflows) (so the GitHub release notes are what players read there too); a new
 issue goes to #bug-reports, or #suggestions when it carries `enhancement`; an
 issue labelled `enhancement` later goes to #suggestions. The three webhook URLs
 are the secrets `DISCORD_RELEASES_WEBHOOK`, `DISCORD_BUGS_WEBHOOK`,
 `DISCORD_SUGGESTIONS_WEBHOOK`; never print or commit them. A missing secret
 skips its post. "Run workflow" on the Discord workflow posts the latest release
-again. Renaming the `enhancement` label, or deleting a webhook in Discord,
+again, or the one named in its *tag* input (`gh workflow run discord.yml -f
+tag=vX.Y.Z`). Renaming the `enhancement` label, or deleting a webhook in Discord,
 breaks the pipe silently. Player questions arrive in the #help forum; the
 nightly pass reads it (see the nightly task's prompt).
 

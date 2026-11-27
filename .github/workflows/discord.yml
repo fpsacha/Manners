@@ -9,10 +9,22 @@ on:
     types: [published]
   issues:
     types: [opened, labeled]
-  workflow_dispatch: # posts the latest release again (a test, or a missed post)
+  # The Release workflow publishes with GITHUB_TOKEN, and GitHub never starts
+  # another workflow from that token's events: "release: published" above only
+  # fires for a release made by hand. A tagged build is caught here instead.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch: # posts a release again (a test, or a missed post)
+    inputs:
+      tag:
+        description: "Release tag to post (empty: the latest)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   post:
@@ -29,9 +41,19 @@ jobs:
           set -euo pipefail
           ev="$GITHUB_EVENT_PATH"
           url=""
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
-              "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest" | jq '{release: .}' > latest.json
+          api="https://api.github.com/repos/$GITHUB_REPOSITORY/releases"
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            # Only a successful Release run started by a tag push has a release to post.
+            [ "$(jq -r '.workflow_run.conclusion' "$ev")" = "success" ] || { echo "Release run not successful; skipped"; exit 0; }
+            [ "$(jq -r '.workflow_run.event' "$ev")" = "push" ] || { echo "not a tag push; skipped"; exit 0; }
+            tag=$(jq -r '.workflow_run.head_branch' "$ev")
+            case "$tag" in v[0-9]*) ;; *) echo "not a version tag: $tag; skipped"; exit 0;; esac
+            curl -fsS -H "Authorization: Bearer $GH_TOKEN" "$api/tags/$tag" | jq '{release: .}' > latest.json
+            ev="latest.json"; EVENT_NAME="release"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            tag=$(jq -r '.inputs.tag // ""' "$ev")
+            case "$tag" in "") path="latest";; v[0-9]*) path="tags/$tag";; *) echo "not a version tag: $tag"; exit 1;; esac
+            curl -fsS -H "Authorization: Bearer $GH_TOKEN" "$api/$path" | jq '{release: .}' > latest.json
             ev="latest.json"; EVENT_NAME="release"
           fi
           if [ "$EVENT_NAME" = "release" ]; then
