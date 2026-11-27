@@ -5,7 +5,10 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "1.12.4", date = nil, sections = {
+	{ version = "1.12.4", date = "27 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Optional modules load cleanly.|r The binding XML and the reload action are fixed in a small hotfix for 1.12.3.",
+		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Optional-module bindings.|r Manners: My Buffs and Manners: Combat no longer load their Bindings.xml twice, which caused WoW Forever to report Unrecognized XML: Binding when a module was enabled.",
 			"|cffff9a52Module reload feedback.|r The Optional modules page now puts |cffffffffReload now|r before the module list, so a switch change immediately shows what must be pressed to apply it.",

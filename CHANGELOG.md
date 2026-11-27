@@ -2,6 +2,12 @@
 
 ## 1.12.4
 
+*27 November 2026*
+
+### Highlights
+- **Optional modules load cleanly.** The binding XML and the reload action are
+  fixed in a small hotfix for 1.12.3.
+
 ### Fixes
 - **Optional-module bindings.** Manners: My Buffs and Manners: Combat no longer
   load their `Bindings.xml` twice, which caused WoW Forever to report
