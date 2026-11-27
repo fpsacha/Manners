@@ -426,6 +426,46 @@ do
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ asked 8a
+-- A newer recognized message supersedes the standing request even when combat
+-- policy rejects every key in it. An unrecognised message does not.
+Mock.reset()
+do
+	local scenario = "a rejected combat request supersedes the older intent"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		ns.addon:PLAYER_REGEN_DISABLED()
+		Mock.inCombat = true
+		hear(ns, "CHAT_MSG_PARTY", "who has int?", "Anna Aim", "Player-1-nameplate1")
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		if not entryFor(ns, "Anna Aim") then
+			fail(scenario, "an unrecognised message cleared the standing request")
+		end
+
+		Mock.advance(61)
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		ns.addon:PLAYER_REGEN_DISABLED()
+		Mock.inCombat = true
+		hear(ns, "CHAT_MSG_PARTY", "ai pls", "Anna Aim", "Player-1-nameplate1")
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		if entryFor(ns, "Anna Aim") then
+			fail(scenario, "a rejected newer combat message left the older request alive")
+		end
+		if ns.askScan.fight ~= 1 or ns.askScan.noted ~= 2 then
+			fail(scenario, "the rejected message changed the request counters")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ asked 9
 -- Only the buffs this class casts are heard.
 --
