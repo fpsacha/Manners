@@ -470,6 +470,57 @@ end
 Mock.reset()
 
 -- ---------------------------------------------------------- courtesy-review 7
+-- A single-item trade is complete only after its item is in the window. A
+-- full window must not consume either a healthstone or a Soulstone request.
+Mock.reset()
+do
+	local scenario = "courtesy-review: a failed item trade keeps the healthstone and Soulstone request"
+	Mock.class = "WARLOCK"
+	local names = { nameplate1 = { "Anna", "Aim" }, NPC = { "Anna", "Aim" } }
+	local restoreUnits = strangers(names)
+	local w = world({ bags = { [19013] = 1, [16896] = 1 } })
+	with(scenario, w.globals, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario, { "courtesyHealthstones", "courtesySoulstone" })
+		for _, case in ipairs({
+			{ key = "courtesy:healthstone", item = 19013 },
+			{ key = "courtesy:soulstone", item = 16896 },
+		}) do
+			local request = {
+				name = "Anna Aim", short = "Anna Aim", guid = "Player-1-nameplate1",
+				expires = GetTime() + 60, keys = { [case.key] = true },
+			}
+			local entry = {
+				name = "Anna Aim",
+				courtesy = { stage = "trade", request = request, key = case.key,
+					item = case.item, buffKey = case.key },
+			}
+			for slot = 1, 6 do w.trade[slot] = 4306 end
+			ns.Courtesy.Pressed(entry, { isBar = false }, GetTime())
+			ns.Courtesy.OnEvent(nil, "TRADE_SHOW")
+			if not request.keys[case.key] then
+				fail(scenario, case.key .. " was consumed although the full trade took no item")
+			end
+			if #w.picked ~= 0 then fail(scenario, case.key .. " picked up an item for a full trade") end
+			w.trade = {}
+			ns.Courtesy.Pressed(entry, { isBar = false }, GetTime())
+			ns.Courtesy.OnEvent(nil, "TRADE_SHOW")
+			if w.trade[1] ~= case.item then
+				fail(scenario, case.key .. " was not placed after the trade had room")
+			end
+			if request.keys[case.key] then
+				fail(scenario, case.key .. " still stands after its item was placed")
+			end
+			w.picked, w.trade = {}, {}
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ---------------------------------------------------------- courtesy-review 8
 -- A mage with no buff to give and a cure switched on still walks for the
 -- cure while a courtesy stands, answerable or not: here somebody out of sight
 -- asked for water.
@@ -530,7 +581,7 @@ do
 end
 Mock.reset()
 
--- ---------------------------------------------------------- courtesy-review 8
+-- ---------------------------------------------------------- courtesy-review 9
 -- And somebody to ask for a buff (Ask.lua) still comes up behind it.
 Mock.reset()
 do

@@ -269,9 +269,18 @@ mutate("Modules/Services/Courtesy.lua",
        "courtesy: the cursor's own item is taken for the trade",
        expect=STONE, script=S)
 
-# The request still stands once the trade has opened.
+# The request still stands once the trade has successfully taken the item.
 mutate("Modules/Services/Courtesy.lua",
-       "\t\tServe(request, key)\n\t\tif Place(item) then count = 1 end\n",
+       "\t\tif Place(item) then\n\t\t\tcount = 1\n\t\t\tServe(request, key)\n\t\tend\n",
        "\t\tif Place(item) then count = 1 end\n",
        "courtesy: the trade opening does not answer the request",
-       expect=WATER, script=S)
+       expect="courtesy-review: a failed item trade keeps the healthstone and Soulstone request",
+       script=S)
+
+# An unavailable trade slot consumes the request before anything went in.
+mutate("Modules/Services/Courtesy.lua",
+       "\t\tif Place(item) then\n\t\t\tcount = 1\n\t\t\tServe(request, key)\n\t\tend\n",
+       "\t\tServe(request, key)\n\t\tif Place(item) then count = 1 end\n",
+       "courtesy: a failed item trade answers the request",
+       expect="courtesy-review: a failed item trade keeps the healthstone and Soulstone request",
+       script=S)
