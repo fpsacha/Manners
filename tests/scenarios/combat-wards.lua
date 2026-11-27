@@ -27,7 +27,7 @@ do
 		[10225] = { usable = true, noMana = false },
 		[28609] = { usable = true, noMana = false },
 	}
-	local originalSpells = _G.C_Spell
+	local rawSpells, originalSpells = rawget(_G, "C_Spell"), _G.C_Spell
 	rawset(_G, "C_Spell", setmetatable({ IsSpellUsable = function(id)
 		local answer = Mock.spellUsable[id]
 		return answer and answer.usable, answer and answer.noMana
@@ -133,7 +133,7 @@ do
 		if shown(ns, "frost") then fail(scenario, "an unlearned Frost Ward was revealed") end
 	end
 	rawset(_G, "C_UnitAuras", original)
-	rawset(_G, "C_Spell", originalSpells)
+	rawset(_G, "C_Spell", rawSpells)
 	Mock.reset()
 end
 
@@ -171,7 +171,7 @@ do
 		[27128] = { usable = true, noMana = false },
 		[32796] = { usable = true, noMana = false },
 	}
-	local originalSpells = _G.C_Spell
+	local rawSpells, originalSpells = rawget(_G, "C_Spell"), _G.C_Spell
 	rawset(_G, "C_Spell", setmetatable({ IsSpellUsable = function(id)
 		local answer = Mock.spellUsable[id]
 		return answer and answer.usable, answer and answer.noMana
@@ -207,6 +207,6 @@ do
 			rawset(_G, "C_AddOns", realAddOns)
 		end
 	end
-	rawset(_G, "C_Spell", originalSpells)
+	rawset(_G, "C_Spell", rawSpells)
 	Mock.reset()
 end

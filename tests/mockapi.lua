@@ -482,6 +482,7 @@ function Mock.reset()
 	-- answering nothing, which leaves the addon on its own one-and-a-half-second
 	-- fallback exactly as before this existed.
 	Mock.spellCooldowns = nil
+	Mock.spellUsable = nil
 	-- Whether the client loads Blizzard_Deprecated*'s shims, the
 	-- loadDeprecationFallbacks setting. With it off, CombatLogGetCurrentEventInfo
 	-- is gone from every client that has a combat log: all three Classic
