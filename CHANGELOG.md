@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.14.0
+
+*28 November 2026*
+
+### Highlights
+- **Place each combat card where you want it**, with a simpler way to move them.
+- **Companion moments can come by themselves**, no press needed.
+- Clicking a mage asks for a buff at once again.
 
 ### Fixes
 - **Combat cards no longer blink off while you shoot a wand.** Every card stays
