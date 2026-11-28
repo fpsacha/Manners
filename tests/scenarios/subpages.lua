@@ -193,8 +193,11 @@ do
 		elseif cast.label ~= ns.L["What to cast"] then fail(scenario, "What to cast reads " .. tostring(cast.label)) end
 		for _, id in ipairs({ "general", "when", "self", "appearance", "click" }) do CheckBar(scenario, ns, UI, id) end
 		-- A page of few sections has no bar, and the page sits under the strip.
-		ns.OpenOptions("fight")
-		if UI.subbar.frame:IsShown() or UI.subbar.height ~= 0 then fail(scenario, "In a fight has a sub-divisions bar") end
+		-- (In a fight, emptied onto Combat while Manners: Combat is on, leaves the
+		-- sidebar: Choose modules is the page of few sections now.)
+		ns.OpenOptions("modules")
+		if UI.page ~= "modules" then fail(scenario, "Choose modules did not open") end
+		if UI.subbar.frame:IsShown() or UI.subbar.height ~= 0 then fail(scenario, "Choose modules has a sub-divisions bar") end
 	end)
 end
 
