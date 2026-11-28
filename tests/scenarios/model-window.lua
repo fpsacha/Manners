@@ -411,6 +411,8 @@ local EXPECTED = {
 		"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.foodOutside", "ownBuffs.itemsLast", "ownBuffs.shoutAlone",
 		"ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly",
 		"ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart", "ownBuffs.holdMoving", "filters.selfTopUp", "filters.selfLead",
+		-- The sleeping bag before food and elixirs (tests/scenarios/restedfirst.lua).
+		"ownBuffs.restedFirst",
 		-- Which pet, under the companion pet's switch (Layout.lua self.items).
 		"ownBuffs.petChoice",
 	},

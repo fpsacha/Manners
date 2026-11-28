@@ -20,6 +20,10 @@ Wago and installed in WoW Forever. ZIP SHA-256:
   Shout cases, the full Forever adversarial suite, the 140-step flavour gate's
   client files, and `check.py --lint --anchors --quick` pass. 1.12.5 remains
   released with #33, #59, #60, #62, #63 and #64 closed.
+- **Nightly 28 November:** 1.12.6 is released. `feedback-20261128` adds
+  *Sleeping bag before food and elixirs* (`ownBuffs.restedFirst`, off; Lucitha
+  on CurseForge; `tests/scenarios/restedfirst.lua`). #68 is fixed on
+  `feature-combat-all` (28c03e27); #69 and #70 are built there too.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** #21 still needs the player's client and log. #65 is
   fixed in the next branch, with unknown hybrid roles excluded rather than

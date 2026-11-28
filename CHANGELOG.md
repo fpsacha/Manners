@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### New
+- **Sleeping bag before food and elixirs.** Off by default, under *Well-Rested*
+  on *My own buffs*: food, flasks, elixirs and scrolls wait while the sleeping
+  bag is due or you lie in it, so none of them runs out while you rest.
+
 ## 1.12.6
 
 *27 November 2026*

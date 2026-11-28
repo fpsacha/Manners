@@ -451,7 +451,9 @@ once you carry one.
   one press lays it down. Not at the level cap, nor during the hour its use
   cools down, nor while you move. *Remind me before Well-Rested runs out*,
   under it, brings the bag back when five minutes are left, so you can renew
-  it in time.
+  it in time. *Sleeping bag before food and elixirs* holds food, flasks,
+  elixirs and scrolls back while the bag is due or you lie in it, so their
+  minutes are not spent resting.
 - **Companion pet** (every client). On WoW Forever, Mists and retail Manners
   brings a pet out of your pet journal itself, with no press: *Which pet*
   picks the one you had out last, a random favourite, any pet, or one of your

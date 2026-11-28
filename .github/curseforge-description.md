@@ -29,7 +29,7 @@ Yours to arrange: thirty looks, a blessing for each class for paladins, profiles
 - **A look for each class.** Tick *Use my class's look on each character* on *Look*, and on one profile your druid wears the Druid look and your paladin the Paladin look.
 - **Mana Shield and the wards.** A mage on WoW Forever, Classic Era or Burning Crusade can be reminded of Mana Shield and of Fire Ward or Frost Ward out of a fight.
 - **Add a spell of my own.** Up to ten buffs Manners does not know, by name or spell id, under *Myself*.
-- **Nothing used on the run.** Food, stones, oils and the sleeping bag wait until you stand still.
+- **Nothing used on the run.** Food, stones, oils and the sleeping bag wait until you stand still. One switch puts the bag before food and elixirs, so they never tick away while you rest.
 - **Thorns, not on you in a dungeon.** *Not on me in a dungeon or raid*, under Thorns' *Offer to*.
 - **Skip players in a fight.** On *Who to skip*: no buff that drags somebody's mobs onto you.
 - **Ask in your own words.** *What the ask says* takes *My own words* and a line you write.

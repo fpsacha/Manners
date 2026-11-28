@@ -131,6 +131,9 @@ do
 		elseif why == "moving" then
 			-- Food, a stone, an oil or another use with a cast, on the move (Core.lua, OwnVerdict).
 			return L["%s: %s waits until you stand still."]:format(label, name or "?")
+		elseif why == "rested" then
+			-- Sleeping bag before food and elixirs (Core.lua, ns.RestedComesFirst).
+			return L["%s: %s waits until you have slept in the sleeping bag."]:format(label, name or "?")
 		-- A companion pet (Companion.lua).
 		elseif why == "journal" then
 			return L["%s: none out -- Manners brings one out of your pet journal itself."]:format(label)
