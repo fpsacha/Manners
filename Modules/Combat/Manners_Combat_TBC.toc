@@ -4,7 +4,7 @@
 ## Title: Manners: Combat
 ## Notes: Optional detected class actions, ward, cure, break-free and Mend Pet buttons in a fight.
 ## Author: Sacha
-## Version: 1.13.0
+## Version: 1.13.1
 ## Dependencies: Manners
 ## DefaultState: enabled
 ## X-License: MIT

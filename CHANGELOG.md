@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.13.1
 
 ### Fixes
 - **Battle Shout switches broke the prompt.** With *Only for melee and tanks*

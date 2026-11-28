@@ -5,6 +5,20 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "1.13.1", date = nil, sections = {
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Battle Shout switches broke the prompt.|r With |cffffffffOnly for melee and tanks|r or |cffffffffOnly in dungeon and raid fights|r on, every scan threw an error and the prompt stayed empty (#74).",
+			"|cffff9a52Undermine Clam Chowder|r gives Well Fed on WoW Forever and is offered as food (#73).",
+		} },
+		{ title = "New", accent = "7cc4ff", entries = {
+			"|cff7cc4ffItems of my own.|r |cffffffffAdd a spell or an item|r (My own buffs) takes an item from your bags or an equipped trinket whose use gives a buff, such as an Elemental Attractor (#72).",
+			"|cff7cc4ffBlessing of Freedom|r on a slowed or rooted friendly target, a paladin's combat action (Manners: Combat, off until you switch it on) (#71).",
+			"|cff7cc4ffSleeping bag before food and elixirs|r (Well-Rested on My own buffs, off): food, flasks, elixirs and scrolls wait while the bag is due or you lie in it.",
+		} },
+		{ title = "Changes", accent = "7cc4ff", entries = {
+			"The README and the store pages are much shorter.",
+		} },
+	} },
 	{ version = "1.13.0", date = "27 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Combat prompt|r (Manners: Combat).",
@@ -64,15 +78,6 @@ ns.WhatsNew = {
 		} },
 		{ title = "Reliability", accent = "7cc4ff", entries = {
 			"|cff7cc4ffPackage and test gates.|r A killed scenario worker, missing package job or dead TOC, XML or library reference now fails validation instead of passing a structural package.",
-		} },
-	} },
-	{ version = "1.12.4", date = "27 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Optional modules load cleanly.|r The binding XML and the reload action are fixed in a small hotfix for 1.12.3.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Optional-module bindings.|r Manners: My Buffs and Manners: Combat no longer load their Bindings.xml twice, which caused WoW Forever to report Unrecognized XML: Binding when a module was enabled.",
-			"|cffff9a52Module reload feedback.|r The Optional modules page now puts |cffffffffReload now|r before the module list, so a switch change immediately shows what must be pressed to apply it.",
 		} },
 	} },
 }
