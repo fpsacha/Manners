@@ -348,6 +348,35 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 			Restyle()
 		end,
 	}
+	args.combatActionLayout = {
+		type = "select", name = L["Where the combat cards sit"], order = 32.50362,
+		desc = L["A row gives each action its own place, so a click always casts the card you see. One spot shows every card in the same place; the most urgent one sits on top and takes the click, and each action's own key casts any of them."],
+		values = { row = L["A row"], stack = L["One spot"] },
+		sorting = { "row", "stack" },
+		width = "full",
+		hidden = Off,
+		get = function() return ns.db.profile.moments.layout == "stack" and "stack" or "row" end,
+		set = function(_, value)
+			ns.db.profile.moments.layout = value == "stack" and "stack" or "row"
+			Restyle()
+		end,
+	}
+	args.combatActionGrow = {
+		type = "select", name = L["Which way the row grows"], order = 32.50364,
+		desc = L["From the place you chose, the most urgent action first."],
+		values = { right = L["Right"], left = L["Left"], up = L["Up"], down = L["Down"] },
+		sorting = { "right", "left", "up", "down" },
+		width = "full",
+		hidden = function() return Off() or ns.db.profile.moments.layout == "stack" end,
+		get = function()
+			local grow = ns.db.profile.moments.grow
+			return (grow == "left" or grow == "up" or grow == "down") and grow or "right"
+		end,
+		set = function(_, value)
+			ns.db.profile.moments.grow = (value == "left" or value == "up" or value == "down") and value or "right"
+			Restyle()
+		end,
+	}
 	args.combatActionAlert = {
 		type = "select", name = L["Combat alert"], order = 32.5037,
 		desc = L["Quiet keeps the prompt steady. Pulse adds a gentle glow; Strong pulse is faster and brighter for urgent actions."],
@@ -476,6 +505,7 @@ do
 	sections[#sections + 1] = { key = "combat.look", title = L["Look and alerts"], items = {
 		"appearance.combatActionLookSame",
 		{ "appearance.combatActionLook", widget = "themes" }, "appearance.combatActionSize",
+		"appearance.combatActionLayout", "appearance.combatActionGrow",
 		{ "appearance.combatActionAlert", match = "combatPrompt" }, "appearance.combatActionSound",
 	} }
 	sections[#sections + 1] = { key = "combat.thresholds", title = L["When an action is needed"], items = {
@@ -521,7 +551,7 @@ do
 	if type(reset) == "table" then
 		local list = {
 			"moments.health", "moments.mana", "moments.cardSize", "moments.look",
-			"moments.alert", "moments.alertSound",
+			"moments.alert", "moments.alertSound", "moments.layout", "moments.grow",
 			-- What came here from In a fight: the rota and the fight's buttons.
 			"prompt.fightRota", "prompt.breakFree", "beast.fightMend", "prompt.cureFight",
 			"prompt.cureFightEach", "prompt.cureFightMods", "prompt.reactiveWards", "prompt.fightButtons",

@@ -268,7 +268,7 @@ mutate("Modules/Combat/Moments.lua",
        "combat actions: the needed button is raised in a fight, which the client refuses",
        expect="combat-actions: simultaneous needs each show in their own place, with no secure frame raised in a fight", script=S)
 mutate("Modules/Combat/Moments.lua",
-       "b:SetPoint(\"CENTER\", at, \"CENTER\", (i - 1) * (W + ROW_GAP), 0)",
+       "b:SetPoint(\"CENTER\", at, \"CENTER\", (i - 1) * dx, (i - 1) * dy)",
        "b:SetPoint(\"CENTER\", at, \"CENTER\", 0, 0)",
        "combat actions: every action shares one place",
        expect="combat-actions: simultaneous needs each show in their own place, with no secure frame raised in a fight", script=S)
@@ -278,9 +278,24 @@ mutate("Modules/Combat/Moments.lua",
        "combat actions: the combat prompt sits on the buff prompt by default",
        expect="combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro", script=S)
 mutate("Modules/Combat/Moments.lua",
-       "Levels(slot, OverPrompt(slot) and 0 or SELECTED_LEVEL)",
-       "Levels(slot, SELECTED_LEVEL)",
+       "Levels(slot, (OverPrompt(slot) and 0 or SELECTED_LEVEL)",
+       "Levels(slot, (SELECTED_LEVEL)",
        "combat actions: a card over the buff prompt takes its click",
+       expect="combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "elseif grow == \"up\" then dx, dy = 0, H + ROW_GAP",
+       "elseif grow == \"up\" then dx, dy = W + ROW_GAP, 0",
+       "combat actions: a row set to grow up still grows right",
+       expect="combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "if stack then dx, dy = 0, 0 end",
+       "",
+       "combat actions: one spot still spreads the cards in a row",
+       expect="combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "(stack and (#order - i) * 12 or 0)",
+       "(stack and (i - 1) * 12 or 0)",
+       "combat actions: on one spot the least urgent card sits on top",
        expect="combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro", script=S)
 mutate("Prompt/Macro.lua",
        "\treturn TargetCommand() .. \" \" .. name\nend",

@@ -35,6 +35,9 @@
   counts.
 
 ### Changes
+- **Where the combat cards sit** (Combat, Look and alerts): *A row* that grows
+  right, left, up or down from your spot, or *One spot* where every card shows
+  in the same place, the most urgent on top.
 - **Longer skips for your own buffs.** *After a right-click on my own buff,
   offer 15, 30, 45 or 60 minutes* (Who to skip, off) puts four small buttons
   under the prompt after a right-click on your own buff (#69).

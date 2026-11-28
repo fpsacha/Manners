@@ -876,6 +876,27 @@ do
 		rect(slot.button, 600, 900, 600, 700)
 		ns.Moments.Place(ns.db.profile.prompt)
 		if slot.button:GetFrameLevel() ~= 500 then fail(scenario, "a card off the buff prompt was not put on top") end
+		ns.db.profile.moments.grow = "up"
+		ns.Moments.Place(ns.db.profile.prompt)
+		local pa, pb = a.points[1], b.points[1]
+		if not (pa and pb and pa[4] == pb[4] and pa[5] ~= pb[5]) then
+			fail(scenario, "a row set to grow up did not stack its cards upwards")
+		end
+		ns.db.profile.moments.grow = "right"
+		ns.db.profile.moments.layout = "stack"
+		rect(b, 600, 900, 600, 700)
+		ns.Moments.Place(ns.db.profile.prompt)
+		pa, pb = a.points[1], b.points[1]
+		if not (pa and pb and pa[4] == pb[4] and pa[5] == pb[5]) then
+			fail(scenario, "one spot left the cards in different places")
+		end
+		local sa, sb = ns.Moments:Slot(pummel.row.slot), ns.Moments:Slot(bash.row.slot)
+		local top, under = a, b
+		if sb.n < sa.n then top, under = b, a end
+		if top:GetFrameLevel() <= under:GetFrameLevel() or under:GetFrameLevel() < 500 then
+			fail(scenario, "on one spot the first card in the order is not the one on top")
+		end
+		ns.db.profile.moments.layout = "row"
 	end
 	Mock.reset()
 	Mock.class = "MAGE"

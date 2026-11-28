@@ -1160,16 +1160,26 @@ Place = function(p)
 		if pa ~= pb then return pa < pb end
 		return a.n < b.n
 	end)
+	-- "stack": every card on the one spot, the most urgent on top (it takes the
+	-- click; a key casts any of them). Otherwise a row growing `grow`-wards.
+	local stack = moments.layout == "stack"
+	local grow = moments.grow
+	local dx, dy = W + ROW_GAP, 0
+	if grow == "left" then dx = -dx
+	elseif grow == "up" then dx, dy = 0, H + ROW_GAP
+	elseif grow == "down" then dx, dy = 0, -(H + ROW_GAP) end
+	if stack then dx, dy = 0, 0 end
 	local placedN = 0
 	for i, slot in ipairs(order) do
 		do
 			local b = slot.button
 			b:ClearAllPoints()
-			b:SetPoint("CENTER", at, "CENTER", (i - 1) * (W + ROW_GAP), 0)
+			b:SetPoint("CENTER", at, "CENTER", (i - 1) * dx, (i - 1) * dy)
 			b:SetSize(W, H)
 			-- Over the buff prompt, under it: where the two share the screen the
-			-- buff prompt takes the click (a level cannot change in a fight).
-			Levels(slot, OverPrompt(slot) and 0 or SELECTED_LEVEL)
+			-- buff prompt takes the click (a level cannot change in a fight). In a
+			-- stack the first in the order is the highest.
+			Levels(slot, (OverPrompt(slot) and 0 or SELECTED_LEVEL) + (stack and (#order - i) * 12 or 0))
 			placedN = placedN + 1
 			local key = CombatStyle(p)
 			local sig = Card.Signature(slot, key, W, H)
@@ -1179,7 +1189,8 @@ Place = function(p)
 			end
 		end
 	end
-	Moments.placed = { side = "prompt", w = W, h = H, cols = placedN, perCol = 1, n = placedN, rightwards = true }
+	Moments.placed = { side = stack and "stack" or (grow or "right"), w = W, h = H,
+		cols = stack and 1 or placedN, perCol = 1, n = placedN, rightwards = grow ~= "left" }
 	return "prompt"
 end
 Moments.Place = Place

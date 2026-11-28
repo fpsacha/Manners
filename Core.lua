@@ -1041,7 +1041,8 @@ local defaults = {
 		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 48 },
 		-- Manners: Combat's one detected-action prompt. Every action is off until
 		-- the player enables its own switch.
-		moments = { health = 20, mana = 20, cardSize = 150, look = "same", alert = "pulse", alertSound = false },
+		moments = { health = 20, mana = 20, cardSize = 150, look = "same", alert = "pulse", alertSound = false,
+			layout = "row", grow = "right" },
 	},
 }
 ns.defaults = defaults
