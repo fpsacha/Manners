@@ -703,3 +703,41 @@ do
 	end
 	Mock.reset()
 end
+
+do
+	-- A switch that names a spell wears its icon in the window, between the box
+	-- and the name, so the name moves right to make room.
+	local scenario = "combat-actions: a combat action's switch wears its spell's icon"
+	Mock.reset()
+	Mock.class = "WARRIOR"
+	Mock.knownSpells = { [6552] = true, [2565] = true }
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Guard("probe combat actions", ns.ProbeCapabilities)
+		local entry = ns.caps.moments and ns.caps.moments.byKey["combat-interrupt-pummel"]
+		if not entry then fail(scenario, "Pummel was not learned") Mock.reset() return end
+		local ctx = { changes = {}, holds = {}, pages = {}, relayouts = 0 }
+		ctx.Window = CreateFrame("Frame", "MannersOptionsIconTest", UIParent)
+		ctx.Window:SetSize(820, 600)
+		ctx.OnChange = function() end
+		ctx.OnHold = function() end
+		ctx.ScrollPage = function() end
+		ctx.Relayout = function(row) row:Layout(row.width) end
+		local suffix = entry.row.key:sub(1, 1):upper() .. entry.row.key:sub(2)
+		local item = ns.WindowBind.Item("appearance.moment" .. suffix:gsub("[^%w_]", "_"), {}, ctx)
+		if not item then fail(scenario, "the model has no switch for Pummel") Mock.reset() return end
+		local row = ns.WindowWidgets.Build("toggle", ctx.Window, item)
+		row:Refresh()
+		row:Layout(560)
+		local want = ns.Moments.IconOf(entry.row.key)
+		if want == nil then fail(scenario, "Pummel has no icon to wear") end
+		if not row.icon:IsShown() or ns.WindowWidgets.Image(row) ~= want then
+			fail(scenario, "the switch shows no Pummel icon: " .. tostring(ns.WindowWidgets.Image(row)))
+		end
+		local point = row.label.points and row.label.points[#row.label.points]
+		local x = point and point[4]
+		if not (x and x > 25 + 17) then fail(scenario, "the name sits over the icon (x=" .. tostring(x) .. ")") end
+	end
+	Mock.reset()
+end

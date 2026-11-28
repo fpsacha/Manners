@@ -217,3 +217,21 @@ mutate("Modules/Combat/Moments.lua",
        "\treturn false\nend\nMoments.CoverWanted = CoverWanted",
        "combat actions: a dark card has no cover, so a click casts anyway",
        expect=N + "one click casts where only the game knows; a dark card swallows it", script=S)
+
+mutate("Modules/Combat/Options.lua",
+       "\t\t\t\timage = function() return ns.Moments.IconOf(row.key) end,\n",
+       "",
+       "combat actions: a combat action's switch has no spell icon",
+       expect=N + "a combat action's switch wears its spell's icon", script=S)
+
+mutate("Options/Window/Widgets.lua",
+       "\t\trow.icon:SetShown(image ~= nil)",
+       "\t\trow.icon:SetShown(false)",
+       "options window: a switch's spell icon is never shown",
+       expect=N + "a combat action's switch wears its spell's icon", script=S)
+
+mutate("Options/Window/Widgets.lua",
+       "\t\tlocal x = image and 25 + ICON_SIZE + ICON_GAP or 25",
+       "\t\tlocal x = 25",
+       "options window: a switch's name is drawn over its spell icon",
+       expect=N + "a combat action's switch wears its spell's icon", script=S)

@@ -525,6 +525,7 @@ function Page.BuildLookTab()
 				desc = L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep, and whenever you lose control of your character in a fight where the game will not say what took it: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."],
 				order = 32.46,
 				width = "full",
+				image = function() return ns.caps.breakFree and ns.caps.breakFree.icon end,
 				hidden = function() return not ns.BreakFree or ns.caps.breakFree == nil end,
 				get = pGet,
 				set = function(info, value)
@@ -568,6 +569,7 @@ function Page.BuildLookTab()
 				desc = L["A button of its own beside the prompt, with its own key. It shows while your pet is under half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight, it shows only with Show the fight buttons set to All fight; its key works either way. A change made in a fight counts from the next one."],
 				order = 32.48,
 				width = "full",
+				image = function() return ns.MendPet and ns.MendPet.MendIcon() end,
 				hidden = function()
 					return not ns.MendPet or not ns.MendPet.KnowsMend()
 				end,
@@ -647,6 +649,11 @@ function Page.BuildLookTab()
 				end,
 				order = 32.491,
 				width = "full",
+				image = function()
+					local list = ns.CureFightSpells and ns.CureFightSpells()
+					local first = list and list[1]
+					return first and first.cure and first.cure.info and first.cure.info.icon
+				end,
 				hidden = function() return not ns.CureFight or not (ns.ClassHasCures() and ns.CureLearned()) end,
 				get = pGet,
 				set = function(info, value)

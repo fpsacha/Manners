@@ -160,6 +160,7 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		desc = L["The matching Fire Ward or Frost Ward is armed on a secure button before the fight. After a fire or frost damage read in the fight, one click casts it. The button hides after a ward is cast, while either ward is active, and when the fight ends. Off until you turn it on."],
 		order = 32.493,
 		width = "full",
+		image = function() return ns.ReactiveWards and ns.ReactiveWards.Icon() end,
 		hidden = function()
 			return not ns.ReactiveWards or not ns.ReactiveWards.Supported()
 				or not ns.ReactiveWards.Knows()
@@ -382,6 +383,7 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 			args[toggle] = {
 				type = "toggle",
 				name = function() return ns.Moments.NameOf(row.key) or row.key end,
+				image = function() return ns.Moments.IconOf(row.key) end,
 				desc = function()
 					return ActionDescription(row) .. "\n\n"
 						.. L["The one combat prompt changes to the most urgent detected action. Left-click it to cast; your normal Manners prompt key keeps its usual job."]

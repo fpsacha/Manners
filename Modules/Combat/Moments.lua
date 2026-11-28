@@ -282,6 +282,19 @@ end
 -- The name the client gives a row's spell, for the options page: the learned
 -- one, or the client's name for the row's first rank (Ice Block, for the switch
 -- of Cold Snap, which brings it back, whether or not Ice Block is known).
+-- The icon of a row's spell, for the options page, as NameOf finds its name.
+function Moments.IconOf(key)
+	local mine = caps.moments
+	local entry = mine and mine.byKey[key]
+	if entry and entry.icon then return entry.icon end
+	for _, row in ipairs(ns.MOMENTS[caps.class] or {}) do
+		if row.key == key and row.ranks then
+			return ns.safecall(_G.C_Spell and _G.C_Spell.GetSpellTexture, row.ranks[1])
+		end
+	end
+	return nil
+end
+
 function Moments.NameOf(key)
 	local mine = caps.moments
 	local entry = mine and mine.byKey[key]
