@@ -195,5 +195,11 @@ do
 		if entry and entry.buff and entry.buff.key == "battleshout" then
 			fail(scenario, "your own shout was offered out of a dungeon fight")
 		end
+		-- Taken off your list before the pick, so the debug line agrees, and the
+		-- buffs after it are not held with it.
+		local first = ns.SelfBuffFirst(ns.db.profile, GetTime())
+		if first and first.key == "battleshout" then
+			fail(scenario, "/manners debug names the held shout as the one the prompt is on")
+		end
 	end)
 end

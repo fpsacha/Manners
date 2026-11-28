@@ -20,8 +20,8 @@ mutate("Queue.lua",
 # The debug line asked the whole list, so it named an Intellect the prompt had
 # dropped, with the armor under it.
 mutate("Queue.lua",
-       "\tlocal mine = ns.SelfBuffs(Affordable(ns.CastableBuffs(), UNPAID))\n",
-       "\tlocal mine = ns.SelfBuffs()\n",
+       "\tlocal mine = ShoutHeld(db, ns.SelfBuffs(Affordable(ns.CastableBuffs(), UNPAID)))\n",
+       "\tlocal mine = ShoutHeld(db, ns.SelfBuffs())\n",
        "fix1: debug names a group buff you cannot pay for",
        expect="hunt13-fix1: a buff you cannot pay for is offered to nobody (C_Spell)", script=S)
 

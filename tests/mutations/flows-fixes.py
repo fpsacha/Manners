@@ -211,8 +211,8 @@ mutate("Queue.lua",
 
 # The entry in its place your group buff again, held back a moment ago.
 mutate("Queue.lua",
-       "\tlocal mine = ownOnly and {} or ns.SelfBuffs(candidates)",
-       "\tlocal mine = ns.SelfBuffs(candidates)",
+       "\tlocal mine = ownOnly and {} or ShoutHeld(db, ns.SelfBuffs(candidates))",
+       "\tlocal mine = ShoutHeld(db, ns.SelfBuffs(candidates))",
        "flows-fix: your held group buff put back in its own place",
        expect="flows-fix: mists: your armor is offered while your own Brilliance is held back for a flagged party member",
        script=S)

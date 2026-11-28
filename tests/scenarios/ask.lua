@@ -966,3 +966,17 @@ do
 		restoreUnits()
 	end)
 end
+
+-- Somebody you targeted yourself is asked at once: the half-minute wait is for
+-- a group that just met, not a click (Discord: clicking a mage stopped asking).
+do
+	local scenario = "ask: your own target is asked at once, without the half-minute wait"
+	with(scenario, {}, function()
+		local ns, restoreUnits = ready(scenario, function() return { target = { "Anna", "Aim" } } end)
+		if not ns then return end
+		ns.Ask.ARRIVE_SECONDS = 30
+		if not asking(ns) then fail(scenario, "the priest you targeted is not asked at once") end
+		noErrors(scenario, ns)
+		restoreUnits()
+	end)
+end

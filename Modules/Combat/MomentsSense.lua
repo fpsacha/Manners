@@ -302,6 +302,8 @@ end
 -- global cooldown running is the answer.
 local function OnlyGcd(slot, now)
 	if slot.readyAt and now < slot.readyAt then return false end
+	-- slot.onGCD is not asked: a wand's shot reads false under the global cooldown
+	-- alone. A real cooldown of yours is on Manners' clock above (your cast, or the pull).
 	local running, gcdEnd = GcdRunning(now)
 	if running ~= true then return false end
 	local _, start, duration = Cool(slot.id)

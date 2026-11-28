@@ -36,12 +36,17 @@ mutate("Queue.lua",
 
 SELF = "shoutfight: your own shout with both shout switches on is held, without an error"
 mutate("Queue.lua",
-       "\t\tif db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() ~= true then return nil end\n\tend",
-       "\t\tif db.buff.shoutCombatInstances == true then opts.shoutCombatAllowed = ns.ShoutCombatAllowed() end\n\tend",
-       "shoutfight: your own shout writes to a table that is not there (#74)",
+       "\tlocal out = {}\n\tfor _, b in ipairs(list) do\n\t\tlocal held = b.recipientMelee",
+       "\tlocal out = opts.out\n\tfor _, b in ipairs(list) do\n\t\tlocal held = b.recipientMelee",
+       "shoutfight: your own shout reads a table that is not there (#74)",
        expect=SELF, script=S)
 mutate("Queue.lua",
-       "\t\tif db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() ~= true then return nil end\n\tend",
-       "\tend",
+       "\t\t\tor (fight and ns.ShoutCombatAllowed() ~= true))",
+       "\t\t\tor false)",
        "shoutfight: your own shout ignores the dungeon-fight timing",
+       expect=SELF, script=S)
+mutate("Queue.lua",
+       "\tlocal mine = ShoutHeld(db, ns.SelfBuffs(Affordable(ns.CastableBuffs(), UNPAID)))",
+       "\tlocal mine = ns.SelfBuffs(Affordable(ns.CastableBuffs(), UNPAID))",
+       "shoutfight: /manners debug names a held shout",
        expect=SELF, script=S)

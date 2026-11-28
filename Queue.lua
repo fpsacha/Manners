@@ -2875,6 +2875,23 @@ end
 -- SelfEntry offers you nothing then. `pastResting`: the one it would be on
 -- were you not resting in a city or an inn, for the line that says your buffs
 -- wait there (Hints.lua); every other hold still answers nil.
+-- Battle Shout's own narrowing (#65) reaches you as it does the group: taken
+-- off your own list (not offered to a warrior who is not fighting in melee,
+-- nor out of a dungeon or raid fight when it is kept to those) before the pick,
+-- so your other buffs still come up while it is held.
+local function ShoutHeld(db, list)
+	local melee = db.buff.shoutMelee == true
+	local fight = db.buff.shoutCombatInstances == true
+	if not (melee or fight) or #list == 0 then return list end
+	local out = {}
+	for _, b in ipairs(list) do
+		local held = b.recipientMelee and ((melee and ns.IsMeleeUnit("player", caps.class) ~= true)
+			or (fight and ns.ShoutCombatAllowed() ~= true))
+		if not held then out[#out + 1] = b end
+	end
+	return out
+end
+
 function ns.SelfBuffFirst(db, now, pastResting)
 	local held, full = ns.MyselfHeldBack(db, now)
 	if held == "resting" and pastResting then
@@ -2884,7 +2901,7 @@ function ns.SelfBuffFirst(db, now, pastResting)
 	if held then return nil end
 	-- The list BuildQueue hands SelfEntry: a group buff you cannot pay for is
 	-- not the one the prompt is on.
-	local mine = ns.SelfBuffs(Affordable(ns.CastableBuffs(), UNPAID))
+	local mine = ShoutHeld(db, ns.SelfBuffs(Affordable(ns.CastableBuffs(), UNPAID)))
 	if #mine == 0 then return nil end
 	local buff = SelfBuff(db, mine, full, now)
 	local inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0
@@ -2948,7 +2965,7 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	if fight then held, full = HeldBackExceptList(db, now, true) end
 	if held then return nil end
 	-- A shout already covers you, and a few spells refuse the caster.
-	local mine = ownOnly and {} or ns.SelfBuffs(candidates)
+	local mine = ownOnly and {} or ShoutHeld(db, ns.SelfBuffs(candidates))
 	-- Hold back short buffs in cities and inns reaches you too: a group buff for
 	-- yourself that lasts no longer than that is not offered while you rest
 	-- (own buffs in cities on lets the rest through; CurseForge, Thorns at 15).
@@ -3008,13 +3025,6 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 		charges = charges,
 		checked = true,
 	}
-	-- Battle Shout's own narrowing (#65) reaches you as it does the group: not
-	-- offered to a warrior who is not fighting in melee, nor out of a dungeon
-	-- or raid fight when it is kept to those.
-	if buff.recipientMelee then
-		if db.buff.shoutMelee == true and ns.IsMeleeUnit("player", caps.class) ~= true then return nil end
-		if db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() ~= true then return nil end
-	end
 	-- A top-up says how long the buff lasts and when it was due (the tooltip).
 	if remaining then entry.duration, entry.lead, entry.leadKind = seconds, lead, kind end
 	-- *My food, stones and oils after everybody else*: the bag items that

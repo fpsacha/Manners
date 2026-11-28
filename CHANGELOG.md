@@ -5,6 +5,12 @@
 ### Fixes
 - **Combat cards no longer blink off while you shoot a wand.** Every card stays
   lit through the global cooldown alone (Manners: Combat).
+- **Clicking a mage asks for a buff at once again.** The half-minute wait before
+  an ask is for people who just came near, not somebody you target (Ask
+  passers-by for buffs).
+- **A held Battle Shout no longer hides your other own buffs.** With *only for
+  tanks and melee* or *only in dungeon and raid fights* on, food, flasks and
+  the rest still come up (My own buffs).
 
 ## 1.13.1
 

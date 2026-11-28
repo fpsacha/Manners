@@ -383,10 +383,15 @@ mutate(
 )
 
 mutate("Ask.lua",
-       "\tif now - since < Ask.ARRIVE_SECONDS then return nil end",
+       "\tif not pointed and now - since < Ask.ARRIVE_SECONDS then return nil end",
        "\tlocal _ = since",
        "ask: somebody is asked the moment they come near",
        expect="ask: nobody is asked the moment they come near, only after staying", script="runscenarios.py")
+mutate("Ask.lua",
+       "\tif not pointed and now - since < Ask.ARRIVE_SECONDS then return nil end",
+       "\tif now - since < Ask.ARRIVE_SECONDS then return nil end",
+       "ask: your own target waits the half minute too",
+       expect="ask: your own target is asked at once, without the half-minute wait", script="runscenarios.py")
 mutate("Ask.lua",
        "\tnearSince, nearNow = nearNow, nearSince",
        "\tlocal _ = nearNow",

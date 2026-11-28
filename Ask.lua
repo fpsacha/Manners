@@ -603,10 +603,11 @@ local function Consider(unit, grouped, pointed, taken, db, now)
 		if near ~= true then return nil end
 	end
 
-	-- Arrived, and stayed: within reach for Ask.ARRIVE_SECONDS first.
+	-- Arrived, and stayed: within reach for Ask.ARRIVE_SECONDS first. Somebody
+	-- you targeted yourself is asked at once: the click is the choice.
 	local since = nearSince[full] or now
 	nearNow[full] = since
-	if now - since < Ask.ARRIVE_SECONDS then return nil end
+	if not pointed and now - since < Ask.ARRIVE_SECONDS then return nil end
 
 	local level = plain(UnitLevel(unit))
 	if type(level) ~= "number" or level < 1 then level = nil end
