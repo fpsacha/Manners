@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.13.0
+
+*27 November 2026*
+
+### Highlights
+- **Combat prompt.** Manners: Combat offers the actions you turn on (an
+  interrupt, a defensive, a dispel, a heal) on a card that appears only when
+  it is needed, one click to cast. Each action has its own place in a short
+  row just above the Manners prompt. Everything is off until you pick it on
+  the **Combat** page, with its look, size, alerts and a mover.
+- **My companion.** With *Moments with my companion* on (off by default), now
+  and then a moment with the pet that follows you: hello when it comes out, a
+  pat on the road, a game when you stand still, a cuddle at the inn, a treat
+  for a quest, a celebration when you level up, a hug back from the dead.
+  Each has its own switch, and the gestures and answers vary.
+- **Achievements page** redrawn as a board: your rank, what you earned lately,
+  tabs, and a card for each achievement.
+
+### Changes
+- **Longer skips for your own buffs.** *After a right-click on my own buff,
+  offer 15, 30, 45 or 60 minutes* (off) puts four small buttons under the
+  prompt after a right-click on your own buff (#69).
+- **Consumables button** is bigger, shows the item's name under it, and has
+  *Show and move the consumables button* on My own buffs.
+- **Ask waits half a minute.** Nobody is offered as an ask until they have
+  stayed within reach thirty seconds.
+- **Your own buff is not held into a fight.** The prompt no longer stays on
+  you all fight as *held -- in combat*; a warrior's shout still stays.
+- **Outline look** repainted: a flat bar with a hard black edge and a soft
+  shadow, a square socket for the icon.
+- **Options window**: the page's sections are real tabs, the optional modules
+  are grouped first under *Choose modules* with the game's own icons, and a
+  switch that names a spell shows its icon.
+
+### Fixes
+- **Ask people for a buff I'm missing** with *Anywhere I can cast* asks people
+  in sight again (#68).
+- **Cozy Sleeping Bag** on Classic Era goes down at your feet in one press
+  (#70).
+- **Combat actions on yourself** (Shield Block, Ice Block, Evasion...) on WoW
+  Forever get their macro.
+
 ## 1.12.6
 
 *27 November 2026*
