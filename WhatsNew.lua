@@ -5,32 +5,6 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "1.14.0", date = "28 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Place each combat card where you want it|r , with a simpler way to move them.",
-			"|cffffd100Companion moments can come by themselves|r , no press needed.",
-			"Clicking a mage asks for a buff at once again.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Combat cards no longer blink off while you shoot a wand.|r Every card stays lit through the global cooldown alone (Manners: Combat).",
-			"|cffff9a52Clicking a mage asks for a buff at once again.|r The half-minute wait before an ask is for people who just came near, not somebody you target (Ask passers-by for buffs).",
-			"|cffff9a52A held Battle Shout no longer hides your other own buffs.|r With |cffffffffonly for tanks and melee|r or |cffffffffonly in dungeon and raid fights|r on, food, flasks and the rest still come up (My own buffs).",
-			"|cffff9a52Pointing at a look no longer sets the combat cards moving.|r Only |cffffffffMove the cards|r lets them be dragged, and the preview a look brings up goes away with the pointer (Manners: Combat).",
-		} },
-		{ title = "Combat", accent = "7cc4ff", entries = {
-			"|cff7cc4ffMoving the combat prompt is simpler.|r At the top of the Combat page: |cffffffffHow the cards are placed|r (|cffffffffIn a row|r, |cffffffffAll in one spot|r, or the new |cffffffffEach where I drag it|r), a line saying what a drag will do, |cffffffffMove the cards|r, and |cffffffffReset position|r once something was...",
-		} },
-		{ title = "Pets", accent = "7cc4ff", entries = {
-			"|cff7cc4ffCompanion moments can come by themselves.|r |cffffffffHow a moment comes|r (My companion): |cffffffffOn the prompt|r as before, or |cffffffffBy itself|r, which writes the gesture and its answer in /emote with no press (Manners: Pets).",
-		} },
-		{ title = "Options window", accent = "7cc4ff", entries = {
-			"|cff7cc4ffSpells wear their icons.|r A switch, list or dropdown that names one of your spells shows that spell's icon beside it.",
-			"|cff7cc4ffCombat actions two to a row.|r Each kind of action on the Combat page is a compact list.",
-			"|cff7cc4ffLinks to copy.|r A small |cffffffffManners links|r button at the foot of the window opens the Discord server, the CurseForge page and GitHub, ready to copy.",
-			"|cff7cc4ffWhat I say explains its quick choice.|r It is now |cffffffffQuick choice for what I say|r, says it is a shortcut over the switches under it, and |cffffffffOnly /thank people who buff me|r says who the /thank is for.",
-			"|cff7cc4ffThe footer buttons line up.|r On a page with no |cffffffffReset this page|r, the two small buttons move to the left edge.",
-		} },
-	} },
 	{ version = "1.13.1", date = "28 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Items of my own|r and |cffffffffBlessing of Freedom|r on a slowed friend, both off until you turn them on.",
@@ -85,6 +59,29 @@ ns.WhatsNew = {
 			"|cffff9a52Reactive wards must be castable.|r A ward button appears only when the matching spell is known, usable, funded and off cooldown.",
 			"|cffff9a52Module chooser and migration state are safer.|r The one-time chooser belongs to the profile that scheduled it, retries if it was not shown, and shared profiles reconcile modules per character without overriding an explicit off.",
 			"|cffff9a52A press settles only its own cast.|r A secret spell ID from an unrelated cast can no longer clear a favour or consume a request.",
+		} },
+	} },
+	{ version = "1.12.5", date = "27 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100All optional modules start on.|r Combat, My Buffs, Services, Pets and Achievements are enabled in a new install.",
+			"|cffffd100Existing module choices are restored.|r Profiles from before optional modules enable the folders their saved My Buffs, Services or Combat settings need, once, without turning anything on for a new or intentionally-off profile.",
+			"|cffffd100Outline.|r A thirtieth look, a clean near-black prompt with a crisp black outline and a square spell socket, is now available under Look.",
+			"|cffffd100Reactive wards on classic clients.|r Classic Era and TBC can show a pre-armed Fire Ward or Frost Ward secure button after a concrete matching damage event.",
+		} },
+		{ title = "Changes", accent = "7cc4ff", entries = {
+			"|cff7cc4ffModule switches.|r An unloaded module can be enabled for the next reload during combat; a loaded module cannot be suspended while protected frames are locked.",
+			"|cff7cc4ffClass colours.|r Dark prompts use the game's exact class colours instead of lightened tints.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Will of the Forsaken for Sleep.|r The loss-of-control event's index is read and a briefly empty result is rechecked safely, while a plainly reported stun still does not spend the racial cooldown.",
+			"|cffff9a52Own buffs and services survive the split.|r Rogue poisons and stones, Druid self-buffs including Thorns, and saved Mage service requests are restored by enabling My Buffs or Services for existing profiles.",
+			"|cffff9a52Keyboard control in Settings.|r Closing or losing the options window now releases key capture, so WASD and Escape return to the game.",
+			"|cffff9a52Combat-module teardown.|r Delayed CureFight, Mend Pet and BreakFree callbacks stop after Combat is switched off or suspended.",
+			"|cffff9a52Favour settlement race.|r A delayed cast can no longer clear a newer favour that replaced the debt which the press originally answered.",
+			"|cffff9a52Withheld own-spell range.|r A secret range result is no longer treated as proof that an own spell cannot target the player.",
+		} },
+		{ title = "Reliability", accent = "7cc4ff", entries = {
+			"|cff7cc4ffPackage and test gates.|r A killed scenario worker, missing package job or dead TOC, XML or library reference now fails validation instead of passing a structural package.",
 		} },
 	} },
 }

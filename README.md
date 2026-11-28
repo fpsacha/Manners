@@ -155,7 +155,8 @@ Favours, top-ups, timing and targeting.
 Cities and inns, dungeons, battlegrounds, the mana floor, snooze.
 
 ### What I say
-Thanks, the line said when you buff, In character, whispers.
+A quick choice that sets the rest, thanks, the line said when you buff, In
+character, whispers.
 
 ### In a fight
 What the prompt does when a fight starts.
@@ -167,14 +168,16 @@ The look, size, colours, sounds and the exact position.
 Profiles that switch by themselves, and the profile manager with *Undo*.
 
 ### Diagnostics
-Why the prompt is empty, the check-up and *Report a bug*.
+Why the prompt is empty, the check-up and *Report a bug*. The small links
+button at the foot of the window has Discord, CurseForge and GitHub to copy.
 
 ### My own buffs
 Each of your own buffs, consumables and spells or items of your own
 (Manners: My Buffs).
 
 ### My companion
-Your companion pet, and moments with it (Manners: Pets).
+Your companion pet, and moments with it: on the prompt, or by themselves as
+an /emote (Manners: Pets).
 
 ### My pet
 Feed Pet, Mend Pet and pet care (Manners: Pets, hunters).
