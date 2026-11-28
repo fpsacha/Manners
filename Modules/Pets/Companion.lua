@@ -79,7 +79,14 @@ end
 
 local function Pace()
 	local beast = Switches()
-	return K.PACE[beast and beast.pace] or K.PACE.sometimes
+	return K.PACE[beast and beast.companionPace] or K.PACE.sometimes
+end
+
+-- One moment's own switch, under the master (nil reads as on).
+local MOMENT_SWITCH = { hello = "companionHello", praise = "companionPraise", road = "companionRoad" }
+local function MomentOn(kind)
+	local beast = Switches()
+	return beast ~= nil and beast[MOMENT_SWITCH[kind]] ~= false
 end
 
 local function After(seconds, fn)
@@ -150,7 +157,7 @@ local function GapLeft()
 end
 
 local function Trigger(kind, now)
-	if not Wanted() or GapLeft() > 0 then return end
+	if not Wanted() or not MomentOn(kind) or GapLeft() > 0 then return end
 	if moment and C.RANK[moment.kind] >= C.RANK[kind] then return end
 	local name = Out()
 	if not name then return end
@@ -258,7 +265,7 @@ local function Macro(made)
 	local emote = "/" .. ns.CHANNEL_COMMANDS.EMOTE .. " "
 	local gesture = (GESTURE[m.kind] or GESTURE.road):format(name)
 	local beast = Switches()
-	local answer = (beast and beast.answer ~= false) and (" " .. ANSWER[(#name % #ANSWER) + 1]:format(name)) or ""
+	local answer = (beast and beast.companionAnswer ~= false) and (" " .. ANSWER[(#name % #ANSWER) + 1]:format(name)) or ""
 	local used = #table.concat(lines, "\n") + 1 + #BACK + 1
 	local n = #lines
 	if used + #emote + #gesture + #answer <= ns.MACRO_LIMIT then
@@ -267,7 +274,7 @@ local function Macro(made)
 		lines[n + 1] = emote .. gesture
 	end
 	local said, source
-	if lines[n + 1] and Beast.SayOpen() then
+	if lines[n + 1] and beast and beast.companionWords ~= false and Beast.SayOpen() then
 		local say = "/" .. ns.CHANNEL_COMMANDS.SAY .. " "
 		local room = ns.MACRO_LIMIT - (used + #lines[n + 1] + 1) - #say
 		if m.line == nil then
@@ -360,7 +367,8 @@ do
 		if not Mine(made) then return summary(made) end
 		local out = { L["A moment with %s: a press does an emote for it. Your target stays as it is."]:format(tostring(made.petName)) }
 		local m = made.moment
-		if m and m.line and Beast.SayOpen() then out[2] = L["Says: |cffffffff%s|r"]:format(m.line) end
+		local beast = Switches()
+		if m and m.line and beast and beast.companionWords ~= false and Beast.SayOpen() then out[2] = L["Says: |cffffffff%s|r"]:format(m.line) end
 		return out
 	end
 	function Beast.ClickLines(made)

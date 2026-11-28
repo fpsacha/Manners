@@ -210,6 +210,7 @@ end
 function ns.BeastClamp(profile)
 	local beast = type(profile) == "table" and profile.beast
 	if type(beast) == "table" and K.PACE[beast.pace] == nil then beast.pace = "sometimes" end
+	if type(beast) == "table" and K.PACE[beast.companionPace] == nil then beast.companionPace = "sometimes" end
 end
 
 -- A plain answer from the client, or nil: no such function, or a secret.

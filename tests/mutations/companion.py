@@ -42,3 +42,21 @@ mutate(
     expect="a second moment came inside the gap",
     script="runscenarios.py",
 )
+
+mutate(
+    "Modules/Pets/Companion.lua",
+    "if not Wanted() or not MomentOn(kind) or GapLeft() > 0 then return end",
+    "if not Wanted() or GapLeft() > 0 then return end",
+    "companion: a moment's own switch is ignored",
+    expect="well done was offered with its switch off",
+    script="runscenarios.py",
+)
+
+mutate(
+    "Modules/Pets/Companion.lua",
+    "local answer = (beast and beast.companionAnswer ~= false) and",
+    "local answer = beast and",
+    "companion: the answer's switch is ignored",
+    expect="with the answer off the macro is",
+    script="runscenarios.py",
+)

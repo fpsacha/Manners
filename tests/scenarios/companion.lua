@@ -99,3 +99,25 @@ do
 		if companionEntry(ns) then fail(scenario, "the moment stayed after the companion was put away") end
 	end)
 end
+
+do
+	local scenario = "companion: each moment and the answer have a switch of their own"
+	with(scenario, function(ns)
+		for _, key in ipairs({ "beastCompanionPace", "beastCompanionHello", "beastCompanionPraise",
+			"beastCompanionRoad", "beastCompanionAnswer", "beastCompanionWords" }) do
+			if not findOption(ns.optionsTable, key) then fail(scenario, "the My companion page has no " .. key) end
+		end
+		H.findOption(ns.optionsTable, "beastCompanion").set(nil, true)
+		H.findOption(ns.optionsTable, "beastCompanionPraise").set(nil, false)
+		fight(50)
+		if companionEntry(ns) then fail(scenario, "well done was offered with its switch off") end
+		H.findOption(ns.optionsTable, "beastCompanionPraise").set(nil, true)
+		H.findOption(ns.optionsTable, "beastCompanionAnswer").set(nil, false)
+		fight(50)
+		if not companionEntry(ns) then fail(scenario, "no well done with its switch back on") return end
+		local macro = armed(ns)
+		if macro ~= "/targetexact Panda Cub\n/praise\n/emote gives Panda Cub a proud nod.\n/targetlasttarget" then
+			fail(scenario, "with the answer off the macro is |" .. tostring(macro) .. "|")
+		end
+	end)
+end

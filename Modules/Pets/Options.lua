@@ -123,6 +123,31 @@ local function NoJournal()
 end
 
 local function AddCompanionControls(args)
+	local function Off() return ns.db.profile.beast.companion ~= true end
+	local function Switch(key, field, name, desc, order)
+		args[key] = { type = "toggle", name = name, desc = desc, order = order, width = "full",
+			hidden = NoJournal, disabled = Off,
+			get = function() return ns.db.profile.beast[field] ~= false end,
+			set = function(_, value)
+				ns.db.profile.beast[field] = value == true
+				ns.Guard("companion repaint", ns.Prompt.Refresh, ns.Prompt)
+			end }
+	end
+	args.beastCompanionPace = { type = "select", name = L["How often moments come"],
+		desc = L["The least time between two moments with your companion: an hour, twenty minutes or ten. Before one on a quiet road: half an hour, a quarter of an hour or ten minutes."],
+		order = 15.98981, hidden = NoJournal, disabled = Off,
+		values = { rarely = L["Rarely"], sometimes = L["Sometimes"], often = L["Often"] },
+		sorting = { "rarely", "sometimes", "often" },
+		get = function() return ns.db.profile.beast.companionPace end,
+		set = function(_, value) ns.db.profile.beast.companionPace = value end }
+	Switch("beastCompanionHello", "companionHello", L["At login: hello"], nil, 15.98982)
+	Switch("beastCompanionPraise", "companionPraise", L["After a long fight: well done"],
+		L["After a fight of 45 seconds or more, with your companion out from start to end."], 15.98983)
+	Switch("beastCompanionRoad", "companionRoad", L["On a quiet road: a pat"], nil, 15.98984)
+	Switch("beastCompanionAnswer", "companionAnswer", L["My companion answers"],
+		L["After the gesture, how your companion answers: it nuzzles closer or stays close."], 15.98985)
+	Switch("beastCompanionWords", "companionWords", L["Say a line to my companion"],
+		L["With In character on and lines going in /say, a line from your people to your companion with each moment."], 15.98986)
 	args.beastCompanion = { type = "toggle", name = L["Moments with my companion"],
 		desc = L["Now and then, at login, after a long fight or on a quiet road, offers a moment with the companion pet that follows you: an emote for it, and a line from your people when In character is on and lines go in /say. A press targets it by its name and gives your target back. Never in a fight; letting it pass costs nothing."],
 		order = 15.9898, width = "full", hidden = NoJournal,
@@ -135,7 +160,18 @@ local function AddCompanionControls(args)
 		end }
 end
 
-local COMPANION_SECTION = { key = "pet.companion", title = L["My companion"], items = { "who.beastCompanion" } }
+local COMPANION_SECTION = { key = "pet.companion", title = L["My companion"], items = {
+	"who.beastCompanion", { "who.beastCompanionPace", indent = true },
+	{ "who.beastCompanionHello", indent = true }, { "who.beastCompanionPraise", indent = true },
+	{ "who.beastCompanionRoad", indent = true }, { "who.beastCompanionAnswer", indent = true },
+	{ "who.beastCompanionWords", indent = true },
+} }
+-- The pieces under the switch, folded into it in the window (Layout.lua, parents).
+local function CompanionParents(layout)
+	for _, key in ipairs({ "Pace", "Hello", "Praise", "Road", "Answer", "Words" }) do
+		layout.parents["who.beastCompanion" .. key] = "who.beastCompanion"
+	end
+end
 
 	if ns.Beast and not ns.Beast.IsHunter() and not NoJournal() then
 		api:RegisterOptionsExtension("who", function(_, args) AddCompanionControls(args) end)
@@ -148,6 +184,7 @@ local COMPANION_SECTION = { key = "pet.companion", title = L["My companion"], it
 			sections = { COMPANION_SECTION },
 		}, "modules")
 		ns.WindowLayout.keywords["who.beastCompanion"] = L["companion pet critter emote moment"]
+		CompanionParents(ns.WindowLayout)
 	end
 
 	if ns.Beast and ns.Beast.IsHunter() then
@@ -210,4 +247,5 @@ local COMPANION_SECTION = { key = "pet.companion", title = L["My companion"], it
 		coreLayout.keywords["who.beastTraining"] = L["hunter pet training points"]
 		coreLayout.keywords["appearance.mendInFight"] = L["hunter pet mend fight button key"]
 		coreLayout.keywords["who.beastCompanion"] = L["companion pet critter emote moment"]
+		CompanionParents(coreLayout)
 	end
