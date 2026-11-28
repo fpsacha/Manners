@@ -2,6 +2,13 @@
 
 ## 1.13.1
 
+*28 November 2026*
+
+### Highlights
+- **Items of my own** and **Blessing of Freedom** on a slowed friend, both off
+  until you turn them on.
+- The prompt works again with the Battle Shout switches on.
+
 ### Fixes
 - **Battle Shout switches broke the prompt.** With *Only for melee and tanks*
   or *Only in dungeon and raid fights* on, every scan threw an error and the

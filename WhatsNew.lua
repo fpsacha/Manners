@@ -5,7 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "1.13.1", date = nil, sections = {
+	{ version = "1.13.1", date = "28 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Items of my own|r and |cffffffffBlessing of Freedom|r on a slowed friend, both off until you turn them on.",
+			"The prompt works again with the Battle Shout switches on.",
+		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Battle Shout switches broke the prompt.|r With |cffffffffOnly for melee and tanks|r or |cffffffffOnly in dungeon and raid fights|r on, every scan threw an error and the prompt stayed empty (#74).",
 			"|cffff9a52Undermine Clam Chowder|r gives Well Fed on WoW Forever and is offered as food (#73).",
