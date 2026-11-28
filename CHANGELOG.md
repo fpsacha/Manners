@@ -28,6 +28,8 @@
   your spells shows that spell's icon beside it.
 - **Combat actions two to a row.** Each kind of action on the Combat page is a
   compact list.
+- **Links to copy.** A small *Manners links* button at the foot of the window
+  opens the Discord server, the CurseForge page and GitHub, ready to copy.
 - **The footer buttons line up.** On a page with no *Reset this page*, the two
   small buttons move to the left edge.
 

@@ -78,3 +78,15 @@ mutate("Modules/Combat/Options.lua",
        "",
        "combat-actions: the placement choice away from Move the cards",
        expect=FREE, script=S)
+
+RESET = "window: the reset button is hidden on Start here, Profiles and Diagnostics"
+mutate("Options/Window/WindowChrome.lua",
+       "\tfooter.links = W.Button(foot, \"\", UI.Guarded(function() ns.Links.Show() end))\n",
+       "\tfooter.links = W.Button(foot, \"\", UI.Guarded(function() end))\n",
+       "window: Links opens nothing",
+       expect=RESET, script=S)
+mutate("Options/Links.lua",
+       "\t\tif userInput and self.fixed ~= nil then\n",
+       "\t\tif false then\n",
+       "window: a link's box keeps what is typed over it",
+       expect=RESET, script=S)

@@ -626,6 +626,34 @@ do
 		end
 		ns.Prompt:ExitTest()
 
+		-- Links: the footer's square button opens the links to copy, each box
+		-- holding its own and putting it back when typed over.
+		if not UI.footer.links then
+			fail(scenario, "the footer has no Links button")
+		else
+			press(UI.footer.links)
+			local links = ns.Links and ns.Links.Window()
+			if not (links and links:IsShown()) then
+				fail(scenario, "Links does not open its window")
+			else
+				for _, link in ipairs(ns.Links.LIST) do
+					local box = links.boxes[link.key]
+					if not (box and box:GetText() == link.url) then
+						fail(scenario, link.key .. " is not in its box: " .. tostring(box and box:GetText()))
+					else
+						box:SetText("typed over")
+						local changed = box:GetScript("OnTextChanged")
+						if changed then changed(box, true) end
+						if box:GetText() ~= link.url then fail(scenario, link.key .. "'s box keeps what was typed over it") end
+					end
+				end
+				if not (links.boxes.discord and links.boxes.discord:GetText():find("discord.gg/", 1, true)) then
+					fail(scenario, "the Discord link is not an invite")
+				end
+				links:Hide()
+			end
+		end
+
 		-- It asks first, in the window's own box, with the item's words.
 		ns.OpenOptions("when")
 		local W, B = ns.WindowWidgets, ns.WindowBind

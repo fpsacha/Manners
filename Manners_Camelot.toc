@@ -117,5 +117,6 @@ Options\Window\WindowPage.lua
 Options\Window\WindowSearch.lua
 Options\Register.lua
 Options\BugReport.lua
+Options\Links.lua
 Selftest.lua
 SelftestLaunch.lua

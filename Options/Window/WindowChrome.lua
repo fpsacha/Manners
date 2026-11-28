@@ -957,6 +957,26 @@ function UI.BuildFooter(f)
 		GameTooltip:Show()
 	end)
 	footer.bug:HookScript("OnLeave", function() GameTooltip:Hide() end)
+	-- Links (Options/Links.lua): Discord, CurseForge and GitHub to copy, a
+	-- square button like the two before it.
+	local linksLabel = L["Manners links"]
+	footer.links = W.Button(foot, "", UI.Guarded(function() ns.Links.Show() end))
+	footer.links.minWidth = 22
+	footer.links:SetSize(22, 22)
+	footer.links:SetPoint("LEFT", footer.bug, "RIGHT", FOOT_GAP, 0)
+	footer.links.icon = footer.links:CreateTexture(nil, "OVERLAY")
+	footer.links.icon:SetTexture("Interface\\Icons\\INV_Letter_15")
+	footer.links.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	footer.links.icon:SetPoint("TOPLEFT", footer.links, "TOPLEFT", 3, -3)
+	footer.links.icon:SetPoint("BOTTOMRIGHT", footer.links, "BOTTOMRIGHT", -3, 3)
+	footer.links.tip = linksLabel
+	footer.links:HookScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:AddLine(linksLabel, 1, 1, 1)
+		GameTooltip:AddLine(L["Discord, CurseForge and GitHub, to copy."], 0.8, 0.8, 0.8, true)
+		GameTooltip:Show()
+	end)
+	footer.links:HookScript("OnLeave", function() GameTooltip:Hide() end)
 	footer.buildItem = UI.Item(layout.build)
 	local closeLabel = CLOSE or ""
 	footer.close = W.Button(foot, closeLabel, function() f:Hide() end)
@@ -968,7 +988,7 @@ function UI.BuildFooter(f)
 	-- window's own ink at a size to be read, in the middle of the room; and
 	-- the build, small and grey, at the right beside Close.
 	local mid = CreateFrame("Frame", nil, foot)
-	mid:SetPoint("TOPLEFT", footer.bug, "TOPRIGHT", FOOT_GAP, 0)
+	mid:SetPoint("TOPLEFT", footer.links, "TOPRIGHT", FOOT_GAP, 0)
 	mid:SetPoint("BOTTOMRIGHT", footer.close, "BOTTOMLEFT", -FOOT_GAP, 0)
 	footer.mid = mid
 	footer.build = UI.Text(mid, GameFontDisableSmall, C.hint)
@@ -1034,7 +1054,7 @@ function UI.FooterRoom()
 	local changed = (footer.changed:GetWidth() or 0) + FOOT_GAP
 	-- A page with no reset: its button and the gap after it are room for the line.
 	if not footer.reset:IsShown() then reset, changed = 0, changed - FOOT_GAP end
-	local bug = (footer.bug:GetWidth() or 0) + FOOT_GAP
+	local bug = (footer.bug:GetWidth() or 0) + FOOT_GAP + (footer.links:GetWidth() or 0) + FOOT_GAP
 	return UI.WIDTH - 34 - reset - close - changed - bug - 2 * FOOT_GAP - BuildRoom()
 end
 
