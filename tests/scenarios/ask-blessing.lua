@@ -38,6 +38,7 @@ local function with(scenario, body)
 		if not ns then return end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		ns.db.profile.sources.self = false
 		ns.db.profile.sources.group = false
 		ns.db.profile.sources.strangers = false

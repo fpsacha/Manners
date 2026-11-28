@@ -766,8 +766,9 @@ never accepts a trade or casts by itself.
 somebody in your group, or right beside you, could cast a buff you would want
 and do not have, they come up last of everything on the prompt, and a press
 whispers them one short polite line. It casts nothing and leaves your target
-alone. One ask a person for each buff in ten minutes, and one ask in all in
-two; never in a fight, a battleground or an arena; nobody on your never-offer
+alone. Nobody comes up until they have stayed within reach for half a
+minute, so a group that just met is not asked at once. One ask a person for
+each buff in ten minutes, and one ask in all in two; never in a fight, a battleground or an arena; nobody on your never-offer
 or `/ignore` list, nobody dead, fighting, away or busy. *Ask in* chooses a
 whisper (the default) or `/say`, *What the ask says* one of three lines or
 *My own words*, a line you write in the box under it (`{name}` their name,

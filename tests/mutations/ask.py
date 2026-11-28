@@ -381,3 +381,19 @@ mutate(
     expect="somebody out of sight is asked",
     script="runscenarios.py",
 )
+
+mutate("Ask.lua",
+       "\tif now - since < Ask.ARRIVE_SECONDS then return nil end",
+       "\tlocal _ = since",
+       "ask: somebody is asked the moment they come near",
+       expect="ask: nobody is asked the moment they come near, only after staying", script="runscenarios.py")
+mutate("Ask.lua",
+       "\tnearSince, nearNow = nearNow, nearSince",
+       "\tlocal _ = nearNow",
+       "ask: the wait never starts, or never starts again",
+       expect="ask: nobody is asked the moment they come near, only after staying", script="runscenarios.py")
+mutate("Ask.lua",
+       "\tlocal since = nearSince[full] or now",
+       "\tlocal since = nearSince[full] or (now - 3600)",
+       "ask: somebody new counts as long arrived",
+       expect="ask: nobody is asked the moment they come near, only after staying", script="runscenarios.py")

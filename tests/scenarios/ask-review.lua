@@ -64,6 +64,7 @@ local function ready(scenario, setup)
 	end
 	freshPrompt(ns, scenario)
 	ns.db.profile.sources.ask = true
+	ns.Ask.ARRIVE_SECONDS = 0
 	return ns, restoreUnits
 end
 
@@ -172,6 +173,7 @@ do
 		end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		local kings, might = ns.FindBuff("PALADIN", "kings"), ns.FindBuff("PALADIN", "might")
 		if not (ns.EXCLUSIVE_BUFFS.PALADIN and kings and might and kings.alikeIds and kings.alikeIds[1126]) then
 			fail(scenario, "SKIPPED -- blessings do not replace one another here, or Kings has no Mark for its like")
@@ -329,6 +331,7 @@ local function listed(scenario, body)
 		Mock.timers = {}
 		local db = ns.db.profile
 		db.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		db.prompt.showQueue, db.prompt.queueRows, db.prompt.clickRows = true, 3, true
 		ns.Prompt:ApplyStyle()
 		ns.addon:Tick()

@@ -730,6 +730,7 @@ do
 		before = function(ns)
 			Mock.unitClass = "PRIEST"
 			ns.db.profile.sources.ask = true
+			ns.Ask.ARRIVE_SECONDS = 0
 		end }, function(ns)
 		Mock.playerHeld = {}
 		if ns.Ask then ns.Ask.ForgetWorn() end

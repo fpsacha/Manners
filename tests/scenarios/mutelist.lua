@@ -400,6 +400,7 @@ do
 		if not ns then return end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		local function asking()
 			for _, entry in ipairs(ns.BuildQueue()) do
 				if entry.ask then return entry end
