@@ -318,7 +318,7 @@ do
 			fail(scenario, "Stay silent reads " .. quick.VoiceSummary())
 		end
 		quick.Apply(quick.VOICE, "thank")
-		if quick.VoiceSummary() ~= "Only /thank." then
+		if quick.VoiceSummary() ~= "Only /thanks people who buff you; nothing is said when you buff someone." then
 			fail(scenario, "Just /thank them reads " .. quick.VoiceSummary())
 		end
 		quick.Apply(quick.VOICE, "polite")
@@ -480,7 +480,7 @@ do
 		end
 		ns.db.profile.sources.owed = false
 		local alone, withLine = summaries()
-		if alone ~= "Only /thank." then
+		if alone ~= "Only /thanks people who buff you; nothing is said when you buff someone." then
 			fail(scenario, "with People who buff me off, Just /thank them reads " .. alone)
 		end
 		if not saysThanks(withLine) then
@@ -488,7 +488,7 @@ do
 		end
 		ns.db.profile.sources.owed = true
 		alone, withLine = summaries()
-		if alone ~= "Only /thank." then
+		if alone ~= "Only /thanks people who buff you; nothing is said when you buff someone." then
 			fail(scenario, "with People who buff me on, Just /thank them reads " .. alone)
 		end
 		if not saysThanks(withLine) then

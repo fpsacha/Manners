@@ -629,6 +629,7 @@ ns.WindowLayout = {
 				-- The quick choice, directly above the switches it sets.
 				{ key = "click.lead", items = {
 					"general.quickVoice",
+					"general.quickVoiceHelp",
 					"general.quickVoiceSummary",
 				} },
 				{ key = "click.speech", title = L["Thank-yous"], items = {
@@ -1009,7 +1010,7 @@ ns.WindowLayout = {
 			-- Quiet in cities and instances.
 			["who.quietInTowns"] = true, ["who.quietInInstances"] = true,
 			-- The /thank and the voice.
-			["general.quickVoice"] = true, ["general.quickVoiceSummary"] = true, ["click.thankEmote"] = true,
+			["general.quickVoice"] = true, ["general.quickVoiceHelp"] = true, ["general.quickVoiceSummary"] = true, ["click.thankEmote"] = true,
 			-- The look, a few.
 			["appearance.style"] = true, ["appearance.classLook"] = true,
 			["appearance.move"] = true, ["appearance.posPreset"] = true, ["appearance.scale"] = true,

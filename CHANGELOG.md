@@ -33,6 +33,9 @@
   compact list.
 - **Links to copy.** A small *Manners links* button at the foot of the window
   opens the Discord server, the CurseForge page and GitHub, ready to copy.
+- **What I say explains its quick choice.** It is now *Quick choice for what I
+  say*, says it is a shortcut over the switches under it, and *Only /thank
+  people who buff me* says who the /thank is for.
 - **The footer buttons line up.** On a page with no *Reset this page*, the two
   small buttons move to the left edge.
 

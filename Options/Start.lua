@@ -424,7 +424,7 @@ Quick.VOICE = {
 		-- The whispered thank-you sends chat too: silence means it as well.
 		["prompt.thankWhisper"] = false,
 	} },
-	{ key = "thank", name = L["Just /thank them"], set = {
+	{ key = "thank", name = L["Only /thank people who buff me"], set = {
 		["speech.enabled"] = false, ["prompt.thankEmote"] = true,
 	} },
 	{ key = "polite", name = L["A polite line"], lines = "polite", set = {
@@ -760,7 +760,7 @@ VoiceSummaryText = function()
 		return thankLine and (whisperLine .. " " .. thankLine) or whisperLine
 	end
 	if not sp.enabled then
-		return thanks and L["Only /thank."] or L["Silent."]
+		return thanks and L["Only /thanks people who buff you; nothing is said when you buff someone."] or L["Silent."]
 	end
 	local set = ns.PHRASE_SETS[sp.presetChoice or "roleplay"]
 	local phrase
@@ -1369,7 +1369,7 @@ function Page.BuildStartTab()
 				-- A class with nothing to give is thanked, and thanks, all the
 				-- same (Quick.THANKS): its choice is about who buffs it.
 				name = function()
-					return HasClassBuffs() and L["When I buff someone"] or L["When someone buffs me"]
+					return HasClassBuffs() and L["Quick choice for what I say"] or L["When someone buffs me"]
 				end,
 				order = 41,
 				width = "full",
@@ -1378,6 +1378,16 @@ function Page.BuildStartTab()
 				get = function() return Quick.Match(Quick.VoiceList()) end,
 				set = function(_, v) Quick.Apply(Quick.VoiceList(), v) end,
 				confirm = function(_, v) return Quick.Confirm(Quick.VoiceList(), v) end,
+			},
+			-- What the choice is: a shortcut over the switches under it, which
+			-- read as a second way to say the same thing without it.
+			quickVoiceHelp = {
+				type = "description",
+				order = 41.5,
+				hidden = function() return not HasClassBuffs() end,
+				name = function()
+					return grey(L["A shortcut: it sets the switches below. Change any of them to fine-tune it."])
+				end,
 			},
 			-- Not under Stay silent, whose summary ("Silent.") says it again.
 			quickVoiceSummary = {

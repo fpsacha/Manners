@@ -219,8 +219,8 @@ mutate("Options/Start.lua",
 # The /thank summed up as waiting on People who buff me, which it no longer
 # does (Favours.lua, NoteFavour): the old rule put back, each half.
 mutate("Options/Start.lua",
-       "\t\treturn thanks and L[\"Only /thank.\"] or L[\"Silent.\"]\n",
-       "\t\treturn thanks and S().owed and L[\"Only /thank.\"] or L[\"Silent.\"]\n",
+       "\t\treturn thanks and L[\"Only /thanks people who buff you; nothing is said when you buff someone.\"] or L[\"Silent.\"]\n",
+       "\t\treturn thanks and S().owed and L[\"Only /thanks people who buff you; nothing is said when you buff someone.\"] or L[\"Silent.\"]\n",
        "presets: a /thank said as waiting on favours",
        expect="with People who buff me off, Just /thank them reads", script=S)
 

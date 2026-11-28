@@ -90,3 +90,10 @@ mutate("Options/Links.lua",
        "\t\tif false then\n",
        "window: a link's box keeps what is typed over it",
        expect=RESET, script=S)
+
+VOICE = "start here: step 4 picks what is said, and says what it came to"
+mutate("Options/Start.lua",
+       "\t\t\t\thidden = function() return not HasClassBuffs() end,\n\t\t\t\tname = function()\n\t\t\t\t\treturn grey(L[\"A shortcut:",
+       "\t\t\t\thidden = function() return true end,\n\t\t\t\tname = function()\n\t\t\t\t\treturn grey(L[\"A shortcut:",
+       "options: the quick choice never says it is a shortcut",
+       expect=VOICE, script=S)

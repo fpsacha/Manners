@@ -359,8 +359,16 @@ do
 			fail(scenario, "picking Just /thank them did not set it up")
 		end
 		local summary = text(a.quickVoiceSummary.name)
-		if not summary:find("Only /thank.", 1, true) then
+		if not summary:find("Only /thanks people who buff you; nothing is said when you buff someone.", 1, true) then
 			fail(scenario, "the summary under step 4 reads " .. summary)
+		end
+		-- The choice says it is a shortcut over the switches under it.
+		local help = a.quickVoiceHelp
+		if not (help and not help.hidden() and text(help.name):find("shortcut", 1, true)) then
+			fail(scenario, "the quick choice does not say it sets the switches under it")
+		end
+		if not text(voice.name):find("Quick choice", 1, true) then
+			fail(scenario, "the quick choice is named " .. text(voice.name))
 		end
 		if not voice.values({}).polite or voice.sorting({})[1] ~= "silent" then
 			fail(scenario, "When I buff someone back does not offer the voice presets")
