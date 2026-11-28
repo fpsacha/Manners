@@ -140,6 +140,16 @@ local function AddCompanionControls(args)
 		sorting = { "rarely", "sometimes", "often" },
 		get = function() return ns.db.profile.beast.companionPace end,
 		set = function(_, value) ns.db.profile.beast.companionPace = value end }
+	args.beastCompanionMode = { type = "select", name = L["How a moment comes"],
+		desc = L["On the prompt: the moment waits on your prompt and a press does it. By itself: Manners writes the gesture and its answer in /emote as the moment comes, with no press; the game lets only a press target your companion or speak in /say, so those are left out."],
+		order = 15.989805, hidden = NoJournal, disabled = Off,
+		values = { prompt = L["On the prompt"], auto = L["By itself"] },
+		sorting = { "prompt", "auto" },
+		get = function() return ns.db.profile.beast.companionMode == "auto" and "auto" or "prompt" end,
+		set = function(_, value)
+			ns.db.profile.beast.companionMode = value == "auto" and "auto" or nil
+			ns.Guard("companion repaint", ns.Prompt.Refresh, ns.Prompt)
+		end }
 	Switch("beastCompanionHello", "companionHello", L["At login or when I call it: hello"], nil, 15.98982)
 	Switch("beastCompanionPraise", "companionPraise", L["After a long fight: well done"],
 		L["After a fight of 45 seconds or more, with your companion out from start to end."], 15.98983)
@@ -167,7 +177,7 @@ local function AddCompanionControls(args)
 end
 
 local COMPANION_SECTION = { key = "pet.companion", title = L["My companion"], items = {
-	"who.beastCompanion", { "who.beastCompanionPace", indent = true },
+	"who.beastCompanion", { "who.beastCompanionMode", indent = true }, { "who.beastCompanionPace", indent = true },
 	{ "who.beastCompanionHello", indent = true }, { "who.beastCompanionPraise", indent = true },
 	{ "who.beastCompanionRoad", indent = true }, { "who.beastCompanionPlay", indent = true },
 	{ "who.beastCompanionLevel", indent = true }, { "who.beastCompanionHome", indent = true },
@@ -177,7 +187,7 @@ local COMPANION_SECTION = { key = "pet.companion", title = L["My companion"], it
 } }
 -- The pieces under the switch, folded into it in the window (Layout.lua, parents).
 local function CompanionParents(layout)
-	for _, key in ipairs({ "Pace", "Hello", "Praise", "Road", "Play", "Level", "Home", "Back", "Quest", "Answer", "Words" }) do
+	for _, key in ipairs({ "Mode", "Pace", "Hello", "Praise", "Road", "Play", "Level", "Home", "Back", "Quest", "Answer", "Words" }) do
 		layout.parents["who.beastCompanion" .. key] = "who.beastCompanion"
 	end
 end

@@ -18,6 +18,11 @@
   where I drag it*), a line saying what a drag will do, *Move the cards*, and
   *Reset position* once something was moved (Manners: Combat).
 
+### Pets
+- **Companion moments can come by themselves.** *How a moment comes* (My
+  companion): *On the prompt* as before, or *By itself*, which writes the
+  gesture and its answer in /emote with no press (Manners: Pets).
+
 ### Options window
 - **Spells wear their icons.** A switch, list or dropdown that names one of
   your spells shows that spell's icon beside it.

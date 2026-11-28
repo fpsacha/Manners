@@ -307,6 +307,32 @@ local function Insert(queue, made)
 	table.insert(queue, at, made)
 end
 
+-- By itself (beast.companionMode "auto"): the gesture and its answer in /emote
+-- as the moment comes, with no press. The game allows an addon's /emote; only a
+-- press may target the companion or speak in /say, so those stay the prompt's.
+local function Auto()
+	local beast = Switches()
+	return beast ~= nil and beast.companionMode == "auto"
+end
+Companion.Auto = Auto
+
+local function DoItself(now)
+	local m = moment
+	local chat = _G.C_ChatInfo
+	local send = chat and type(chat.SendChatMessage) == "function" and chat.SendChatMessage or _G.SendChatMessage
+	moment = nil
+	if type(send) ~= "function" then return end
+	local pool = GESTURE[m.kind] or GESTURE.road
+	local gesture = pool[math.random(#pool)]:format(m.name)
+	local beast = Switches()
+	if beast and beast.companionAnswer ~= false then gesture = gesture .. " " .. ANSWER[math.random(#ANSWER)]:format(m.name) end
+	if not pcall(send, gesture, "EMOTE") then return end
+	clock.quietSince = now
+	local char = Char()
+	if char then char.companionBondAt = time() end
+	ns.Trail("pet", "a moment with the companion, by itself", m.name)
+end
+
 local function Offer(queue, verdicts, now)
 	if type(queue) ~= "table" then return queue, verdicts end
 	if not Wanted() then moment = nil return queue, verdicts end
@@ -321,6 +347,10 @@ local function Offer(queue, verdicts, now)
 	if not moment or Held(now) then return queue, verdicts end
 	-- Put away, or another one out, since the moment came: it is gone.
 	if Out() ~= moment.name then moment = nil return queue, verdicts end
+	if Auto() then
+		DoItself(now)
+		return queue, verdicts
+	end
 	Insert(queue, Entry())
 	if type(verdicts) ~= "table" then verdicts = {} end
 	return queue, verdicts

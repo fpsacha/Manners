@@ -208,3 +208,35 @@ do
 		end
 	end)
 end
+
+do
+	-- How a moment comes, By itself: the gesture and its answer go out in /emote
+	-- as the moment comes, with nothing on the prompt; once, then the gap.
+	local scenario = "companion: by itself, a moment is an /emote with no press"
+	with(scenario, function(ns)
+		H.findOption(ns.optionsTable, "beastCompanion").set(nil, true)
+		local mode = H.findOption(ns.optionsTable, "beastCompanionMode")
+		if not mode then fail(scenario, "no How a moment comes on My companion") return end
+		if mode.get() ~= "prompt" then fail(scenario, "a moment does not wait on the prompt out of the box") end
+		mode.set(nil, "auto")
+		local chat, sent = rawget(_G, "C_ChatInfo"), {}
+		rawset(_G, "C_ChatInfo", setmetatable({ SendChatMessage = function(text, channel)
+			sent[#sent + 1] = { text, channel }
+		end }, { __index = chat }))
+		fight(50)
+		local entry = companionEntry(ns)
+		rawset(_G, "C_ChatInfo", chat)
+		if entry then fail(scenario, "the moment waits on the prompt though it comes by itself") end
+		if #sent ~= 1 then fail(scenario, ("%d lines went out, not one"):format(#sent)) return end
+		if sent[1][2] ~= "EMOTE" or sent[1][1] ~= "gives Panda Cub a proud nod. Panda Cub nuzzles closer." then
+			fail(scenario, ("it said |%s| in %s"):format(tostring(sent[1][1]), tostring(sent[1][2])))
+		end
+		rawset(_G, "C_ChatInfo", setmetatable({ SendChatMessage = function(text, channel)
+			sent[#sent + 1] = { text, channel }
+		end }, { __index = chat }))
+		fight(50)
+		companionEntry(ns)
+		rawset(_G, "C_ChatInfo", chat)
+		if #sent ~= 1 then fail(scenario, "a second moment came by itself inside the gap") end
+	end)
+end

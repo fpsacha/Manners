@@ -36,8 +36,8 @@ mutate(
 
 mutate(
     "Modules/Pets/Companion.lua",
-    "if char then char.companionBondAt = time() end",
-    "local _ = char",
+    "if char then char.companionBondAt = time() end\n\t\t\tAfter(C.SHOW",
+    "local _ = char\n\t\t\tAfter(C.SHOW",
     "companion: no gap between two moments",
     expect="a second moment came inside the gap",
     script="runscenarios.py",
@@ -142,3 +142,20 @@ mutate(
     expect="a minute out of town and back brought a cuddle",
     script="runscenarios.py",
 )
+
+AUTO = "companion: by itself, a moment is an /emote with no press"
+mutate("Modules/Pets/Companion.lua",
+       "\tif Auto() then\n\t\tDoItself(now)\n\t\treturn queue, verdicts\n\tend\n",
+       "",
+       "companion: by itself still waits on the prompt",
+       expect=AUTO, script="runscenarios.py")
+mutate("Modules/Pets/Companion.lua",
+       "\tif char then char.companionBondAt = time() end\n\tns.Trail(\"pet\", \"a moment with the companion, by itself\"",
+       "\tns.Trail(\"pet\", \"a moment with the companion, by itself\"",
+       "companion: by itself, the gap never starts",
+       expect=AUTO, script="runscenarios.py")
+mutate("Modules/Pets/Companion.lua",
+       "\tif not pcall(send, gesture, \"EMOTE\") then return end\n",
+       "\tif not pcall(send, gesture, \"SAY\") then return end\n",
+       "companion: by itself, it speaks in /say",
+       expect=AUTO, script="runscenarios.py")
