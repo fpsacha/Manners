@@ -583,8 +583,16 @@ local function Consider(unit, grouped, pointed, taken, db, now)
 		if type(reach) ~= "function" then return nil end
 		local near, checked = reach(unit)
 		if plain(checked) ~= true or plain(near) ~= true then return nil end
-	elseif ns.NearEnough(unit, true) ~= true then
-		return nil
+	else
+		-- Nearness measured, it must say near. With Anywhere I can cast nothing
+		-- is measured (NearEnough says nil for everybody): somebody in sight,
+		-- on a nameplate or your target, is within reach of a line, as of a buff.
+		local near = ns.NearEnough(unit, true)
+		if near == nil and not ns.ProximityMeasured() then
+			local visible = _G.UnitIsVisible
+			near = type(visible) == "function" and plain(visible(unit)) == true
+		end
+		if near ~= true then return nil end
 	end
 
 	local level = plain(UnitLevel(unit))

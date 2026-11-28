@@ -363,3 +363,21 @@ mutate("Ask.lua",
        "",
        "ask: a party member out of range asked",
        expect=GROUP, script=S)
+
+mutate(
+    "Ask.lua",
+    "if near == nil and not ns.ProximityMeasured() then",
+    "if false then",
+    "ask: Anywhere I can cast asks nobody beside you",
+    expect="nobody is asked with Proximity on Anywhere I can cast",
+    script="runscenarios.py",
+)
+
+mutate(
+    "Ask.lua",
+    "near = type(visible) == \"function\" and plain(visible(unit)) == true",
+    "near = true",
+    "ask: Anywhere I can cast asks somebody out of sight",
+    expect="somebody out of sight is asked",
+    script="runscenarios.py",
+)

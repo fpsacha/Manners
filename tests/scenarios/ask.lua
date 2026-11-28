@@ -123,6 +123,24 @@ do
 	end)
 end
 
+-- With Proximity on Anywhere I can cast nothing is measured: somebody in sight
+-- on a nameplate is still asked (issue 68: a paladin never asked the druid
+-- beside them for Mark of the Wild).
+do
+	local scenario = "ask: with Anywhere I can cast, a passer-by in sight is asked"
+	with(scenario, {}, function()
+		local ns, restoreUnits = ready(scenario)
+		if not ns then return end
+		ns.db.profile.filters.proximity = "cast"
+		if ns.ProximityMeasured() then fail(scenario, "Anywhere I can cast is taken for a measured step") end
+		if not asking(ns) then fail(scenario, "nobody is asked with Proximity on Anywhere I can cast") end
+		rawset(_G, "UnitIsVisible", function() return false end)
+		if asking(ns) then fail(scenario, "somebody out of sight is asked") end
+		noErrors(scenario, ns)
+		restoreUnits()
+	end)
+end
+
 -- ---------------------------------------------------------------------- 2
 -- The press: one whispered line, no target change, no cast, nothing filed.
 do

@@ -434,6 +434,14 @@ do
 		return verdict
 	end
 
+	-- Whether the Proximity step measures at all: false on Anywhere I can cast,
+	-- where nearness is the cast's own reach (Ask.lua asks it).
+	function ns.ProximityMeasured()
+		local db = addon.db and addon.db.profile
+		local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
+		return tier ~= nil and tier.yards ~= nil
+	end
+
 	-- One line saying what is measuring nearness and how it is getting on, shared
 	-- by /manners debug and the options page. About the step selected now, since
 	-- AceConfig redraws straight after the dropdown's setter, before any scan.
