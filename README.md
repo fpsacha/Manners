@@ -48,7 +48,7 @@ of Pandaria Classic** and **retail**, in nine languages.
 - **The favour ledger.** Who buffed you, what you gave back, and who you
   buffed first.
 - **Optional achievements.** **Manners: Achievements** adds thirty-one quiet
-  achievements, medals, points and ranks for good manners, all on its own
+  achievements, goals, points and ranks for good manners, all on its own
   options page, with toasts off by default.
 - **Profiles that switch by themselves.** One for the open world, one for
   dungeons, raids or battlegrounds, chosen as you arrive, and a profile
@@ -858,16 +858,16 @@ all-time totals.
 
 With **Manners: Achievements** enabled, the options sidebar gains an
 *Achievements* page that holds everything. At the top, your rank with a bar to
-the next one, your points, medals and achievements complete, and the medals
-earned lately (each names itself under the mouse). Under them, tabs: *Kind*,
+the next one, your points, goals reached and achievements complete, and the
+achievements earned lately (each names itself under the mouse). Under them, tabs: *Kind*,
 *Show* (all, earned, in progress, not started) and *Sort by*. Then every
 achievement as a card, two to a row in the usual window (one when narrow,
-three when wide): its icon, name and kind, its line, a bar with the count to
-the next medal, and a pip for each medal, coloured once earned; the card's
+three when wide): its icon, name and kind, what to do to earn it, which goal it
+works toward (*Goal 2 of 3*), and a bar with the count to that goal; the card's
 tooltip lists every goal. *Statistics and settings* has the counts as tiles
 and the notification. Thirty-one achievements in five kinds (Gratitude,
-Generosity, Fellowship, Courtesy and Devotion) each have goals of their own:
-one for a single medal, or bronze, silver and gold. A few stay hidden until
+Generosity, Fellowship, Courtesy and Devotion) each have one to three goals of
+their own. A few stay hidden until
 earned. Progress is
 kept separately per character and class, counts are capped once per person
 and goal each day, and a first enable seeds only the ledger's last 200 rows.

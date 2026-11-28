@@ -2,10 +2,10 @@
 -- module's own options page (no separate window, no ledger tab).
 --
 -- Every achievement reads one count ("metric") kept per character and class,
--- and has its own goals: one goal for a single medal, three for bronze, silver
--- and gold. Counting is capped once per metric, person and day, so holding the
+-- and has its own goals, one to three, shown as a count toward the next one.
+-- Counting is capped once per metric, person and day, so holding the
 -- prompt at a nameplate can never manufacture progress. The page draws the
--- summary (rank, points, medals), what was earned last, every achievement as a
+-- summary (rank, points, goals reached), what was earned last, every achievement as a
 -- row that can be filtered, sorted and narrowed to one kind, the counts behind
 -- them, and the notification settings.
 
@@ -31,11 +31,8 @@ end, function() end)
 
 -- The saved data's shape: 2 reads goals per achievement (1 had 10/100/1000 for all).
 local DATA_VERSION = 2
-local MEDALS = {
-	{ name = L["Bronze"], colour = "cd8a4a", points = 10 },
-	{ name = L["Silver"], colour = "c8ccd4", points = 25 },
-	{ name = L["Gold"], colour = "ffd100", points = 50 },
-}
+-- What each goal reached is worth, the last goal the most.
+local GOAL_POINTS = { 10, 25, 50 }
 -- A single-goal achievement is worth this; a hidden one this more.
 local SINGLE_POINTS, HIDDEN_BONUS = 15, 10
 local ICONS = "Interface\\Icons\\"
@@ -64,75 +61,75 @@ local RANKS = {
 local DEFS = {
 	-- Gratitude: returning what others gave you.
 	{ id = "first", theme = "gratitude", metric = "returns", goals = { 1 }, icon = "Spell_Holy_HolyBolt",
-		name = L["Much Obliged"], desc = L["Return your first favour."] },
+		name = L["Much Obliged"], desc = L["Somebody buffs you and Manners offers their buff back: press the prompt to return it."] },
 	{ id = "returns", theme = "gratitude", metric = "returns", goals = { 10, 100, 500 }, icon = "Spell_Holy_Renew",
-		name = L["Returning the Favour"], desc = L["Favours you returned."] },
+		name = L["Returning the Favour"], desc = L["Return buffs to people who buffed you first, by pressing the prompt when Manners offers them."] },
 	{ id = "swift", theme = "gratitude", metric = "quick", goals = { 1, 25, 100 }, icon = "Spell_Holy_SealOfWisdom",
-		name = L["Quick to Thank"], desc = L["Favours returned within ten seconds of receiving them."] },
+		name = L["Quick to Thank"], desc = L["Return a buff within ten seconds of being buffed."] },
 	{ id = "day10", theme = "gratitude", metric = "differentDaily", goals = { 5, 10, 20 }, icon = "Spell_Holy_PrayerOfHealing02",
-		name = L["Thank You, Everyone"], desc = L["Different people you returned a favour to in one day."] },
+		name = L["Thank You, Everyone"], desc = L["Return buffs to this many different people in a single day."] },
 	{ id = "regular", theme = "gratitude", metric = "returnDays", goals = { 3, 10, 30 }, icon = "Spell_Holy_MagicalSentry",
-		name = L["Old Acquaintance"], desc = L["Days you returned a favour to the same person."] },
+		name = L["Old Acquaintance"], desc = L["Return a buff to the same person again on another day. Each new day counts."] },
 	{ id = "classes", theme = "gratitude", metric = "classes", goals = { 3, 5, 8 }, icon = "Spell_Holy_WordFortitude",
-		name = L["All Walks of Life"], desc = L["Classes you returned a favour to."] },
+		name = L["All Walks of Life"], desc = L["Return buffs to players of different classes."] },
 	{ id = "week", theme = "gratitude", metric = "cleanDays", goals = { 1, 7, 30 }, icon = "INV_Misc_Note_01",
-		name = L["A Clean Slate"], desc = L["Days you thanked people and let no favour go unreturned."] },
+		name = L["A Clean Slate"], desc = L["Finish a day with every buff you received returned or thanked."] },
 
 	-- Generosity: giving without being asked.
 	{ id = "kind", theme = "generosity", metric = "strangers", goals = { 1 }, icon = "Spell_Holy_Heal",
-		name = L["A Kind Stranger"], desc = L["Buff a passer-by who did not ask."] },
+		name = L["A Kind Stranger"], desc = L["Buff a passer-by who is missing your buff, without being asked."] },
 	{ id = "strangers", theme = "generosity", metric = "strangers", goals = { 50, 250, 1000 }, icon = "Spell_Holy_GreaterHeal",
-		name = L["The Kindness of Strangers"], desc = L["Passers-by you buffed unprompted."] },
+		name = L["The Kindness of Strangers"], desc = L["Buff passers-by who are missing your buff, without being asked."] },
 	{ id = "given", theme = "generosity", metric = "given", goals = { 100, 1000, 5000 }, icon = "Spell_Holy_PowerWordShield",
-		name = L["Open Hand"], desc = L["Buffs you gave to other players."] },
+		name = L["Open Hand"], desc = L["Give buffs to other players, in your group or not."] },
 	{ id = "people", theme = "generosity", metric = "people", goals = { 25, 100, 500 }, icon = "Spell_Holy_HolySmite",
-		name = L["Friend to All"], desc = L["Different people you gave something to."] },
+		name = L["Friend to All"], desc = L["Give a buff or a service to different players."] },
 	{ id = "gifts", theme = "generosity", metric = "spells", goals = { 2, 4, 6 }, icon = "Spell_Holy_ArcaneIntellect",
-		name = L["Varied Gifts"], desc = L["Different spells you gave to other players."] },
+		name = L["Varied Gifts"], desc = L["Give different buff spells to other players. Each spell counts once."] },
 	{ id = "threedays", theme = "generosity", metric = "strangerDays", goals = { 3 }, hidden = true, icon = "Spell_Holy_Restoration",
 		name = L["A Familiar Kindness"], desc = L["Buff the same passer-by on three different days."] },
 
 	-- Fellowship: looking after the people beside you.
 	{ id = "raid", theme = "fellowship", metric = "groups", goals = { 25, 250, 1000 }, icon = "Spell_Holy_PrayerOfFortitude",
-		name = L["Nobody Left Out"], desc = L["Party and raid members you buffed."] },
+		name = L["Nobody Left Out"], desc = L["Buff the members of your party or raid."] },
 	{ id = "res", theme = "fellowship", metric = "res", goals = { 1, 25, 100 }, icon = "Spell_Holy_Resurrection",
-		name = L["Back on Your Feet"], desc = L["People you brought back to life through the prompt."] },
+		name = L["Back on Your Feet"], desc = L["Resurrect people by pressing the Manners prompt."] },
 	{ id = "guardian", theme = "fellowship", metric = "rescues", goals = { 3 }, hidden = true, icon = "Spell_Holy_LayOnHands",
 		name = L["Steady Hands"], desc = L["Resurrect the same person on three different days."] },
 	{ id = "cure", theme = "fellowship", metric = "cures", goals = { 1, 25, 100 }, icon = "Spell_Holy_DispelMagic",
-		name = L["A Clean Bill of Health"], desc = L["People you cured through the prompt."] },
+		name = L["A Clean Bill of Health"], desc = L["Cure people by pressing the Manners prompt."] },
 	{ id = "liked", theme = "fellowship", metric = "givers", goals = { 10, 50, 200 }, icon = "Spell_Nature_Regeneration",
-		name = L["Well Liked"], desc = L["Different people who buffed you."] },
+		name = L["Well Liked"], desc = L["Be buffed by different players."] },
 	{ id = "company", theme = "fellowship", metric = "received", goals = { 25, 250, 1000 }, icon = "Spell_Nature_Rejuvenation",
-		name = L["In Good Company"], desc = L["Buffs other players gave you."] },
+		name = L["In Good Company"], desc = L["Receive buffs from other players."] },
 
 	-- Courtesy: answering, serving and saying thank you.
 	{ id = "asked", theme = "courtesy", metric = "asked", goals = { 1, 25, 100 }, icon = "INV_Misc_Note_02",
-		name = L["You Only Had to Ask"], desc = L["Requests made in chat that you answered."] },
+		name = L["You Only Had to Ask"], desc = L["Somebody asks for a buff in chat: give it to them."] },
 	{ id = "courtesy", theme = "courtesy", metric = "services", goals = { 1, 25, 100 }, icon = "Spell_Arcane_PortalStormWind",
-		name = L["At Your Service"], desc = L["Conjures, portals, summons and other services given on request."] },
+		name = L["At Your Service"], desc = L["Give food, water, a portal, a summon or another service somebody asked for."] },
 	{ id = "trades", theme = "courtesy", metric = "serviceKinds", goals = { 2, 4 }, icon = "INV_Misc_Bag_10",
-		name = L["A Helping Hand"], desc = L["Different kinds of service you gave."] },
+		name = L["A Helping Hand"], desc = L["Give different kinds of service: food, water, portals, summons and the like."] },
 	{ id = "thanks", theme = "courtesy", metric = "thanks", goals = { 1, 50, 250 }, icon = "Spell_Holy_SealOfSalvation",
-		name = L["The Polite Reply"], desc = L["People you thanked for a buff."] },
+		name = L["The Polite Reply"], desc = L["Thank people who buffed you, with the thank-you Manners offers."] },
 	{ id = "notes", theme = "courtesy", metric = "thankDays", goals = { 3, 14, 60 }, icon = "INV_Misc_Note_03",
-		name = L["Thank-You Notes"], desc = L["Days you thanked somebody for a buff."] },
+		name = L["Thank-You Notes"], desc = L["Thank somebody for a buff on different days. Each day counts once."] },
 	{ id = "host", theme = "courtesy", metric = "servicePeople", goals = { 5, 25, 100 }, icon = "INV_Drink_04",
-		name = L["Gracious Host"], desc = L["Different people you gave a service to."] },
+		name = L["Gracious Host"], desc = L["Give a service to different players."] },
 	{ id = "grace", theme = "courtesy", metric = "refused", goals = { 1 }, hidden = true, icon = "Spell_Holy_SealOfSacrifice",
 		name = L["No Hard Feelings"], desc = L["Somebody turned down your buff, and you let it go."] },
 
 	-- Devotion: good manners kept up day after day.
 	{ id = "daily", theme = "devotion", metric = "activeDays", goals = { 7, 30, 100 }, icon = "INV_Misc_PocketWatch_01",
-		name = L["Daily Courtesy"], desc = L["Days you showed good manners."] },
+		name = L["Daily Courtesy"], desc = L["Return, give or thank on different days. Each day counts once."] },
 	{ id = "streak", theme = "devotion", metric = "bestStreak", goals = { 3, 7, 30 }, icon = "Spell_Holy_Excorcism",
-		name = L["Unbroken Courtesy"], desc = L["Days in a row you showed good manners."] },
+		name = L["Unbroken Courtesy"], desc = L["Return, give or thank every day, without missing a day."] },
 	{ id = "early", theme = "devotion", metric = "early", goals = { 1 }, hidden = true, icon = "Spell_Holy_SurgeOfLight",
 		name = L["Early Riser"], desc = L["Show good manners between five and eight in the morning."] },
 	{ id = "late", theme = "devotion", metric = "late", goals = { 1 }, hidden = true, icon = "Spell_Nature_Sleep",
 		name = L["Night Owl"], desc = L["Show good manners between midnight and four in the morning."] },
 	{ id = "medals", theme = "devotion", metric = "medals", goals = { 10, 25, 50 }, icon = "INV_Misc_Coin_01",
-		name = L["Well Mannered"], desc = L["Medals you earned in Manners achievements."] },
+		name = L["Well Mannered"], desc = L["Reach goals in the other Manners achievements."] },
 }
 for i, def in ipairs(DEFS) do def.order = i end
 
@@ -196,18 +193,17 @@ local function TierOf(def, progress)
 	return tier
 end
 
--- The medal a tier is: a single goal has no bronze, silver or gold of its own.
-local function MedalOf(def, tier)
-	if tier < 1 then return nil end
-	if #def.goals == 1 then return MEDALS[3] end
-	return MEDALS[math.min(3, tier + (3 - #def.goals))]
+-- "goal 2 of 3" for an achievement of several goals; nil for one of a single goal.
+local function GoalOf(def, tier)
+	if tier < 1 or #def.goals < 2 then return nil end
+	return L["goal %d of %d"]:format(math.min(tier, #def.goals), #def.goals)
 end
 
 local function PointsOf(def, tier)
 	if tier < 1 then return 0 end
 	if #def.goals == 1 then return SINGLE_POINTS + (def.hidden and HIDDEN_BONUS or 0) end
 	local points = 0
-	for i = 1, tier do points = points + MedalOf(def, i).points end
+	for i = 1, tier do points = points + GOAL_POINTS[math.min(3, i + (3 - #def.goals))] end
 	return points
 end
 
@@ -243,8 +239,9 @@ end
 local function Notify(def, tier)
 	local db = Database()
 	if db.notification == "none" then return end
-	local medal = MedalOf(def, tier)
-	local line = L["%s reached %s: %s"]:format(def.name, medal and medal.name or "", def.desc)
+	local goal = GoalOf(def, tier)
+	local line = goal and L["%s, %s reached: %s"]:format(def.name, goal, def.desc)
+		or L["%s earned: %s"]:format(def.name, def.desc)
 	if db.notification == "chat" and ns and ns.addon then
 		ns.addon:Print(line)
 	elseif db.notification == "toast" then
@@ -561,9 +558,9 @@ ShowToast = function(def, tier, line)
 		toast.detail:SetPoint("RIGHT", toast, "RIGHT", -12, 0)
 		toast.detail:SetJustifyH("LEFT")
 	end
-	local medal = MedalOf(def, tier)
+	local goal = GoalOf(def, tier)
 	toast.icon:SetTexture(ICONS .. def.icon)
-	toast.title:SetText(def.name .. (medal and (" -- " .. medal.name) or ""))
+	toast.title:SetText(def.name .. (goal and (", " .. goal) or ""))
 	toast.detail:SetText(line)
 	toast:Show()
 	C_Timer.After(4, function()
@@ -694,9 +691,9 @@ end
 -- For the tests and /manners debug: the definitions and the reading of a row.
 A.DEFS, A.List, A.Totals, A.State = DEFS, List, Totals, State
 -- And what the board (Board.lua) draws with.
-A.THEMES, A.THEME, A.MEDALS, A.RANKS, A.STATS = THEMES, THEME, MEDALS, RANKS, STATS
+A.THEMES, A.THEME, A.RANKS, A.STATS = THEMES, THEME, RANKS, STATS
 A.ICONS, A.LOCKED_ICON = ICONS, LOCKED_ICON
-A.MedalOf, A.PointsOf, A.Value, A.Closeness, A.Day, A.Database = MedalOf, PointsOf, Value, Closeness, Day, Database
+A.GoalOf, A.PointsOf, A.Value, A.Closeness, A.Day, A.Database = GoalOf, PointsOf, Value, Closeness, Day, Database
 A.SetView, A.Active = SetView, Active
 function A.Version() return version end
 ns.Achievements = A

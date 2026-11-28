@@ -4,16 +4,16 @@
 -- with bars drawn in the text, split into two narrow columns.
 --
 -- The board, top to bottom, across the page's whole width:
---   * where you stand: the rank in large type, three figures (points, medals,
---     achievements complete), a real bar to the next rank and its words;
---   * the medals earned lately, as icons with their medal's colour round them,
---     each naming itself under the mouse;
+--   * where you stand: the rank in large type, three figures (points, goals
+--     reached, achievements complete), a real bar to the next rank and its words;
+--   * the achievements earned lately, as icons in a gold edge, each naming
+--     itself under the mouse;
 --   * three rows of tabs: the kind, what to show, the order;
 --   * the achievements as cards, as many to a row as fit (two in the usual
 --     window, one when narrow, three when wide), every one of them: a card is
---     its icon, its name, its kind, its line, a bar to the next medal with the
---     count, and a pip a medal, coloured once earned. A hidden one not earned
---     yet keeps its secret. The card's tooltip has every goal.
+--     its icon, its name, its kind, which goal it works toward ("Goal 2 of 3"),
+--     what to do, and a bar to the next goal with the count. A hidden one not
+--     earned yet keeps its secret. The card's tooltip has every goal.
 -- The statistics are tiles: the number large, its name under it.
 --
 -- Nothing here runs on a timer: what is drawn is set when the page is painted
@@ -28,7 +28,7 @@ if not (A and W and W.KIND) then return end
 local T, KIND = W.Theme, W.KIND
 
 local PAD, GAP = 9, 6
-local ICON, PIP = 34, 9
+local ICON = 34
 -- Two columns at most: three made the names cut off and the lines small.
 local CARD_MIN, CARD_MAX_COLS = 290, 2
 local BAR_H = 6
@@ -38,7 +38,6 @@ local TAB_H, TAB_PAD, TAB_GAP = 22, 10, 4
 local CARD_FILL = { 1, 1, 1, 0.035 }
 local CARD_EDGE = { 1, 1, 1, 0.09 }
 local TRACK = { 0.11, 0.11, 0.13 }
-local PIP_OFF = { 0.20, 0.20, 0.23 }
 
 local function Rgb(hex)
 	return { (tonumber(hex:sub(1, 2), 16) or 255) / 255, (tonumber(hex:sub(3, 4), 16) or 255) / 255,
@@ -154,11 +153,10 @@ local function CardEnter(card)
 	GameTooltip:AddLine(def.desc, 0.8, 0.8, 0.8, true)
 	local progress = A.Value(st, def)
 	for i, goal in ipairs(def.goals) do
-		local medal = A.MedalOf(def, i)
-		local c = Rgb(medal.colour)
 		local done = i <= tier
-		GameTooltip:AddDoubleLine(medal.name, L["%d / %d"]:format(math.min(progress, goal), goal),
-			done and c[1] or 0.5, done and c[2] or 0.5, done and c[3] or 0.5, done and 1 or 0.6, done and 1 or 0.6, done and 1 or 0.6)
+		GameTooltip:AddDoubleLine(#def.goals > 1 and L["Goal %d"]:format(i) or L["Goal"],
+			L["%d / %d"]:format(math.min(progress, goal), goal),
+			done and 0.5 or 0.6, done and 0.82 or 0.6, done and 0.55 or 0.6, done and 1 or 0.6, done and 1 or 0.6, done and 1 or 0.6)
 	end
 	if st.when[def.id] then
 		GameTooltip:AddLine(L["Completed on %s"]:format(date("%Y-%m-%d", st.when[def.id])), 0.5, 0.82, 0.55)
@@ -190,26 +188,14 @@ local function Card(row)
 	card.count = W.Text(card, T.fonts.small, T.ink)
 	card.count:SetJustifyH("RIGHT")
 	card.done = W.Text(card, T.fonts.small, T.green)
-	card.pips = {}
+	card.step = W.Text(card, T.fonts.small, T.goldSoft)
+	card.step:SetJustifyH("RIGHT")
+	card.step:SetWordWrap(false)
 	card:SetScript("OnEnter", function(self) api:Guard("achievement card", CardEnter, self) end)
 	card:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	return card
 end
 
-local function Pip(card, i)
-	local pip = card.pips[i]
-	if not pip then
-		pip = W.Solid(card, "ARTWORK", 1, PIP_OFF)
-		pip:SetSize(PIP, PIP)
-		pip.edge = W.Solid(card, "BORDER", 1, { 0, 0, 0, 1 })
-		pip.edge:SetPoint("TOPLEFT", pip, "TOPLEFT", -1, 1)
-		pip.edge:SetPoint("BOTTOMRIGHT", pip, "BOTTOMRIGHT", 1, -1)
-		card.pips[i] = pip
-	end
-	return pip
-end
-
--- What a card says, set when the page is painted.
 local function Dress(card, def, st)
 	card.def = def
 	local theme = A.THEME[def.theme]
@@ -233,17 +219,10 @@ local function Dress(card, def, st)
 	if card.icon.SetDesaturated then card.icon:SetDesaturated(not started) end
 	card.icon:SetAlpha(started and 1 or 0.55)
 	W.TextColour(card.title, tier > 0 and T.white or T.ink)
-	local medal = A.MedalOf(def, tier)
-	W.BorderColour(card.edges, complete and medal and { Rgb(medal.colour)[1], Rgb(medal.colour)[2],
-		Rgb(medal.colour)[3], 0.75 } or CARD_EDGE)
-	card.pipCount = card.secret and 0 or #def.goals
-	for i = 1, math.max(#card.pips, card.pipCount) do
-		local pip = Pip(card, i)
-		local on = i <= card.pipCount
-		pip:SetShown(on)
-		pip.edge:SetShown(on)
-		if on then W.Colour(pip, i <= tier and Rgb(A.MedalOf(def, i).colour) or PIP_OFF) end
-	end
+	W.BorderColour(card.edges, complete and { T.gold[1], T.gold[2], T.gold[3], 0.75 } or CARD_EDGE)
+	-- Which goal is being worked toward, for an achievement of several.
+	card.step:SetText((not card.secret and not complete and #def.goals > 1)
+		and L["Goal %d of %d"]:format(tier + 1, #def.goals) or "")
 	local nextGoal = def.goals[tier + 1]
 	card.barShown = not card.secret and nextGoal ~= nil
 	if card.barShown then
@@ -262,24 +241,22 @@ local function Dress(card, def, st)
 end
 
 -- Places what is in a card at a width; answers its height. The name with its
--- kind beside it and the medal pips at the right, the line under them, then
+-- kind and the goal worked toward at the right, the line under them, then
 -- the bar and the count (or the day it was completed).
 local function Fit(card, width)
 	local x = PAD + ICON + 10
 	local inner = width - x - PAD
-	local pipsW = card.pipCount > 0 and card.pipCount * (PIP + 4) or 0
+	local stepW = card.step:GetText() ~= "" and math.ceil(W.Measure(card.step)) + 2 or 0
 	local kindW = math.ceil(W.Measure(card.kind))
+	card.step:ClearAllPoints()
+	card.step:SetPoint("TOPRIGHT", card, "TOPRIGHT", -PAD, -(PAD + 2))
+	card.step:SetWidth(math.max(1, stepW))
 	card.kind:ClearAllPoints()
-	card.kind:SetPoint("TOPRIGHT", card, "TOPRIGHT", -(PAD + pipsW + (pipsW > 0 and 4 or 0)), -(PAD + 2))
+	card.kind:SetPoint("TOPRIGHT", card, "TOPRIGHT", -(PAD + stepW + (stepW > 0 and 8 or 0)), -(PAD + 2))
 	card.kind:SetWidth(kindW + 2)
 	card.title:ClearAllPoints()
 	card.title:SetPoint("TOPLEFT", card, "TOPLEFT", x, -PAD)
-	card.title:SetWidth(math.max(1, inner - pipsW - kindW - 14))
-	for i = 1, card.pipCount do
-		local pip = card.pips[i]
-		pip:ClearAllPoints()
-		pip:SetPoint("TOPRIGHT", card, "TOPRIGHT", -(PAD + (card.pipCount - i) * (PIP + 4)), -(PAD + 3))
-	end
+	card.title:SetWidth(math.max(1, inner - stepW - kindW - 18))
 	local y = PAD + math.ceil(W.TextHeight(card.title)) + 4
 	card.desc:ClearAllPoints()
 	card.desc:SetPoint("TOPLEFT", card, "TOPLEFT", x, -y)
@@ -311,13 +288,10 @@ local function RecentEnter(b)
 	local def = b.def
 	if not def then return end
 	local st = A.State()
-	local medal = A.MedalOf(def, st.earned[def.id] or 0)
+	local goal = A.GoalOf(def, st.earned[def.id] or 0)
 	GameTooltip:SetOwner(b, "ANCHOR_BOTTOM")
 	GameTooltip:AddLine(def.name, 1, 1, 1)
-	if medal then
-		local c = Rgb(medal.colour)
-		GameTooltip:AddLine(medal.name, c[1], c[2], c[3])
-	end
+	if goal then GameTooltip:AddLine(goal, 1, 0.82, 0) end
 	if st.when[def.id] then
 		GameTooltip:AddLine(L["Completed on %s"]:format(date("%Y-%m-%d", st.when[def.id])), 0.7, 0.7, 0.7)
 	end
@@ -385,7 +359,7 @@ local function BuildBoard(row)
 end
 
 local SHOW_WORDS = { all = L["All"], earned = L["Earned"], progress = L["In progress"], locked = L["Not started"] }
-local SORT_WORDS = { theme = L["Kind"], closest = L["Closest to the next medal"], recent = L["Most recently earned"],
+local SORT_WORDS = { theme = L["Kind"], closest = L["Closest to the next goal"], recent = L["Most recently earned"],
 	name = L["Name"] }
 
 local function RefreshBoard(row)
@@ -395,7 +369,7 @@ local function RefreshBoard(row)
 	row.rank:SetText(rank.name)
 	local figures = {
 		{ tostring(points), L["Points"] },
-		{ L["%d / %d"]:format(medals, max), L["Medals"] },
+		{ L["%d / %d"]:format(medals, max), L["Goals reached"] },
 		{ L["%d / %d"]:format(done, #A.DEFS), L["Completed"] },
 	}
 	for i, f in ipairs(row.figures) do
@@ -423,8 +397,7 @@ local function RefreshBoard(row)
 		b.def = def
 		if def then
 			b.icon:SetTexture(A.ICONS .. def.icon)
-			local medal = A.MedalOf(def, st.earned[def.id])
-			W.Colour(b.edge, medal and Rgb(medal.colour) or T.gold)
+			W.Colour(b.edge, T.gold)
 		end
 	end
 	-- The tabs, each with how many it holds for a kind.

@@ -122,3 +122,19 @@ mutate(
     expect="names get cut off past two",
     script="runscenarios.py",
 )
+mutate(
+    "Modules/Achievements/Board.lua",
+    "and L[\"Goal %d of %d\"]:format(tier + 1, #def.goals) or \"\")",
+    "and \"\" or \"\")",
+    "achievements-module: a card no longer says which goal it works toward",
+    expect="does not say which goal it works toward",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Achievements/Achievements.lua",
+    "\tif tier < 1 or #def.goals < 2 then return nil end",
+    "\tif tier < 1 then return nil end",
+    "achievements-module: a single-goal achievement is named goal 1 of 1",
+    expect="the goal reached is not named as a count",
+    script="runscenarios.py",
+)

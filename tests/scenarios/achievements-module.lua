@@ -198,6 +198,21 @@ do
 	for _, card in ipairs(board.cards) do if card:IsShown() then shown = shown + 1 end end
 	if shown ~= #earned then fail(scenario, ("Earned shows %d cards for %d earned"):format(shown, #earned)) end
 	if (board.recentCount or 0) < 1 then fail(scenario, "Earned lately shows nothing after a medal") end
+	-- A card of several goals says which one it works toward, never a medal.
+	A.SetView("filter", "all")
+	board:Refresh()
+	board:Layout(700)
+	local returnsCard
+	for _, card in ipairs(board.cards) do
+		if card:IsShown() and card.def and card.def.id == "returns" then returnsCard = card end
+	end
+	if not (returnsCard and returnsCard.step:GetText() == "Goal 1 of 3") then
+		fail(scenario, "Returning the Favour does not say which goal it works toward: "
+			.. tostring(returnsCard and returnsCard.step:GetText()))
+	end
+	if A.GoalOf(A.DEFS[1], 1) ~= nil or (returnsCard and A.GoalOf(returnsCard.def, 2) ~= "goal 2 of 3") then
+		fail(scenario, "the goal reached is not named as a count")
+	end
 	A.SetView("filter", "all")
 	A.SetView("theme", "courtesy")
 	for _, def in ipairs(A.List()) do
