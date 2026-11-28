@@ -125,9 +125,9 @@ local DEFS = {
 	{ id = "streak", theme = "devotion", metric = "bestStreak", goals = { 3, 7, 30 }, icon = "Spell_Holy_Excorcism",
 		name = L["Unbroken Courtesy"], desc = L["Return, give or thank daily, no breaks."] },
 	{ id = "early", theme = "devotion", metric = "early", goals = { 1 }, hidden = true, icon = "Spell_Holy_SurgeOfLight",
-		name = L["Early Riser"], desc = L["Show good manners between five and eight in the morning."] },
+		name = L["Early Riser"], desc = L["Show good manners between 5 and 8 a.m."] },
 	{ id = "late", theme = "devotion", metric = "late", goals = { 1 }, hidden = true, icon = "Spell_Nature_Sleep",
-		name = L["Night Owl"], desc = L["Show good manners between midnight and four in the morning."] },
+		name = L["Night Owl"], desc = L["Show good manners from midnight to 4 a.m."] },
 	{ id = "medals", theme = "devotion", metric = "medals", goals = { 10, 25, 50 }, icon = "INV_Misc_Coin_01",
 		name = L["Well Mannered"], desc = L["Reach goals in other Manners achievements."] },
 }

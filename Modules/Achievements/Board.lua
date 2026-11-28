@@ -254,11 +254,11 @@ local function Fit(card, width)
 	card.title:ClearAllPoints()
 	card.title:SetPoint("TOPLEFT", card, "TOPLEFT", x, -PAD)
 	card.title:SetWidth(math.max(1, inner - kindW - 10))
-	local y = PAD + math.ceil(W.TextHeight(card.title)) + 4
+	local y = PAD + math.ceil(W.TextHeight(card.title)) + 3
 	card.desc:ClearAllPoints()
 	card.desc:SetPoint("TOPLEFT", card, "TOPLEFT", x, -y)
 	card.desc:SetWidth(math.max(1, inner))
-	y = y + math.ceil(W.TextHeight(card.desc)) + 7
+	y = y + math.ceil(W.TextHeight(card.desc)) + 5
 	if card.barShown then
 		local countW = 64
 		card.count:ClearAllPoints()
@@ -279,7 +279,7 @@ local function Fit(card, width)
 		card.done:SetWidth(math.max(1, inner))
 		y = y + math.ceil(W.TextHeight(card.done)) - 2
 	end
-	return math.max(y + PAD, PAD * 2 + ICON)
+	return math.max(y + PAD - 2, PAD * 2 + ICON)
 end
 
 ---------------------------------------------------------------------------
