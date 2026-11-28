@@ -48,6 +48,12 @@ do
 		if slot.handle and slot.handle:IsShown() then fail(scenario, "a look tried puts a drag handle on each card") end
 		ns.Moments.TryLook(nil)
 		if ns.Moments.Previewing() then fail(scenario, "the trial's end leaves the preview up") end
+		-- A setting changed shows the cards, and they can be dragged from there.
+		ns.Moments.Restyle()
+		if not (slot.handle and slot.handle:IsShown() and slot.handle:IsMouseEnabled()) then
+			fail(scenario, "the preview a setting brings up cannot be dragged")
+		end
+		ns.Moments.EndPreview()
 		-- Move the cards still lets them be dragged.
 		ns.Moments.TogglePreview()
 		if not (slot.handle and slot.handle:IsShown() and slot.handle:IsMouseEnabled()) then

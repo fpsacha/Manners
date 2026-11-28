@@ -1201,7 +1201,9 @@ Place = function(p)
 	-- Dragged only while being moved (Move the cards): a preview that shows a
 	-- look or a size moves nothing. In a free layout the cards' own handles take
 	-- the drag, not the row's.
-	local dragging = previewing == true and moving == true
+	-- A look under the pointer in the gallery (Moments.tried) only shows; every
+	-- other preview (a move, a setting changed) lets the cards be dragged.
+	local dragging = previewing == true and (moving == true or Moments.tried == nil)
 	at:EnableMouse(dragging and not free)
 	-- The bar only while the prompt is being moved, not while a look is tried.
 	anchorLabel:SetShown(previewing == true and moving == true)

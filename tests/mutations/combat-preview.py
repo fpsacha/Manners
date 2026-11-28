@@ -5,7 +5,7 @@ S = "runscenarios.py"
 TRY = "combat-preview: a look tried shows the cards still, and the trial's end puts them away"
 
 mutate("Modules/Combat/Moments.lua",
-       "\tlocal dragging = previewing == true and moving == true\n",
+       "\tlocal dragging = previewing == true and (moving == true or Moments.tried == nil)\n",
        "\tlocal dragging = previewing == true\n",
        "combat-preview: any preview lets the cards be dragged",
        expect=TRY, script=S)
@@ -18,4 +18,9 @@ mutate("Modules/Combat/Moments.lua",
        "\tMoments.Preview(true, wasMoving)\n",
        "\tMoments.Preview(true)\n",
        "combat-preview: a restyle ends a move",
+       expect=TRY, script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\tlocal dragging = previewing == true and (moving == true or Moments.tried == nil)\n",
+       "\tlocal dragging = previewing == true and moving == true\n",
+       "combat-preview: only Move the cards drags",
        expect=TRY, script=S)

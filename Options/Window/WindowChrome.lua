@@ -1075,7 +1075,9 @@ function UI.PaintFooter()
 		footer.changed:SetPoint("LEFT", footer.foot, "LEFT", 10, 0)
 	end
 	local build = footer.buildItem and B.Text(footer.buildItem, "name")
-	footer.build:SetText(build and UI.Plain(build) or "")
+	-- The number alone: the line beside it already names Manners, and the
+	-- room went to the Links button.
+	footer.build:SetText(build and (UI.Plain(build):gsub("^Manners%s+", "")) or "")
 	-- The build at the right, beside Close.
 	footer.build:ClearAllPoints()
 	footer.build:SetPoint("RIGHT", footer.mid, "RIGHT", 0, 0)
