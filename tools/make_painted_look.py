@@ -752,6 +752,10 @@ def build(key):
         "wellColour": well_colour,
         "keyInk": key_ink,
         "keyOutline": key_outline,
+        # The band of shadow taken off each end's inner edge, in u: Looks/Painted.lua
+        # lays the middle over at least that much, so the shadow is never doubled
+        # nor missing there at any size.
+        "seam": SHADOW_SEAM / CORE_PX if meta.get("shadow") and not os.path.isfile(os.path.join(src, "outer-shadow.png")) else None,
     }
     measured = {"slate": slate, "core": (core_top, core_bot), "crop": (x0, y0, x1, y1), "k": k,
                 "cuts": (c0, c1), "darkened": darkened, "well_px": (wx0, wy0, wx1, wy1), "rgba": rgba}
@@ -826,6 +830,8 @@ def lua_data(all_data):
         out.append("\t\tkeyInk = { %s }," % ", ".join(num(v) for v in d["keyInk"]))
         if d["keyOutline"]:
             out.append("\t\tkeyOutline = true,")
+        if d.get("seam"):
+            out.append("\t\tseam = %s," % num(d["seam"]))
         out.append("\t},")
     out.append("}")
     return "\n".join(out) + "\n"

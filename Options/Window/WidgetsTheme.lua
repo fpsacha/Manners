@@ -292,10 +292,14 @@ local function Restyle()
 end
 
 -- A control that tries a look on something other than the prompt (the combat
--- prompt's gallery) says how in its own `tryLook(key)`; nil ends the trial.
+-- prompt's gallery) says how in WindowLayout.trials[its path], a function of
+-- the key (nil ends the trial). Not on the option itself: AceConfig refuses
+-- a key it does not know, and the fallback dialog would not open.
 local function OwnTry(card)
-	local def = card.row and card.row.item and card.row.item.def
-	return def and type(def.tryLook) == "function" and def or nil
+	local item = card.row and card.row.item
+	local trials = ns.WindowLayout and ns.WindowLayout.trials
+	local fn = item and type(trials) == "table" and trials[item.path]
+	return type(fn) == "function" and { tryLook = fn } or nil
 end
 
 -- The chosen look back on the prompt (`redraw`: drawn now; a click about to

@@ -35,9 +35,12 @@
 --            as on a lit one: the owner found the two clicks this once took (the
 --            first only opened it) read as a button that does nothing.
 --
--- Every slot has the same place. Lua only routes the currently relevant slot
--- to the top. A secure action, point, size or mouse setting never changes in a
--- fight. With no relevant action, every slot sits dark below the normal prompt.
+-- Every action has a place of its own, in a row from the anchor (just above the
+-- normal prompt by default), the most urgent first. A card shows only while it
+-- is needed, where it sits. Nothing is stacked: the client refuses to raise a
+-- protected button over another in a fight (SetFrameLevel, patch 11.1.7), so a
+-- shared spot only ever clicks what was on top at the pull. A secure action,
+-- point, size, level or mouse setting never changes in a fight.
 --
 -- THE DRINK is the one row that works out of a fight only (row.calm): lit while
 -- your mana is under Mana below, you stand still and a drink is in your bags. The
@@ -501,43 +504,39 @@ local function GivesWay(slot, busy)
 end
 Moments.GivesWay = GivesWay
 
--- The internal secure slots are all at the same place. Only the highest
--- priority one gets the prompt's art and the top click level. Frame level is
--- visual: the macro, attributes, point, size and mouse setting stay untouched.
+-- Every action has its own place (Place): a protected button cannot be raised
+-- over another in a fight (SetFrameLevel is restricted since patch 11.1.7), so
+-- the needed one is never brought to the top of a shared spot. Route only shows
+-- the cards that are needed, each where it sits, and raises the cover of every
+-- other: art and unprotected frames, allowed in a fight. `selected` is the most
+-- urgent card shown, for the alert and the check-up.
 local function Route()
 	if previewing then return end
 	local before = Moments.selected
 	local best
 	local busy = Prompt ~= nil and type(Prompt.Showing) == "function" and Prompt:Showing() ~= nil
 	local yielded = false
+	local show = {}
 	for n = 1, MAX do
 		local slot = slots[n]
-		local yields = false
-		if slot and slot.armed and slot.state ~= "dark" and GivesWay(slot, busy) then
-			yields, yielded = true, true
-		end
-		if not yields and slot and slot.armed and slot.state ~= "dark"
+		if slot and slot.armed and slot.state ~= "dark"
 			and ((Sense.fighting and slot.row.calm ~= true) or (not Sense.fighting and slot.row.calm == true)) then
-			if not best or Priority(slot) < Priority(best)
-				or (Priority(slot) == Priority(best) and slot.n < best.n) then
-				best = slot
+			if GivesWay(slot, busy) then
+				yielded = true
+			else
+				show[slot] = true
+				if not best or Priority(slot) < Priority(best)
+					or (Priority(slot) == Priority(best) and slot.n < best.n) then
+					best = slot
+				end
 			end
 		end
 	end
 	for n = 1, MAX do
 		local slot = slots[n]
 		if slot and slot.button then
-			local shown = slot == best
-			local level = shown and SELECTED_LEVEL or 0
-			if slot.routed ~= shown or slot.routeLevel ~= level then
-				slot.button:SetFrameLevel(level)
-				slot.face:SetFrameLevel(level + 1)
-				slot.hint:SetFrameLevel(level + 2)
-				slot.inner:SetFrameLevel(level + 3)
-				slot.mark:SetFrameLevel(level + 4)
-				slot.cover:SetFrameLevel(shown and level + 10 or 0)
-				slot.routed, slot.routeLevel = shown, level
-			end
+			local shown = show[slot] == true
+			slot.routed = shown
 			slot.cover:SetShown(CoverWanted(slot))
 			if shown then
 				slot.face:SetAlpha(1)
@@ -1012,6 +1011,28 @@ local function SetMouse(slot)
 end
 
 local Place
+local ROW_GAP = 6
+
+-- A slot's button and the frames on it, at `level`: out of a fight only.
+local function Levels(slot, level)
+	if InCombatLockdown() then return end
+	if slot.button:GetFrameLevel() == level and slot.routeLevel == level then return end
+	slot.button:SetFrameLevel(level)
+	slot.face:SetFrameLevel(level + 1)
+	slot.hint:SetFrameLevel(level + 2)
+	slot.inner:SetFrameLevel(level + 3)
+	slot.mark:SetFrameLevel(level + 4)
+	slot.cover:SetFrameLevel(level + 10)
+	slot.routeLevel = level
+end
+
+-- Where the combat prompt sits by default: just above the buff prompt, so the
+-- two never share a spot (each takes its own clicks).
+local function DefaultY(h)
+	local ph = R.button and R.button:GetHeight()
+	if type(ph) ~= "number" or ph <= 0 then ph = 44 end
+	return math.floor(ph / 2 + h / 2 + ROW_GAP + 0.5)
+end
 
 Priority = function(slot)
 	local row, needs = slot.row, slot.needs or {}
@@ -1025,8 +1046,7 @@ Priority = function(slot)
 	return row and row.calm == true and 90 or 50
 end
 
--- The single combat prompt is the normal prompt's size at 100%. Every internal
--- secure slot is placed on the same centre, so only the routed action is visible.
+-- A card is the normal prompt's size at 100%, each in its own place (Place).
 function Moments.CardSize(p)
 	local db = Profile()
 	local percent = db and type(db.moments) == "table" and tonumber(db.moments.cardSize) or 150
@@ -1123,19 +1143,33 @@ Place = function(p)
 	local db = Profile()
 	local moments = db and type(db.moments) == "table" and db.moments or {}
 	at:ClearAllPoints()
-	at:SetPoint("CENTER", R.button, "CENTER", tonumber(moments.promptX) or 0, tonumber(moments.promptY) or 0)
+	at:SetPoint("CENTER", R.button, "CENTER", tonumber(moments.promptX) or 0, tonumber(moments.promptY) or DefaultY(H))
 	at:SetSize(W, H)
 	at:EnableMouse(previewing == true)
 	-- The bar only while the prompt is being moved, not while a look is tried.
 	anchorLabel:SetShown(previewing == true and moving == true)
-	local placedN = 0
+	-- A place each, in a row from the anchor, the most urgent first: the order is
+	-- fixed out of a fight, so a card always appears where it appeared before.
+	local order = {}
 	for n = 1, MAX do
 		local slot = slots[n]
-		if slot and slot.armed then
+		if slot and slot.armed then order[#order + 1] = slot end
+	end
+	table.sort(order, function(a, b)
+		local pa, pb = Priority(a), Priority(b)
+		if pa ~= pb then return pa < pb end
+		return a.n < b.n
+	end)
+	local placedN = 0
+	for i, slot in ipairs(order) do
+		do
 			local b = slot.button
 			b:ClearAllPoints()
-			b:SetPoint("CENTER", at, "CENTER", 0, 0)
-		b:SetSize(W, H)
+			b:SetPoint("CENTER", at, "CENTER", (i - 1) * (W + ROW_GAP), 0)
+			b:SetSize(W, H)
+			-- Over the buff prompt, under it: where the two share the screen the
+			-- buff prompt takes the click (a level cannot change in a fight).
+			Levels(slot, OverPrompt(slot) and 0 or SELECTED_LEVEL)
 			placedN = placedN + 1
 			local key = CombatStyle(p)
 			local sig = Card.Signature(slot, key, W, H)
@@ -1145,7 +1179,7 @@ Place = function(p)
 			end
 		end
 	end
-	Moments.placed = { side = "prompt", w = W, h = H, cols = 1, perCol = 1, n = placedN, rightwards = true }
+	Moments.placed = { side = "prompt", w = W, h = H, cols = placedN, perCol = 1, n = placedN, rightwards = true }
 	return "prompt"
 end
 Moments.Place = Place
@@ -1574,27 +1608,16 @@ function Moments.Mover()
 	return anchorLabel
 end
 
--- One prompt example, marked and pulsing, with all other secure slots hidden.
+-- Every card of the group in its own place, marked and pulsing, so the player
+-- sees where each will appear; the other secure slots hidden.
 local function PreviewShow(group)
-	local selected
-	for _, slot in ipairs(group) do
-		if not selected or Priority(slot) < Priority(selected)
-			or (Priority(slot) == Priority(selected) and slot.n < selected.n) then
-			selected = slot
-		end
-	end
+	local inGroup = {}
+	for _, slot in ipairs(group) do inGroup[slot] = true end
 	for n = 1, MAX do
 		local slot = slots[n]
 		if slot and slot.armed then
-			local shown = slot == selected
-			local level = shown and SELECTED_LEVEL or 0
-			slot.button:SetFrameLevel(level)
-			slot.face:SetFrameLevel(level + 1)
-			slot.hint:SetFrameLevel(level + 2)
-			slot.inner:SetFrameLevel(level + 3)
-			slot.mark:SetFrameLevel(level + 4)
-			slot.cover:SetFrameLevel(shown and level + 10 or 0)
-			slot.routed, slot.routeLevel = shown, level
+			local shown = inGroup[slot] == true
+			slot.routed = shown
 			if shown then
 				-- Over the options window it was opened from, for as long as it is shown.
 				slot.button:SetFrameStrata(PREVIEW_STRATA)

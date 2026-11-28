@@ -242,10 +242,12 @@ With Manners: Combat on, its own **Combat** page (under *Optional modules*)
 lists the detected combat actions for this character: interrupts,
 defensives, hostile dispels, and the other reactions this client can actually
 read. It opens with how many are on, and *Turn all on* / *Turn all off* sit
-over the list. Every action has its own switch, all off by default. Manners keeps one
-combat prompt: when a need is detected, that prompt changes to the most urgent
-spell, with its icon and reason, and pulses for attention. There are no
-per-spell keys or piles of cards. Manners arms enabled actions before combat;
+over the list. Every action has its own switch, all off by default. When a need is detected,
+that action's card appears with its icon and reason and pulses for attention.
+Each action you turn on has its own place in a short row, the most urgent
+first, so a card always appears where it appeared before; the game does not
+let an addon swap which button sits on top in a fight, so the cards are never
+stacked. There are no per-spell keys. Manners arms enabled actions before combat;
 it never rewrites a secure cast during lockdown. A need the client withholds is
 either read through a safe game-provided signal or left dark rather than
 guessed. Interrupts are immediate after a target-cast event even when the client
@@ -257,8 +259,9 @@ point at it. You can resize it, choose a quiet, pulse or strong-pulse alert and
 add a sound (heard once as you turn it on). *Show and move the combat prompt*
 puts the options away and shows the prompt over everything with a small bar
 (*Reset*, *Done*); drag it, then *Done* or a right-click brings the options back.
-A look or size changed while it shows appears on it at once. Its default
-position is the usual Manners prompt's position. With Manners: Combat on, the
+A look or size changed while it shows appears on it at once. By default it
+sits just above the Manners prompt, so each keeps its own clicks; placed over
+the Manners prompt, the Manners prompt takes the click where they meet. With Manners: Combat on, the
 round below, Will of the Forsaken, the cure in a fight and Mend Pet's button
 are set on this page too (*The prompt in a fight*, *Fight buttons beside the
 prompt*), and *In a fight* leaves the sidebar.

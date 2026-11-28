@@ -67,7 +67,7 @@ mutate("Modules/Combat/Moments.lua",
        "Moments.selected, Moments.yielded = best, yielded",
        "Moments.selected, Moments.yielded = nil, yielded",
        "combat actions: the routed combat action is not exposed to one prompt",
-       expect=N + "simultaneous needs use one prompt and one secure click target", script=S)
+       expect=N + "simultaneous needs each show in their own place, with no secure frame raised in a fight", script=S)
 
 mutate("Modules/Combat/Moments.lua",
        'ev:RegisterEvent("PLAYER_REGEN_DISABLED")',
@@ -261,3 +261,29 @@ mutate("Modules/Combat/Moments.lua",
        "\tlocal busy = Prompt ~= nil and type(Prompt.Showing) == \"function\"",
        "combat actions: the combat prompt gives way to a buff prompt that offers nothing",
        expect=N + "the buff prompt keeps its clicks over a card only the game sees", script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\t\t\tslot.routed = shown\n\t\t\tslot.cover:SetShown(CoverWanted(slot))",
+       "\t\t\tslot.routed = shown\n\t\t\tslot.button:SetFrameLevel(shown and 500 or 0)\n\t\t\tslot.cover:SetShown(CoverWanted(slot))",
+       "combat actions: the needed button is raised in a fight, which the client refuses",
+       expect="combat-actions: simultaneous needs each show in their own place, with no secure frame raised in a fight", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "b:SetPoint(\"CENTER\", at, \"CENTER\", (i - 1) * (W + ROW_GAP), 0)",
+       "b:SetPoint(\"CENTER\", at, \"CENTER\", 0, 0)",
+       "combat actions: every action shares one place",
+       expect="combat-actions: simultaneous needs each show in their own place, with no secure frame raised in a fight", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "tonumber(moments.promptY) or DefaultY(H))",
+       "tonumber(moments.promptY) or 0)",
+       "combat actions: the combat prompt sits on the buff prompt by default",
+       expect="combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "Levels(slot, OverPrompt(slot) and 0 or SELECTED_LEVEL)",
+       "Levels(slot, SELECTED_LEVEL)",
+       "combat actions: a card over the buff prompt takes its click",
+       expect="combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro", script=S)
+mutate("Prompt/Macro.lua",
+       "\treturn TargetCommand() .. \" \" .. name\nend",
+       "\treturn nil\nend",
+       "combat actions: a self row on Forever has no macro",
+       expect="combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro", script=S)

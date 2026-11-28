@@ -50,6 +50,9 @@ local C = {
 	PLAY_AFTER = 75,
 	-- After a level, a resurrection or an inn: a breath before the moment.
 	SETTLE = 3,
+	-- An inn or a city counts once you have been out of one this long: walking
+	-- in and out at a city's edge brings nothing.
+	AWAY_FROM_REST = 600,
 }
 Companion.C = C
 
@@ -197,7 +200,7 @@ Companion.Out = Out
 
 local moment
 local clock = { afterFight = 0, quietSince = nil, pullAt = nil, outAtPull = nil, stillSince = nil,
-	guid = nil, seen = false, resting = nil, died = false }
+	guid = nil, seen = false, resting = nil, died = false, leftRest = nil }
 
 local function GapLeft()
 	local char = Char()
@@ -525,6 +528,7 @@ local function OnEvent(_, event, first)
 	elseif event == "PLAYER_ENTERING_WORLD" then
 		clock.quietSince, clock.stillSince = now, nil
 		clock.resting = Ask("IsResting") == true
+		if not clock.resting and not clock.leftRest then clock.leftRest = now end
 		if first == true then
 			After(C.HELLO_AFTER, function() ns.Guard("companion hello", Trigger, "hello", GetTime()) end)
 		end
@@ -534,9 +538,10 @@ local function OnEvent(_, event, first)
 		Trigger("quest", now)
 	elseif event == "PLAYER_UPDATE_RESTING" then
 		local resting = Ask("IsResting") == true
-		if resting and clock.resting == false then
+		if resting and clock.resting == false and clock.leftRest and now - clock.leftRest >= C.AWAY_FROM_REST then
 			After(C.SETTLE, function() ns.Guard("companion home", Trigger, "home", GetTime()) end)
 		end
+		if not resting and clock.resting ~= false then clock.leftRest = now end
 		clock.resting = resting
 	elseif event == "PLAYER_DEAD" then
 		clock.died = true

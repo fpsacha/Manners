@@ -327,10 +327,15 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 			ns.Moments.tried = nil
 			Restyle()
 		end,
-		-- The gallery's cards try a look on the combat prompt under the pointer
-		-- (Options/Window/WidgetsTheme.lua, OwnTry), not on the Manners prompt.
-		tryLook = function(key) ns.Guard("combat prompt look", ns.Moments.TryLook, key) end,
 	}
+	-- The gallery's cards try a look on the combat prompt under the pointer
+	-- (Options/Window/WidgetsTheme.lua, OwnTry), not on the Manners prompt.
+	if ns.WindowLayout then
+		ns.WindowLayout.trials = ns.WindowLayout.trials or {}
+		ns.WindowLayout.trials["appearance.combatActionLook"] = function(key)
+			ns.Guard("combat prompt look", ns.Moments.TryLook, key)
+		end
+	end
 	args.combatActionSize = {
 		type = "range", name = L["Combat prompt size"], order = 32.5036,
 		desc = L["A percentage of the normal Manners prompt's size. Bigger is easier to notice and to click in a fight."],

@@ -4,6 +4,19 @@
 local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
 
+-- A learned action that is not the interrupt, whatever this client calls it.
+local function otherThanPummel(ns)
+	-- Every rank this client's warrior rows name, known: the ids differ by client.
+	for _, row in ipairs(ns.MOMENTS and ns.MOMENTS.WARRIOR or {}) do
+		for _, id in ipairs(row.ranks or {}) do Mock.knownSpells[id] = true end
+	end
+	ns.Guard("probe combat actions", ns.ProbeCapabilities)
+	for _, entry in ipairs(ns.caps.moments and ns.caps.moments.list or {}) do
+		if entry.row and entry.row.key ~= "combat-interrupt-pummel" and not entry.row.calm then return entry end
+	end
+	return nil
+end
+
 local ALL = {
 	[ "camelot" ] = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" },
 	vanilla = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" },
@@ -403,7 +416,7 @@ do
 end
 
 do
-	scenario = "combat-actions: simultaneous needs use one prompt and one secure click target"
+	scenario = "combat-actions: simultaneous needs each show in their own place, with no secure frame raised in a fight"
 	Mock.reset()
 	Mock.setFlavour("camelot")
 	Mock.class = "WARRIOR"
@@ -444,13 +457,16 @@ do
 			if not chosen or chosen.row.key ~= pummel.row.key then
 				fail(scenario, "the priority action was not the one combat prompt")
 			end
-			if first:GetFrameLevel() ~= 500 or second:GetFrameLevel() ~= 0 then
-				fail(scenario, "the combat prompt did not route one secure slot to the top")
+			if firstSlot.face:GetAlpha() ~= 1 or secondSlot.face:GetAlpha() ~= 1 then
+				fail(scenario, "two needed actions did not both show")
+			end
+			if firstSlot.cover:IsShown() or secondSlot.cover:IsShown() then
+				fail(scenario, "a card that shows keeps its cover, so its click does nothing")
 			end
 			local pummelPoint, bashPoint = first.points[1], second.points[1]
 			if not (pummelPoint and bashPoint and pummelPoint[2] == ns.Moments.Anchor()
-				and bashPoint[2] == ns.Moments.Anchor()) then
-				fail(scenario, "secure combat slots were not placed on one shared prompt")
+				and bashPoint[2] == ns.Moments.Anchor() and pummelPoint[4] ~= bashPoint[4]) then
+				fail(scenario, "two actions share one place, so only the one on top could take a click")
 			end
 			if #Mock.protectedCalls > 0 then
 				fail(scenario, "routing changed a protected action in combat: " .. table.concat(Mock.protectedCalls, ", "))
@@ -461,7 +477,7 @@ do
 			end
 			Mock.advance(0.2)
 			Mock.runTimers(0)
-			if ns.Moments.selected or first:GetFrameLevel() ~= 0 or firstSlot.face:GetAlpha() ~= 0
+			if ns.Moments.selected or firstSlot.face:GetAlpha() ~= 0
 				or secondSlot.face:GetAlpha() ~= 0 then
 				fail(scenario, ("the combat prompt stayed visible without a detected need: selected %s, levels %s/%s, alpha %s/%s")
 					:format(tostring(ns.Moments.selected and ns.Moments.selected.row.key) .. " state "
@@ -580,7 +596,7 @@ do
 	if ns then
 		drive(scenario, ns)
 		ns.Guard("probe combat actions", ns.ProbeCapabilities)
-		local defense = ns.caps.moments and ns.caps.moments.byKey["combat-self_defense-shield-block"]
+		local defense = otherThanPummel(ns)
 		if not defense then fail(scenario, "the action was not learned") return end
 		ns.db.profile.moments[defense.row.key] = true
 		ns.Moments:Refresh()
@@ -681,18 +697,21 @@ do
 			-- Trying a look from the gallery shows it on the combat prompt, without the bar.
 			local same = H.findOption(ns.optionsTable, "combatActionLookSame")
 			local look = H.findOption(ns.optionsTable, "combatActionLook")
-			if not (same and look and type(look.tryLook) == "function") then
+			local trials = ns.WindowLayout and ns.WindowLayout.trials
+			local tryLook = trials and trials["appearance.combatActionLook"]
+			if look and look.tryLook ~= nil then fail(scenario, "the option carries a key AceConfig refuses (tryLook)") end
+			if not (same and look and type(tryLook) == "function") then
 				fail(scenario, "the combat look has no gallery to try looks from")
 			else
 				same.set(nil, false)
-				look.tryLook("frost")
+				tryLook("frost")
 				local slot = ns.Moments:Slot(ns.caps.moments.byKey[key].row.slot)
 				if not (ns.Moments.Previewing() and slot and slot.cardLook == "frost") then
 					fail(scenario, "a look under the pointer was not shown on the combat prompt")
 				end
 				if bar and bar:IsShown() then fail(scenario, "trying a look showed the move bar") end
 				if ns.db.profile.moments.look == "frost" then fail(scenario, "a look only tried was kept") end
-				look.tryLook(nil)
+				tryLook(nil)
 				if slot and slot.cardLook == "frost" then fail(scenario, "the tried look stayed after the pointer left") end
 				same.set(nil, true)
 				if ns.db.profile.moments.look ~= "same" or not look.hidden() then
@@ -755,7 +774,7 @@ do
 	if ns then
 		drive(scenario, ns)
 		ns.Guard("probe combat actions", ns.ProbeCapabilities)
-		local entry = ns.caps.moments and ns.caps.moments.byKey["combat-self_defense-shield-block"]
+		local entry = otherThanPummel(ns)
 		if not entry then fail(scenario, "Shield Block was not learned") Mock.reset() return end
 		ns.db.profile.moments[entry.row.key] = true
 		ns.Moments:Refresh()
@@ -808,6 +827,77 @@ do
 		ns.Moments.Route()
 		if ns.Moments.selected ~= slot then fail(scenario, "the drink did not come back once the buff prompt went") end
 		ns.Prompt.Showing = was
+	end
+	Mock.reset()
+end
+
+do
+	-- Where it sits: above the buff prompt by default, not on it, a place for
+	-- each action; a card over the buff prompt goes under it, set out of a fight.
+	-- And a self row on Forever targets you by name, as the buff prompt does.
+	local scenario = "combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro"
+	Mock.reset()
+	Mock.class = "WARRIOR"
+	Mock.knownSpells = { [6552] = true, [72] = true }
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Guard("probe combat actions", ns.ProbeCapabilities)
+		local pummel = ns.caps.moments.byKey["combat-interrupt-pummel"]
+		local bash = ns.caps.moments.byKey["combat-interrupt-shield-bash"]
+		if not (pummel and bash) then fail(scenario, "both interrupts were not learned") Mock.reset() return end
+		ns.db.profile.moments[pummel.row.key] = true
+		ns.db.profile.moments[bash.row.key] = true
+		ns.db.profile.moments.promptX, ns.db.profile.moments.promptY = nil, nil
+		ns.Moments:Refresh()
+		local at = ns.Moments.Anchor()
+		local point = at.points and at.points[#at.points]
+		if not (point and type(point[5]) == "number" and point[5] > 0) then
+			fail(scenario, "by default the combat prompt sits on the buff prompt, where the two fight over one click")
+		end
+		local a, b = ns.Moments:Button(pummel.row.slot), ns.Moments:Button(bash.row.slot)
+		if not (a.points[1] and b.points[1] and a.points[1][4] ~= b.points[1][4]) then
+			fail(scenario, "two actions share one place")
+		end
+		local slot = ns.Moments:Slot(pummel.row.slot)
+		local prompt = ns.Prompt:GetButton()
+		local function rect(frame, l, r, bo, t)
+			frame.GetLeft = function() return l end
+			frame.GetRight = function() return r end
+			frame.GetBottom = function() return bo end
+			frame.GetTop = function() return t end
+		end
+		rect(prompt, 100, 320, 100, 144)
+		rect(slot.button, 80, 340, 80, 160)
+		ns.Moments.Place(ns.db.profile.prompt)
+		if slot.button:GetFrameLevel() >= 500 then
+			fail(scenario, "a card over the buff prompt sits above it, so it takes the buff prompt's click")
+		end
+		rect(slot.button, 600, 900, 600, 700)
+		ns.Moments.Place(ns.db.profile.prompt)
+		if slot.button:GetFrameLevel() ~= 500 then fail(scenario, "a card off the buff prompt was not put on top") end
+	end
+	Mock.reset()
+	Mock.class = "MAGE"
+	Mock.knownSpells = {}
+	local ns2 = load(scenario)
+	if ns2 then
+		drive(scenario, ns2)
+		for _, row in ipairs(ns2.MOMENTS.MAGE or {}) do
+			if row.self then for _, id in ipairs(row.ranks or {}) do Mock.knownSpells[id] = true end end
+		end
+		ns2.Guard("probe combat actions", ns2.ProbeCapabilities)
+		local picked
+		for _, entry in ipairs(ns2.caps.moments.list or {}) do
+			if entry.row.self and not entry.row.calm and not entry.row.items then picked = entry break end
+		end
+		if not picked then fail(scenario, "SKIPPED -- no self row for a mage") Mock.reset() return end
+		ns2.db.profile.moments[picked.row.key] = true
+		ns2.Moments:Refresh()
+		local macro = ns2.Moments:Button(picked.row.slot):GetAttribute("macrotext1") or ""
+		if not (macro:find("^/target") and macro:find("/cast ", 1, true) and macro:find("/targetlasttarget", 1, true)) then
+			fail(scenario, "a self row on Forever has no macro: |" .. macro .. "|")
+		end
 	end
 	Mock.reset()
 end

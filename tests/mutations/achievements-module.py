@@ -113,3 +113,12 @@ mutate(
     expect="the Earned tab did not show what was earned",
     script="runscenarios.py",
 )
+
+mutate(
+    "Modules/Achievements/Board.lua",
+    "local CARD_MIN, CARD_MAX_COLS = 290, 2",
+    "local CARD_MIN, CARD_MAX_COLS = 290, 3",
+    "achievements-module: a wide board cramps three columns",
+    expect="names get cut off past two",
+    script="runscenarios.py",
+)

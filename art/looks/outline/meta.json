@@ -2,28 +2,28 @@
   "key": "outline",
   "socket": {
     "shape": "square",
-    "cx": 415,
-    "cy": 272,
-    "half": 76
+    "cx": 425,
+    "cy": 265,
+    "half": 79
   },
   "name_xy": [
     540,
-    197
+    190
   ],
   "reason_xy": [
     540,
-    276
+    269
   ],
   "keycap": {
     "cx": 1711.5,
-    "cy": 272.5,
+    "cy": 265,
     "w": 134,
     "h": 137
   },
   "bar": [
-    298,
-    141,
-    1811,
+    303,
+    126,
+    1809,
     400
   ],
   "stretch": [
@@ -33,7 +33,7 @@
   "keep_stretch_edge": true,
   "text_colour_ok": true,
   "clip": true,
-  "notes": "A flat charcoal bar in a hard black edge with a soft black shadow all round, a square black-edged socket for a cropped icon; no notch, no keycap, no texture. Drawn to the player's spec by tools/make_outline_art.py, not painted.",
+  "notes": "A flat charcoal bar in a hard black edge with a soft black shadow all round, a square black-edged socket for a cropped icon; no notch, no keycap. Painted through the Gemini image API (gemini-3.1-flash-image) over the player's flat reference.",
   "margin": 60,
   "shadow": {
     "spread": 0.12,

@@ -79,7 +79,7 @@ mutate(
 )
 mutate(
     "Modules/Pets/Companion.lua",
-    "\t\tif resting and clock.resting == false then",
+    "\t\tif resting and clock.resting == false and clock.leftRest and now - clock.leftRest >= C.AWAY_FROM_REST then",
     "\t\tif false then",
     "companion: an inn brings no moment",
     expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
@@ -131,5 +131,14 @@ mutate(
     "\tfor _, text in ipairs({}) do",
     "companion: its own words are never said",
     expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\tAWAY_FROM_REST = 600,",
+    "\tAWAY_FROM_REST = 0,",
+    "companion: walking in and out of town brings a cuddle each time",
+    expect="a minute out of town and back brought a cuddle",
     script="runscenarios.py",
 )

@@ -196,6 +196,15 @@ STRATEGIES.target = function(entry, spell)
 		{ targeted = true, selfCast = false, aimedAt = who }
 end
 
+-- You, targeted by name, the line a press of one of your own starts with: the
+-- combat prompt's self rows (Modules/Combat/Moments.lua) use it where
+-- [@player] does not resolve. nil while the client has no name for you.
+function Prompt.SelfTargetLine()
+	local name = ns.plain(UnitName("player"))
+	if type(name) ~= "string" or name == "" then return nil end
+	return TargetCommand() .. " " .. name
+end
+
 -- A courtesy somebody asked for (Courtesy.lua): a conjure or a portal at nobody, or a trade or a summon at them.
 STRATEGIES.courtesy = function(entry) return ns.Courtesy.Macro(entry, STRATEGIES.target) end
 

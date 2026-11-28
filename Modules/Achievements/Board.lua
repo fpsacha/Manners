@@ -29,7 +29,8 @@ local T, KIND = W.Theme, W.KIND
 
 local PAD, GAP = 9, 6
 local ICON, PIP = 34, 9
-local CARD_MIN, CARD_MAX_COLS = 290, 3
+-- Two columns at most: three made the names cut off and the lines small.
+local CARD_MIN, CARD_MAX_COLS = 290, 2
 local BAR_H = 6
 local RECENT, RECENT_ICON = 6, 30
 local TAB_H, TAB_PAD, TAB_GAP = 22, 10, 4
@@ -178,12 +179,12 @@ local function Card(row)
 	card.iconEdge = W.Solid(card, "BORDER", 0, { 0, 0, 0, 1 })
 	card.iconEdge:SetPoint("TOPLEFT", card.icon, "TOPLEFT", -1, 1)
 	card.iconEdge:SetPoint("BOTTOMRIGHT", card.icon, "BOTTOMRIGHT", 1, -1)
-	card.title = W.Text(card, T.fonts.normal, T.white)
-	card.title:SetWordWrap(false)
+	card.title = W.Wrapping(W.Text(card, T.fonts.normal, T.white))
+	if card.title.SetMaxLines then card.title:SetMaxLines(2) end
 	card.kind = W.Text(card, T.fonts.small, T.hint)
 	card.kind:SetJustifyH("RIGHT")
 	card.kind:SetWordWrap(false)
-	card.desc = W.Wrapping(W.Text(card, T.fonts.small, T.inkSoft))
+	card.desc = W.Wrapping(W.Text(card, T.fonts.normalSmall, T.inkSoft))
 	card.bar = Bar(card)
 	card.bar:SetHeight(BAR_H)
 	card.count = W.Text(card, T.fonts.small, T.ink)

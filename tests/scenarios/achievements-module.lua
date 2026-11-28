@@ -174,6 +174,8 @@ do
 		fail(scenario, ("the board shows %d cards for %d achievements"):format(shown, #A.List()))
 	end
 	if board.cols ~= 2 then fail(scenario, "a 700 wide board has " .. tostring(board.cols) .. " columns, not two") end
+	board:Layout(1200)
+	if board.cols ~= 2 then fail(scenario, "a wide board has " .. tostring(board.cols) .. " columns: names get cut off past two") end
 	board:Layout(320)
 	if board.cols ~= 1 then fail(scenario, "a narrow board has " .. tostring(board.cols) .. " columns, not one") end
 	-- One returned favour: Much Obliged is earned and Earned finds it alone.

@@ -647,6 +647,11 @@ local PROTECTED_METHODS = {
 	-- move on the secure button in combat, and against a mock that did not
 	-- write these down it looked exactly like a drag that behaved.
 	"StartMoving", "StopMovingOrSizing",
+	-- Restricted since patch 11.1.7 (Warcraft Wiki, API Frame:SetFrameLevel):
+	-- insecure code may not re-level a protected frame in combat. The combat
+	-- prompt once raised the needed action's button that way, and the click
+	-- went to whatever sat on top when the fight began.
+	"SetFrameLevel",
 }
 
 -- Which frame is the secure one is the addon's business, not the mock's, so a

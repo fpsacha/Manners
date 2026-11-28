@@ -312,3 +312,9 @@ mutate("Options/Window/WidgetsTheme.lua",
        "\trow:Refresh()\n",
        "painted: a tab's click opens nothing",
        expect="lookpage: a mage's tabs", script=S)
+
+mutate("Looks/Painted.lua",
+       "\tlocal seam = math.max(SEAM, (d.seam or 0) * g.unit)",
+       "\tlocal seam = SEAM",
+       "painted: the middle leaves a gap in a shadowed look's shadow",
+       expect="painted: a shadowed look's middle covers the band cut from each end, at every size", script="runscenarios.py")
