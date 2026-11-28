@@ -62,3 +62,19 @@ mutate("Modules/Combat/Moments.lua",
        "",
        "combat-actions: the card does not follow its handle",
        expect=FREE, script=S)
+
+mutate("Modules/Combat/Options.lua",
+       "\t\thidden = function() return Off() or #Learned() == 0 or not Moved() end,\n",
+       "\t\thidden = function() return Off() or #Learned() == 0 end,\n",
+       "combat-actions: Reset position shows with nothing moved",
+       expect=FREE, script=S)
+mutate("Modules/Combat/Options.lua",
+       "\t\t\tif layout == \"stack\" then return L[\"Drag the card: every action shows on that one spot.\"] end\n",
+       "",
+       "combat-actions: the drag line ignores one spot",
+       expect=FREE, script=S)
+mutate("Modules/Combat/Options.lua",
+       "\t\t\t\"appearance.combatActionLayout\",\n\t\t\t{ \"appearance.combatActionGrow\", indent = true },\n",
+       "",
+       "combat-actions: the placement choice away from Move the cards",
+       expect=FREE, script=S)

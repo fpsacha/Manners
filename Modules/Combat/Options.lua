@@ -229,7 +229,7 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		type = "execute", order = 32.4996,
 		name = function()
 			if ns.Moments.Previewing() then return L["Done moving"] end
-			return L["Show and move the combat prompt"]
+			return L["Move the cards"]
 		end,
 		desc = function()
 			if not ns.Moments.AnyArmed() then
@@ -241,14 +241,17 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		hidden = function() return Off() or #Learned() == 0 end,
 		func = function() ns.Guard("move combat prompt", ns.Moments.TogglePreview) end,
 	}
+	-- Shown only once something was moved: a greyed reset beside the move read
+	-- as a second, unclear way to place the prompt.
+	local function Moved()
+		local m = ns.db.profile.moments
+		return m.promptX ~= nil or m.promptY ~= nil or next(m.places or {}) ~= nil
+	end
 	args.combatActionReset = {
-		type = "execute", name = L["Put the combat prompt on Manners"], order = 32.4997,
+		type = "execute", name = L["Reset position"], order = 32.4997,
 		desc = L["Returns the combat prompt to the normal Manners prompt's place."],
-		disabled = function()
-			local m = ns.db.profile.moments
-			return InCombatLockdown() or (m.promptX == nil and m.promptY == nil and next(m.places or {}) == nil)
-		end,
-		hidden = function() return Off() or #Learned() == 0 end,
+		disabled = function() return InCombatLockdown() end,
+		hidden = function() return Off() or #Learned() == 0 or not Moved() end,
 		func = function() ns.Guard("reset combat prompt place", ns.Moments.ResetPosition, ns.Moments) end,
 	}
 	local function SetEvery(value)
@@ -353,10 +356,10 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		end,
 	}
 	args.combatActionLayout = {
-		type = "select", name = L["Where the combat cards sit"], order = 32.50362,
+		type = "select", name = L["How the cards are placed"], order = 32.50362,
 		desc = L["A row gives each action its own place, so a click always casts the card you see. One spot shows every card in the same place; the most urgent one sits on top and takes the click, and each action's own key casts any of them."]
-			.. "\n\n" .. L["Where I drag each one: show the combat prompt and drag each card to its own place."],
-		values = { row = L["A row"], stack = L["One spot"], free = L["Where I drag each one"] },
+			.. "\n\n" .. L["Each where I drag it: move the cards, then drag each one to its own place."],
+		values = { row = L["In a row"], stack = L["All in one spot"], free = L["Each where I drag it"] },
 		sorting = { "row", "stack", "free" },
 		width = "full",
 		hidden = Off,
@@ -386,6 +389,16 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		set = function(_, value)
 			ns.db.profile.moments.grow = (value == "left" or value == "up" or value == "down") and value or "right"
 			Restyle()
+		end,
+	}
+	args.combatActionPlaceHint = {
+		type = "description", order = 32.50366, width = "full", fontSize = "medium",
+		hidden = function() return Off() or #Learned() == 0 end,
+		name = function()
+			local layout = ns.db.profile.moments.layout
+			if layout == "stack" then return L["Drag the card: every action shows on that one spot."] end
+			if layout == "free" then return L["Drag each card to its own place; one you never drag stays in the row."] end
+			return L["Drag the first card: the others follow it in a row."]
 		end,
 	}
 	args.combatActionAlert = {
@@ -467,6 +480,9 @@ do
 	local sections = {
 		{ key = "combat.start", title = L["Combat prompt"], items = {
 			"appearance.combatActionStatus",
+			"appearance.combatActionLayout",
+			{ "appearance.combatActionGrow", indent = true },
+			"appearance.combatActionPlaceHint",
 			{ "appearance.combatActionMove", buttons = true },
 			{ "appearance.combatActionReset", buttons = true },
 		} },
@@ -516,7 +532,6 @@ do
 	sections[#sections + 1] = { key = "combat.look", title = L["Look and alerts"], items = {
 		"appearance.combatActionLookSame",
 		{ "appearance.combatActionLook", widget = "themes" }, "appearance.combatActionSize",
-		"appearance.combatActionLayout", "appearance.combatActionGrow",
 		{ "appearance.combatActionAlert", match = "combatPrompt" }, "appearance.combatActionSound",
 	} }
 	sections[#sections + 1] = { key = "combat.thresholds", title = L["When an action is needed"], items = {

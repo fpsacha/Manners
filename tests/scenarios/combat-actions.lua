@@ -229,7 +229,7 @@ do
 				fail(scenario, "changing the look closed the preview instead of showing the change")
 			end
 			move.func()
-			if ns.Moments.Previewing() or move.name() ~= "Show and move the combat prompt" then
+			if ns.Moments.Previewing() or move.name() ~= "Move the cards" then
 				fail(scenario, "Done moving did not end the preview")
 			end
 			if strata[#strata] ~= "MEDIUM" then
@@ -908,8 +908,38 @@ do
 		if top:GetFrameLevel() <= under:GetFrameLevel() or under:GetFrameLevel() < 500 then
 			fail(scenario, "on one spot the first card in the order is not the one on top")
 		end
-		-- Where I drag each one: a card dragged by its own handle keeps its own
+		-- Each where I drag it: a card dragged by its own handle keeps its own
 		-- place; one never dragged stays where the row puts it.
+		do
+			-- The section that moves it: the choice under Combat prompt, a line
+			-- saying what a drag does, and the reset only once something moved.
+			local hint, reset = H.findOption(ns.optionsTable, "combatActionPlaceHint"), H.findOption(ns.optionsTable, "combatActionReset")
+			local start
+			for _, section in ipairs(ns.WindowLayout.pages.combat.sections) do
+				if section.key == "combat.start" then start = section end
+			end
+			local inStart = false
+			for _, item in ipairs(start and start.items or {}) do
+				if item == "appearance.combatActionLayout" then inStart = true end
+			end
+			if not inStart then fail(scenario, "How the cards are placed is not beside Move the cards") end
+			if not (hint and reset) then
+				fail(scenario, "the Combat page has no hint for the drag or no reset")
+			else
+				ns.db.profile.moments.layout = "stack"
+				local stackLine = hint.name()
+				ns.db.profile.moments.layout = "row"
+				local rowLine = hint.name()
+				ns.db.profile.moments.layout = "free"
+				if stackLine == hint.name() or stackLine == rowLine or rowLine == hint.name() then
+					fail(scenario, "the line under the choice does not say what a drag does for each choice")
+				end
+				ns.db.profile.moments.promptX, ns.db.profile.moments.promptY, ns.db.profile.moments.places = nil, nil, nil
+				if not reset.hidden() then fail(scenario, "Reset position shows with nothing moved") end
+				ns.db.profile.moments.places = { x = { x = 1, y = 1 } }
+				if reset.hidden() then fail(scenario, "Reset position is hidden after a card was moved") end
+			end
+		end
 		ns.db.profile.moments.layout = "free"
 		ns.db.profile.moments.places = nil
 		if not ns.Moments.Preview(true, true) then fail(scenario, "SKIPPED -- the preview would not show") end

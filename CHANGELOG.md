@@ -13,9 +13,10 @@
   the rest still come up (My own buffs).
 
 ### Combat
-- **Place each card yourself.** *Where the combat cards sit* has a third choice,
-  *Where I drag each one*: show the combat prompt and drag every card to its
-  own place (Manners: Combat).
+- **Moving the combat prompt is simpler.** At the top of the Combat page:
+  *How the cards are placed* (*In a row*, *All in one spot*, or the new *Each
+  where I drag it*), a line saying what a drag will do, *Move the cards*, and
+  *Reset position* once something was moved (Manners: Combat).
 
 ### Options window
 - **Spells wear their icons.** A switch, list or dropdown that names one of
