@@ -244,7 +244,9 @@ do
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do ids[#ids + 1] = id end
 		end
-		if table.concat(ids, " ") ~= "general who skip when click quiet fight appearance modules self services profiles diagnostics" then
+		local journal = _G.C_PetJournal
+		local pet = (type(journal) == "table" and type(journal.GetSummonedPetGUID) == "function") and "pet " or ""
+		if table.concat(ids, " ") ~= "general who skip when click quiet fight appearance modules combat self services " .. pet .. "achievements profiles diagnostics" then
 			fail(scenario, "the page ids are " .. table.concat(ids, " "))
 		end
 
@@ -594,12 +596,15 @@ do
 	local scenario = "window: the reset button is hidden on Start here, Profiles and Diagnostics"
 	with(scenario, {}, function(ns, UI)
 		local want = { general = false, who = true, skip = true, when = true, click = true, quiet = true, fight = true, appearance = true,
-			modules = false, self = true, pet = true, services = true,
+			modules = false, combat = true, achievements = false, self = true, pet = true, services = true,
 			profiles = false, diagnostics = false }
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do
 				ns.OpenOptions(id)
-				if id == "pet" and ns.OptionsTab() ~= id then
+				if id == "fight" and ns.OptionsTab() ~= id then
+					-- With Manners: Combat on, everything In a fight held is on Combat.
+					if UI.visiblePages.fight then fail(scenario, "In a fight stays in the sidebar with nothing on it") end
+				elseif id == "pet" and ns.OptionsTab() ~= id then
 					-- Only a hunter has My pet: a mage's sidebar leaves it out.
 					if UI.visiblePages.pet then fail(scenario, "a mage's sidebar lists My pet") end
 				elseif ns.OptionsTab() ~= id then

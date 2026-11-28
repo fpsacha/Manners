@@ -53,3 +53,12 @@ mutate("Options/Window/Layout.lua",
        '\t\t\t\t{ key = "modules.list", title = L["Available modules"], items = {\n',
        "menu-overhaul: the reload action stays below the switches",
        expect=N + "module reload action comes before the switches", script=S)
+
+mutate(
+    "Modules.lua",
+    "return (MODULE_PAGE_ORDER[a] or 50) < (MODULE_PAGE_ORDER[b] or 50)",
+    "return false",
+    "menu-overhaul: the modules' pages fall in whatever order they load",
+    expect="module pages are outside the Optional modules group",
+    script="runscenarios.py",
+)

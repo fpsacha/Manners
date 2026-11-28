@@ -44,6 +44,11 @@ local PLACEHOLDER = "Interface\\Icons\\INV_Misc_Bag_08"
 local ROUND_MASK = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask"
 
 local button, icon, header, socket, mask
+-- The item's name under the button, and the plate over it while it is moved.
+local caption, plate
+-- Moving from My own buffs: shown, holding nothing, dragged by any press.
+local moving = false
+local DEFAULT_SPOT = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300 }
 -- The entry the macro is armed for, and the macro itself, written only when
 -- it changes.
 local current, armedMacro
@@ -180,9 +185,13 @@ local function OnEnter(self)
 	local tip = _G.GameTooltip
 	if not tip then return end
 	tip:SetOwner(self, "ANCHOR_TOP")
-	if current then
+	if current and not moving then
+		tip:AddLine(L["Manners: consumables"], 1, 0.82, 0)
 		tip:AddLine(ns.BuffName(current.buff) or "", 1, 1, 1)
 		tip:AddLine(L["Left-click to use it, right-click to skip it for now."], 0.75, 0.75, 0.75, true)
+	elseif moving then
+		tip:AddLine(L["Manners: consumables"], 1, 1, 1)
+		tip:AddLine(L["Drag it to move it."], 0.75, 0.75, 0.75, true)
 	else
 		tip:AddLine(L["Manners: consumables"], 1, 1, 1)
 		tip:AddLine(L["Drag to move it. Lock the prompt to use it."], 0.75, 0.75, 0.75, true)
@@ -235,8 +244,51 @@ function Supplies:Create()
 	button:HookScript("OnClick", OnClick)
 	button:SetScript("OnDragStart", function(self)
 		local db = Profile()
-		if db and not db.prompt.locked and not InCombatLockdown() then self:StartMoving() end
+		if db and (moving or not db.prompt.locked) and not InCombatLockdown() then self:StartMoving() end
 	end)
+	-- What it is, under it, so a lone square on the screen reads as Manners'.
+	caption = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	caption:SetPoint("TOP", button, "BOTTOM", 0, -2)
+	caption:SetWidth(140)
+	caption:SetWordWrap(false)
+	button.caption = caption
+	-- The plate over it while it is moved from My own buffs: what it is, how to
+	-- move it, and the two ways out, as the combat prompt's mover has.
+	plate = CreateFrame("Frame", "MannersSuppliesMover", button)
+	plate:SetPoint("BOTTOM", button, "TOP", 0, 6)
+	plate:SetSize(260, 50)
+	plate:SetFrameStrata("DIALOG")
+	local back = plate:CreateTexture(nil, "BACKGROUND")
+	back:SetAllPoints()
+	back:SetColorTexture(0.05, 0.04, 0.03, 0.92)
+	local rim = plate:CreateTexture(nil, "BORDER")
+	rim:SetPoint("TOPLEFT", plate, "TOPLEFT", 0, 0)
+	rim:SetPoint("TOPRIGHT", plate, "TOPRIGHT", 0, 0)
+	rim:SetHeight(2)
+	rim:SetColorTexture(1, 0.82, 0, 0.9)
+	local title = plate:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	title:SetPoint("TOPLEFT", plate, "TOPLEFT", 10, -8)
+	title:SetText(L["Manners: consumables"])
+	local how = plate:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	how:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+	how:SetText(L["Drag it to move it."])
+	local done = CreateFrame("Button", nil, plate, "UIPanelButtonTemplate")
+	done:SetSize(60, 22)
+	done:SetPoint("RIGHT", plate, "RIGHT", -8, 0)
+	done:SetText(L["Done"])
+	done:SetScript("OnClick", function() ns.Guard("consumables button", Supplies.Move, Supplies, false) end)
+	local reset = CreateFrame("Button", nil, plate, "UIPanelButtonTemplate")
+	reset:SetSize(60, 22)
+	reset:SetPoint("RIGHT", done, "LEFT", -6, 0)
+	reset:SetText(L["Reset"])
+	reset:SetScript("OnClick", function() ns.Guard("consumables button", Supplies.ResetSpot, Supplies) end)
+	plate.done, plate.reset = done, reset
+	plate:Hide()
+	button.plate = plate
+	-- The pull ends a move (the driver hides the button itself).
+	local watch = CreateFrame("Frame")
+	watch:RegisterEvent("PLAYER_REGEN_DISABLED")
+	watch:SetScript("OnEvent", function() Supplies:Pull() end)
 	button:SetScript("OnDragStop", function(self)
 		self:StopMovingOrSizing()
 		SavePosition()
@@ -276,10 +328,13 @@ function Supplies:Refresh(now)
 	Place(db)
 	-- Before the unlocked branch: the drag placeholder wears the look too.
 	Wear(db)
-	-- Unlocked: shown, holding nothing, to be dragged where it goes.
-	if not db.prompt.locked then
+	plate:SetShown(moving)
+	-- Unlocked, or moved from My own buffs: shown, holding nothing, to be dragged
+	-- where it goes.
+	if moving or not db.prompt.locked then
 		Disarm()
 		icon:SetTexture(PLACEHOLDER)
+		caption:SetText(L["Manners: consumables"])
 		button:Show()
 		return
 	end
@@ -292,6 +347,7 @@ function Supplies:Refresh(now)
 	end
 	Arm(entry)
 	icon:SetTexture(lib.EntryIcon(entry))
+	caption:SetText(ns.BuffName(entry.buff) or "")
 	button:Show()
 end
 
@@ -302,9 +358,38 @@ function Supplies:Wanted()
 end
 
 function Supplies:Suspend()
+	moving = false
 	if not button then return end
+	if plate then plate:Hide() end
 	Disarm()
 	button:Hide()
+end
+
+-- Shown and dragged from My own buffs (Show and move the consumables button),
+-- or put back. Out of a fight only; the pull ends it.
+function Supplies:Move(on)
+	if InCombatLockdown() then return end
+	moving = on == true
+	if moving and not button then self:Create() end
+	self:Refresh()
+	if ns.RefreshOptionsDisplay then ns.Guard("options repaint", ns.RefreshOptionsDisplay) end
+end
+
+function Supplies:Moving() return moving end
+
+-- Back where it starts, under the prompt's left.
+function Supplies:ResetSpot()
+	local db = Profile()
+	if not db or InCombatLockdown() then return end
+	for k, v in pairs(DEFAULT_SPOT) do db.supplies[k] = v end
+	placedKey = nil
+	self:Refresh()
+end
+
+-- A fight ends the move: the driver hides the button, and nothing is armed.
+function Supplies:Pull()
+	moving = false
+	if plate then plate:Hide() end
 end
 
 -- For tests and /manners selftest.

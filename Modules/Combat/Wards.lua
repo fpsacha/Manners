@@ -74,6 +74,13 @@ function Wards.Known(row)
 	return row and row.id ~= nil and type(row.name) == "string" and row.name ~= ""
 end
 
+-- The icon for the options switch: the ward this character knows, fire first.
+function Wards.Icon()
+	if Wards.Known(ROWS.fire) then return ROWS.fire.icon end
+	if Wards.Known(ROWS.frost) then return ROWS.frost.icon end
+	return nil
+end
+
 function Wards.Knows()
 	if ROWS.fire.id == nil and ROWS.frost.id == nil then Wards.Learn() end
 	return Wards.Known(ROWS.fire) or Wards.Known(ROWS.frost)

@@ -456,17 +456,24 @@ end
 
 local subbar = { chips = {} }
 UI.subbar = subbar
--- A chip's height and padding, the gaps between chips and rows, and the
--- bar's margin: its first chip in line with the page's own left edge.
-local CHIP_H, CHIP_PAD, CHIP_GAP, ROW_GAP, BAR_PAD, BAR_LEFT = 20, 10, 6, 2, 4, 18
+-- A tab's height and padding, the gaps between tabs and rows, and the bar's
+-- margins: its first tab in line with the page's own left edge, the tabs
+-- standing on the bar's bottom rule.
+local CHIP_H, CHIP_PAD, CHIP_GAP, ROW_GAP, BAR_PAD, BAR_LEFT = 24, 10, 2, 4, 7, 18
 local WHITE = { 1, 1, 1 }
+-- A tab at rest: a raised dark face in a bronze edge. The one in view: the
+-- page's own colour, a gold edge on top, and no edge under it, so it reads as
+-- the front of the page below.
+local TAB_TOP, TAB_BOTTOM = { 0.16, 0.15, 0.17 }, { 0.09, 0.09, 0.105 }
+local TAB_EDGE, TAB_EDGE_ON = { 0.36, 0.30, 0.20 }, { 0.62, 0.50, 0.26 }
+local TAB_HOVER = { 1, 1, 1, 0.07 }
 
 function UI.BuildSubBar(f)
 	local bar = CreateFrame("Frame", nil, f)
 	bar:SetHeight(1)
 	local band = UI.Solid(bar, "BACKGROUND", C.side)
 	band:SetAllPoints()
-	local rule = UI.Solid(bar, "BORDER", C.line)
+	local rule = UI.Solid(bar, "BORDER", TAB_EDGE)
 	rule:SetPoint("BOTTOMLEFT")
 	rule:SetPoint("BOTTOMRIGHT")
 	rule:SetHeight(1)
@@ -478,28 +485,72 @@ function UI.BuildSubBar(f)
 	subbar.height = 0
 end
 
--- A chip, made the first time the bar needs one more. `key` nil is All.
+local function Edge(b, layer)
+	local t = b:CreateTexture(nil, layer or "BORDER")
+	t:SetTexture("Interface\\Buttons\\WHITE8X8")
+	return t
+end
+
+-- The page's own colour (the content area's), for the tab in view.
+local PAGE = C.content or { 0.051, 0.051, 0.067 }
+
+-- A tab's face, darker at the foot; flat in the top colour where the client
+-- refuses SetGradient's form (as W.Gradient does).
+local function Face(t, bottom, top)
+	t:SetVertexColor(1, 1, 1, 1)
+	if t.SetGradient and CreateColor and pcall(t.SetGradient, t, "VERTICAL",
+		CreateColor(bottom[1], bottom[2], bottom[3], 1), CreateColor(top[1], top[2], top[3], 1)) then
+		return
+	end
+	t:SetVertexColor(top[1], top[2], top[3], 1)
+end
+
+local function TabLook(b)
+	local on, hover = b.on, b.hovered
+	local edge = on and TAB_EDGE_ON or TAB_EDGE
+	for _, t in ipairs({ b.left, b.right }) do t:SetVertexColor(edge[1], edge[2], edge[3], 1) end
+	b.top:SetVertexColor(edge[1], edge[2], edge[3], 1)
+	b.mark:SetShown(on)
+	Face(b.face, on and PAGE or TAB_BOTTOM, on and PAGE or TAB_TOP)
+	b.hover:SetShown(hover and not on)
+	local c = on and C.gold or (hover and WHITE or C.nav)
+	b.label:SetTextColor(c[1], c[2], c[3], 1)
+end
+
+-- A tab, made the first time the bar needs one more. `key` nil is All.
 local function Chip(i)
 	local b = CreateFrame("Button", nil, subbar.frame)
 	b:SetHeight(CHIP_H)
-	b.hover = UI.Solid(b, "BACKGROUND", C.hover)
+	b.face = b:CreateTexture(nil, "BACKGROUND")
+	b.face:SetTexture("Interface\\Buttons\\WHITE8X8")
+	b.face:SetVertexColor(TAB_TOP[1], TAB_TOP[2], TAB_TOP[3], 1)
+	b.face:SetAllPoints()
+	b.hover = UI.Solid(b, "ARTWORK", TAB_HOVER)
 	b.hover:SetAllPoints()
 	b.hover:Hide()
-	b.selected = UI.Solid(b, "BACKGROUND", C.select, 1)
-	b.selected:SetAllPoints()
-	-- The one in view: a gold line under it, as the open page's gold bar.
-	b.mark = UI.Solid(b, "ARTWORK", C.gold)
-	b.mark:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
-	b.mark:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+	b.top, b.left, b.right = Edge(b), Edge(b), Edge(b)
+	b.top:SetPoint("TOPLEFT")
+	b.top:SetPoint("TOPRIGHT")
+	b.top:SetHeight(1)
+	-- The one in view: a gold line along its top, as the open page's gold bar.
+	b.mark = UI.Solid(b, "OVERLAY", C.gold)
+	b.mark:SetPoint("TOPLEFT")
+	b.mark:SetPoint("TOPRIGHT")
 	b.mark:SetHeight(2)
-	b.label = UI.Text(b, GameFontHighlightSmall, C.nav)
+	b.left:SetPoint("TOPLEFT")
+	b.left:SetPoint("BOTTOMLEFT")
+	b.left:SetWidth(1)
+	b.right:SetPoint("TOPRIGHT")
+	b.right:SetPoint("BOTTOMRIGHT")
+	b.right:SetWidth(1)
+	b.label = UI.Text(b, GameFontHighlight, C.nav)
 	b.label:SetPoint("CENTER", b, "CENTER", 0, 0)
 	b.label:SetWordWrap(false)
 	b.dot = UI.Dot(b, C.dot)
-	b.dot:SetPoint("CENTER", b, "TOPRIGHT", -3, -4)
+	b.dot:SetPoint("CENTER", b, "TOPRIGHT", -4, -5)
 	b:SetScript("OnClick", UI.Guarded(function(self) UI.ShowSub(self.page, self.key) end))
-	b:SetScript("OnEnter", function(self) self.hover:Show() end)
-	b:SetScript("OnLeave", function(self) self.hover:Hide() end)
+	b:SetScript("OnEnter", function(self) self.hovered = true TabLook(self) end)
+	b:SetScript("OnLeave", function(self) self.hovered = false TabLook(self) end)
 	subbar.chips[i] = b
 	return b
 end
@@ -540,12 +591,13 @@ end
 -- One chip at x, y: its label, marked when it is in view. Answers its width.
 local function PaintChip(b, label, selected, warned, x, y)
 	b.label:SetText(label)
-	local c = selected and WHITE or C.nav
-	b.label:SetTextColor(c[1], c[2], c[3], 1)
-	local w = math.ceil(UI.TextWidth(b.label, 10)) + 2 * CHIP_PAD
+	b.on = selected
+	local w = math.ceil(UI.TextWidth(b.label, 12)) + 2 * CHIP_PAD
 	b:SetWidth(w)
-	b.selected:SetShown(selected)
-	b.mark:SetShown(selected)
+	-- The tab in view reaches one pixel down, over the bar's rule.
+	b:SetHeight(selected and CHIP_H + 1 or CHIP_H)
+	b:SetFrameLevel(subbar.frame:GetFrameLevel() + (selected and 3 or 2))
+	TabLook(b)
 	b.dot:SetShown(warned)
 	b:ClearAllPoints()
 	b:SetPoint("TOPLEFT", subbar.frame, "TOPLEFT", x, -y)
@@ -582,7 +634,7 @@ function UI.PaintSubBar(top)
 		for _, sub in ipairs(subs) do
 			Add(sub.key, UI.Plain(UI.SubLabel(sub)), current == sub, warned[sub] == true)
 		end
-		height = y + CHIP_H + BAR_PAD + 1
+		height = y + CHIP_H + 1
 		bar:ClearAllPoints()
 		bar:SetPoint("TOPLEFT", UI.frame, "TOPLEFT", UI.SIDEBAR + 1, -top)
 		bar:SetPoint("TOPRIGHT", UI.frame, "TOPRIGHT", -12, -top)
@@ -705,6 +757,13 @@ local function PaintPageButton(b, page, y, compact)
 	local icon = page.icon
 	if type(icon) == "function" then icon = icon() end
 	b.icon:SetTexture(icon or UI.ICON)
+	-- A game icon has a border of its own baked in: cropped, as the game's
+	-- own buttons crop it. The addon's own art fills its square.
+	if type(icon) == "string" and icon:find("^Interface\\Icons\\") then
+		b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	else
+		b.icon:SetTexCoord(0, 1, 0, 1)
+	end
 	b.name:SetText(page.title or b.id)
 	local selected = b.id == UI.page
 	b.selected:SetShown(selected)
@@ -822,7 +881,9 @@ end
 -- nothing per frame.
 function UI.FitSidebar(top)
 	local side = UI.side
-	local room = UI.HEIGHT - UI.FOOTER - top
+	-- A few pixels kept free: a font that draws a little taller than it
+	-- measures must not push the last page under the footer.
+	local room = UI.HEIGHT - UI.FOOTER - top - 8
 	if side.bottom and side.bottom > room then
 		side.bottom = LaySidebar(side, UI.Layout(), true) - 1
 	end

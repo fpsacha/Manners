@@ -772,3 +772,26 @@ do
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
+
+-- ------------------------------------------------------------------ the shadow's seam
+-- A look with a shadow round it (Outline) has the shadow taken off each end's
+-- inner edge; the middle must cover that band at every size, or the shadow
+-- shows a gap there (and a doubled one where it covers more than it was cut).
+withTree("painted: a shadowed look's middle covers the band cut from each end, at every size", function(ns, scenario)
+	local _, p, look = upIn(ns, scenario, "outline")
+	local art = look and look.paintedArt
+	local d = ns.PaintedData.outline
+	if not (art and d and d.seam) then fail(scenario, "Outline has no painted frame or no seam") return end
+	for _, size in ipairs({ { 220, 44 }, { 320, 58 }, { 500, 120 } }) do
+		p.width, p.height = size[1], size[2]
+		ns.ClampSettings()
+		restyle(ns)
+		local L, M, R = box(art.pieces[1]), box(art.pieces[2]), box(art.pieces[3])
+		local band = d.seam * art.g.unit
+		if not (L and M and R) then fail(scenario, "a piece is not placed") return end
+		if L.x1 - M.x0 < band - 0.05 or M.x1 - R.x0 < band - 0.05 then
+			fail(scenario, ("%dx%d: the middle covers %.2f and %.2f of a %.2f band"):format(size[1], size[2],
+				L.x1 - M.x0, M.x1 - R.x0, band))
+		end
+	end
+end)

@@ -31,6 +31,7 @@ local function with(scenario, body)
 		if not ns then return end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		body(ns)
 		for _, e in ipairs(ns.errors or {}) do
 			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))

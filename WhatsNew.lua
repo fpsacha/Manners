@@ -5,6 +5,30 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "1.13.0", date = "27 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Combat prompt|r (Manners: Combat).",
+			"|cffffd100The Combat page.|r Everything for a fight on one page under |cffffffffOptional modules|r: how many actions are on, |cffffffffTurn all on|r / |cffffffffTurn all off|r, the actions grouped by kind (each with its spell's icon), the round of the fight, Will of the...",
+			"|cffffd100More defensives found for every class|r : Shield Wall, Mana Shield, Feign Death, Vanish, Barkskin, Power Word: Shield, Pain Suppression and Blessing of Protection, each listed once.",
+			"|cffffd100My companion|r (Manners: Pets, any class with a pet journal).",
+			"|cffffd100Achievements|r on a page of their own, drawn as a board: your rank and points, what you earned lately, tabs by kind, by progress and by order, and a card for each achievement that says what to do, which goal it works toward (*Goal 2...",
+		} },
+		{ title = "Changes", accent = "7cc4ff", entries = {
+			"|cff7cc4ffWhere the combat cards sit|r (Combat, Look and alerts): |cffffffffA row|r that grows right, left, up or down from your spot, or |cffffffffOne spot|r where every card shows in the same place, the most urgent on top.",
+			"|cff7cc4ffLonger skips for your own buffs.|r |cffffffffAfter a right-click on my own buff, offer 15, 30, 45 or 60 minutes|r (Who to skip, off) puts four small buttons under the prompt after a right-click on your own buff (#69).",
+			"|cff7cc4ffConsumables button|r is bigger (48), shows the item's name under it, and has |cffffffffShow and move the consumables button|r on My own buffs: a named bar, |cffffffffReset|r and |cffffffffDone|r, dragged with the prompt locked.",
+			"|cff7cc4ffAsk waits half a minute.|r Nobody is offered as an ask until they have stayed within reach thirty seconds, so a group that just met is not asked at once.",
+			"|cff7cc4ffYour own buff is not held into a fight.|r The prompt no longer stays on you all fight as |cffffffffheld -- in combat|r; with nobody else to offer it goes before the fight.",
+			"|cff7cc4ffOutline look|r repainted: a flat bar with a hard black edge and a soft shadow, a square socket for the icon, and no seam where its pieces meet.",
+			"|cff7cc4ffOptions window.|r The page's sections are real tabs; the optional modules come first under |cffffffffChoose modules|r, each page with the game's own icon; a switch that names a spell shows that spell's icon.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Ask people for a buff I'm missing|r with Proximity on |cffffffffAnywhere I can cast|r asks people in sight again (#68).",
+			"|cffff9a52Cozy Sleeping Bag|r on Classic Era goes down at your feet in one press; a second press never placed it (#70).",
+			"|cffff9a52Combat actions on yourself|r (Shield Block, Ice Block, Evasion and the like) on WoW Forever get their macro.",
+			"|cffff9a52Combat prompt clicks.|r The game does not let an addon change which button is on top in a fight, so the cards are never stacked: the needed one always takes the click.",
+		} },
+	} },
 	{ version = "1.12.6", date = "27 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Battle Shout recipients.|r Off by default, warriors can limit Battle Shout reminders to tanks and reliably identified melee players, with a separate choice to show them only in combat inside dungeons and raids.",
@@ -49,40 +73,6 @@ ns.WhatsNew = {
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Optional-module bindings.|r Manners: My Buffs and Manners: Combat no longer load their Bindings.xml twice, which caused WoW Forever to report Unrecognized XML: Binding when a module was enabled.",
 			"|cffff9a52Module reload feedback.|r The Optional modules page now puts |cffffffffReload now|r before the module list, so a switch change immediately shows what must be pressed to apply it.",
-		} },
-	} },
-	{ version = "1.12.3", date = "26 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Optional modules.|r Combat, Achievements, Pets, My Buffs and Services now live in separate addons in the same download.",
-			"|cffffd100A clearer options window.|r Pages are grouped as Buffing, Speech, Prompt, Optional modules and Support, with task-sized subpages and a dedicated Optional modules page.",
-			"|cffffd100A second blessing from a second paladin.|r |cffffffffBlessing to ask a paladin for|r keeps the 1.12.2 choice, and Automatic can ask another reachable paladin for a different missing blessing.",
-		} },
-		{ title = "Changes", accent = "7cc4ff", entries = {
-			"|cff7cc4ffModule controls.|r Optional modules keep their saved settings when switched off.",
-			"|cff7cc4ffManners: Combat.|r Cure logic, cure settings, Will of the Forsaken, in-fight cures and Mend Pet now belong to one optional module.",
-			"|cff7cc4ffManners: My Buffs.|r Your own class buffs, weapon enhancements, food, flasks, elixirs, scrolls, tracking, companion pets and custom own spells now live on the optional My own buffs module page.",
-			"|cff7cc4ffManners: Pets.|r Hunter care has its own optional addon and My pet page.",
-			"|cff7cc4ffManners: Achievements.|r The ledger can gain an optional Achievements tab with Gratitude, Generosity, Fellowship and Courtesy goals at bronze, silver and gold.",
-			"|cff7cc4ffManners: Services.|r Mage water and food trades, named portals and Slow Fall; priest Levitate; shaman Water Walking; warlock healthstones or Soulwell, summons, Soulstone preparation and an imp's Fire Shield are each controlled separately.",
-			"|cff7cc4ffService requests.|r Each service can choose group chat, whispers and/or your visible target; hold or ignore a request made in combat; restrict itself to outside instances; and use explicit names or the short, familiar aliases.",
-			"|cff7cc4ffWater and food for a target.|r A mage can offer level-appropriate refreshments to a friendly target, conjuring missing stacks first and then filling the trade window or putting in one stack, as chosen.",
-			"|cff7cc4ffSafer decisions.|r Buffs, cures, own buffs/items and Services share one secret-safe decision path that checks the target, class, client, learned rank, level, weapon, item usability, bags, reagents, aura, range, cooldown, combat, instance...",
-			"|cff7cc4ffDecision diagnostics.|r /manners debug keeps the last twenty rejected decisions, with the reason and cache age, while secret or withheld values stay unreadable and out of the log.",
-			"|cff7cc4ffExact consumables.|r Own-item checks now use the active client's own item data and usability answers.",
-			"|cff7cc4ffSimple view and module switches.|r The Optional modules controls and their explanations remain visible in Simple view, even when the module's detailed pages are absent.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Unknown buff casters.|r Manners can receive a caster claim from another Manners user and, only with one possible caster in sight, safely name that player.",
-			"|cffff9a52Ambiguous casters.|r Two possible casters, a conflicting claim, an ignored caster, a withheld class or level, or a dead/disconnected player names nobody instead of guessing who gave the buff.",
-			"|cffff9a52Paladin cures.|r Poison and disease cures on WoW Forever now have the visible, secure in-fight path and prefer Purify when Cleanse would remove a never-removed debuff.",
-			"|cffff9a52Distant buff requests.|r A group paladin or other buff-giver far away, or one whose range cannot be confirmed, no longer appears on the ask prompt.",
-			"|cffff9a52Death and resurrection cover.|r A party member who dies while you are dead is offered the missing buff again after both of you return, even with |cffffffffGroup members just revived first|r off.",
-			"|cffff9a52Protected cast events.|r A successful cast that arrives without a cast identifier no longer raises a table-index error or sends a duplicate claim.",
-			"|cffff9a52Private bug reports.|r A fight-time report now scrubs a group member's name, full name, surname/realm and the link's words consistently.",
-			"|cffff9a52Module state after reload.|r Enabling or disabling an optional module keeps the saved profile values, removes stale work when off and does not activate an unloaded module before Reload UI.",
-			"|cffff9a52Cross-client Services.|r Fire Shield and every other Service are absent on clients that do not prove the spell and data, rather than leaving a dead control or queue entry.",
-			"|cffff9a52Options layout.|r Wide windows keep their columns aligned, long sections stay within the usual window's three-screen limit and the Paladin and module controls stay reachable without hiding the buff-order list.",
-			"|cffff9a52In character for every class.|r A hunter or another class with nothing to buff others with can still choose the In character thank-you set from Start here; the choice does not change the lines used when casting buffs.",
 		} },
 	} },
 }

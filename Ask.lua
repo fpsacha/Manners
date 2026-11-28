@@ -40,6 +40,10 @@ Ask.PERSON_SECONDS = 600
 Ask.REST_SECONDS = 120
 -- A buff that lasts less than this is not worth a line to anybody.
 Ask.SHORT_SECONDS = 300
+-- Somebody is asked only once they have stayed within reach this long: a
+-- group that just met, or somebody walking past, is not asked the moment they
+-- come near (asked for on Discord after a dungeon group was whispered on arrival).
+Ask.ARRIVE_SECONDS = 30
 -- How long a reading of your own auras stands, so a scan with somebody to ask
 -- beside you does not read them all again 2.5 times a second.
 Ask.READ_SECONDS = 1
@@ -542,6 +546,10 @@ Ask.probe = {}
 -- Whether this unit is somebody to ask, and for what: the entry, or nil.
 -- `grouped` for a member of your party or raid; anybody else has to be near
 -- (Range.lua, as a passer-by is measured), unless they are your target.
+-- When each person was first found within reach, kept while they stay there
+-- scan after scan; whoever a scan does not find there starts again.
+local nearSince, nearNow = {}, {}
+
 local function Consider(unit, grouped, pointed, taken, db, now)
 	if plain(UnitExists(unit)) ~= true then return nil end
 	if plain(UnitIsUnit(unit, "player")) ~= false then return nil end
@@ -583,9 +591,22 @@ local function Consider(unit, grouped, pointed, taken, db, now)
 		if type(reach) ~= "function" then return nil end
 		local near, checked = reach(unit)
 		if plain(checked) ~= true or plain(near) ~= true then return nil end
-	elseif ns.NearEnough(unit, true) ~= true then
-		return nil
+	else
+		-- Nearness measured, it must say near. With Anywhere I can cast nothing
+		-- is measured (NearEnough says nil for everybody): somebody in sight,
+		-- on a nameplate or your target, is within reach of a line, as of a buff.
+		local near = ns.NearEnough(unit, true)
+		if near == nil and not ns.ProximityMeasured() then
+			local visible = _G.UnitIsVisible
+			near = type(visible) == "function" and plain(visible(unit)) == true
+		end
+		if near ~= true then return nil end
 	end
+
+	-- Arrived, and stayed: within reach for Ask.ARRIVE_SECONDS first.
+	local since = nearSince[full] or now
+	nearNow[full] = since
+	if now - since < Ask.ARRIVE_SECONDS then return nil end
 
 	local level = plain(UnitLevel(unit))
 	if type(level) ~= "number" or level < 1 then level = nil end
@@ -635,6 +656,7 @@ function Ask.Find(queue, db, now)
 	for _, entry in ipairs(queue) do
 		if entry.name then taken[entry.name] = true end
 	end
+	wipe(nearNow)
 
 	local first
 	-- True once the walk can stop: the one asked last scan, or with none to
@@ -670,6 +692,8 @@ function Ask.Find(queue, db, now)
 		end
 	end
 	Ask.lastName = first and first.name or nil
+	-- Whoever this scan found within reach keeps their time; the rest start again.
+	nearSince, nearNow = nearNow, nearSince
 	return first
 end
 

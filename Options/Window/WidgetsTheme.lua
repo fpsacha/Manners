@@ -291,6 +291,17 @@ local function Restyle()
 	if ns.Prompt and not InCombatLockdown() then ns.Prompt:ApplyStyle() end
 end
 
+-- A control that tries a look on something other than the prompt (the combat
+-- prompt's gallery) says how in WindowLayout.trials[its path], a function of
+-- the key (nil ends the trial). Not on the option itself: AceConfig refuses
+-- a key it does not know, and the fallback dialog would not open.
+local function OwnTry(card)
+	local item = card.row and card.row.item
+	local trials = ns.WindowLayout and ns.WindowLayout.trials
+	local fn = item and type(trials) == "table" and trials[item.path]
+	return type(fn) == "function" and { tryLook = fn } or nil
+end
+
 -- The chosen look back on the prompt (`redraw`: drawn now; a click about to
 -- choose another, or the game logging out, need not).
 local function EndTrial(redraw)
@@ -298,6 +309,10 @@ local function EndTrial(redraw)
 	if not t then return end
 	trial = nil
 	t.card.trying = false
+	if t.own then
+		t.own.tryLook(nil)
+		return
+	end
 	-- The table the look was tried on, which a profile switch since may have left.
 	local p = t.p
 	if p and p.style == t.key then p.style = t.was end
@@ -312,6 +327,15 @@ local function TrialEvent(_, event)
 end
 
 local function Try(card)
+	local own = OwnTry(card)
+	if own then
+		if not card.key or InCombatLockdown() or W.Off(card.row) then return end
+		EndTrial(false)
+		trial = { key = card.key, card = card, own = own }
+		card.trying = true
+		own.tryLook(card.key)
+		return
+	end
 	local p = PromptSettings()
 	if not (p and card.key) or InCombatLockdown() or W.Off(card.row) then return end
 	local had = trial ~= nil

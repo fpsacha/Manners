@@ -64,12 +64,16 @@ function, switch and test named. Change both together.
   the pull (`PLAYER_REGEN_DISABLED`, before the lockdown), never under it:
   the fight's rota (`Prompt/Fight.lua`: the header steps the button once round
   the queue the fight began with, then casts nothing; never armed from a
-  passer-by offered from memory alone).   The break-free, Mend Pet, cure and reactive ward buttons have
+  passer-by offered from memory alone).     The break-free, Mend Pet, cure, reactive ward and detected combat-action buttons have
   their own state drivers and sit at alpha 0; in a fight Lua paints only their
   regions and alpha. Reactive wards use only a plain `UNIT_COMBAT` player
   `DAMAGE` read with a single fire or frost school mask, then reveal a ward
-  still known, usable with enough mana and ready off cooldown; clients that
-  make combat values secret offer no ward button. Nothing Manners chooses may keep break-free from showing
+  still known, usable with enough mana and ready off cooldown;   clients that
+  make combat values secret offer no ward button. Detected class actions are
+  individually off and armed before the pull, but only one combat prompt is
+  visible: its own look, size and alert can be picked in In a fight, and the
+  whole panel clicks. Interrupts take one click on a detected cast; other
+  secret-only needs keep their guarded path. Nothing Manners chooses may keep break-free from showing
   and being pressed when needed; the cure button is the other way round,
   nothing of it on screen for nothing. Never hide the prompt by any route that
   leaves it, a row or the bar macro able to cast: a hidden secure button still

@@ -8,31 +8,30 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*27 November 2026. Last release: 1.12.5, published to GitHub, CurseForge and
-Wago and installed in WoW Forever. ZIP SHA-256:
-`62BFE39B96AC86F759551ED2F8EB0F315FF89C3CE4EB1E92C45AD9FEFE9B7725`.*
+*27 November 2026. Last release: 1.12.6. 1.13.0 is ready on master, not yet
+released (the owner runs `python tools/release.py 1.13.0`).*
 
-- **In flight:** 1.12.6's game-context pass is on `context-pass-1126`: secret
-  meal reads, failed Service placement, stale request supersession, cast
-  identity, ward usability, profile/module migration and the #65 Battle Shout
-  controls. It is ready to merge after the final changed-mutation pass.
-- **Validated:** the focused scenarios and mutations, all five-client Battle
-  Shout cases, the full Forever adversarial suite, the 140-step flavour gate's
-  client files, and `check.py --lint --anchors --quick` pass. 1.12.5 remains
-  released with #33, #59, #60, #62, #63 and #64 closed.
-- **Nightly 28 November:** 1.12.6 is released. `feedback-20261128` adds
-  *Sleeping bag before food and elixirs* (`ownBuffs.restedFirst`, off; Lucitha
-  on CurseForge; `tests/scenarios/restedfirst.lua`). #68 is fixed on
-  `feature-combat-all` (28c03e27); #69 and #70 are built there too.
-- **Waiting on the owner:** nothing.
-- **Waiting on players:** #21 still needs the player's client and log. #65 is
-  fixed in the next branch, with unknown hybrid roles excluded rather than
-  guessed on clients that cannot identify their specialisation.
-- **Next:** merge `context-pass-1126`, run changed mutations, then prepare 1.12.6.
-- **Watch out:** all optional folders now start enabled. 1.12.5's one-time
-  login chooser lets players turn individual modules off; existing saved-off
-  choices remain off. Reactive wards are Classic Era/TBC only because Forever
-  withholds the in-fight values they need.
+- **In 1.13.0:** the combat prompt (each action its own place above the buff
+  prompt: the client refuses SetFrameLevel on protected frames in a fight since
+  11.1.7), My companion moments, the Achievements board, the consumables mover,
+  longer own-buff skips (#69), Ask's 30 s arrival wait, own buffs not held into
+  a fight, Outline repainted through Gemini, sidebar/tabs/spell icons, #68 and
+  #70 (Classic Era) fixes. Changelog written.
+- **Nightly 28 November** (`feedback-20261128`, in 1.13.0): *Sleeping bag
+  before food and elixirs* (`ownBuffs.restedFirst`, off; Lucitha on CurseForge;
+  `tests/scenarios/restedfirst.lua`). #71 opened (Blessing of Freedom).
+- **Validated:** focused scenarios and mutations for every change, combat
+  actions on all five clients, the 104 pull-touching files, quick check green.
+  The full suite runs inside release.py.
+- **Waiting on the owner:** the release; posting the drafted CurseForge and
+  Discord replies (psardoin, ZachrielCl, xh43k, Dr Kief; #67/#68).
+- **Waiting on players:** #70 (which client, for Forever's placement circle),
+  #21 (client and log).
+- **Next:** release 1.13.0; close #67, #68, #69 with "Fixed in v1.13.0"; ask
+  before deleting the ~30 stale worktrees.
+- **Watch out:** an invisible combat card (a hidden-health need on Forever) is
+  clickable in its own place; same-named companions can catch the emote; the
+  new translations are not reviewed by native speakers.
 
 ## State
 

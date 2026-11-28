@@ -17,10 +17,10 @@ local moduleWelcomeToken
 
 local KNOWN = {
 	{ id = "combat", title = "Manners: Combat" },
-	{ id = "achievements", title = "Manners: Achievements" },
-	{ id = "pets", title = "Manners: Pets" },
 	{ id = "mybuffs", title = "Manners: My Buffs" },
 	{ id = "services", title = "Manners: Services" },
+	{ id = "pets", title = "Manners: Pets" },
+	{ id = "achievements", title = "Manners: Achievements" },
 }
 
 _G.MannersAPI = api
@@ -51,6 +51,12 @@ end
 
 function api:RefreshPrompt()
 	if ns.Prompt then return ns.Guard("module prompt refresh", ns.Prompt.Refresh, ns.Prompt) end
+end
+
+function api:OpenLedger(tab)
+	if not ns.Ledger or type(ns.Ledger.Show) ~= "function" then return false end
+	ns.Guard("module ledger", ns.Ledger.Show, tab)
+	return true
 end
 
 -- `callback` is a function. `owner` is the module table it should receive as
@@ -111,7 +117,7 @@ end
 
 local COMBAT_KEYS = {
 	L = true, Prompt = true, Flavour = true, caps = true,
-	plain = true, safecall = true, Guard = true, Trail = true, db = true,
+	plain = true, safecall = true, safecallok = true, Guard = true, Trail = true, db = true,
 	addon = true, pendingClick = true, ExpirePendingClick = true,
 	ProbeCapabilities = true, SpellKnown = true, SpellNameFor = true,
 	CastReady = true,
@@ -130,14 +136,25 @@ local COMBAT_KEYS = {
 	CureSuspend = true,
 	BreakFree = true, MendPet = true, CureFight = true, CureNeed = true,
 	CombatLayout = true, ReactiveWards = true,
+	CombatActions = true, Moments = true, Sense = true, MomentCard = true,
+	Looks = true, LOCALE = true, ReagentCount = true, ReagentName = true, defaults = true,
+	MOMENTS = true, MOMENT_KEYS = true, MOMENT_DEFAULTS = true, MOMENT_SETS = true,
+	CAST_SCHOOLS = true, CAST_SCHOOLS_BY_CLIENT = true, Setup = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	OptionsPage = true, WindowLayout = true,
+	-- The combat prompt's move: the settings put away while it is moved, and
+	-- opened again on its page after; repainted as the preview starts and ends.
+	RefreshOptionsDisplay = true, OpenOptions = true, CloseOptions = true,
+	OptionsOpen = true, OptionsTab = true,
 	ContextDecision = true, ContextTarget = true,
 	ModuleActive = true,
 }
 local COMBAT_WRITES = {
 	BreakFree = true, MendPet = true, CureFight = true, CureNeed = true,
 	CombatLayout = true, ReactiveWards = true,
+	CombatActions = true, Moments = true, Sense = true, MomentCard = true,
+	MOMENTS = true, MOMENT_KEYS = true, MOMENT_DEFAULTS = true, MOMENT_SETS = true,
+	CAST_SCHOOLS = true, CAST_SCHOOLS_BY_CLIENT = true, MomentLines = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	CureFightKnown = true, ProbeCapabilities = true,
 	ClassHasCures = true, CureLearned = true, CureInfo = true,
@@ -161,7 +178,7 @@ local PET_KEYS = {
 	CHANNEL_COMMANDS = true, MACRO_LIMIT = true, SyncMacroSlot = true,
 	lastMacro = true, CanCastAnything = true, LOCALE = true,
 	Battle = true, Beast = true, WindowLayout = true,
-	ModuleActive = true,
+	ModuleActive = true, BeastArm = true, BeastLines = true,
 }
 local PET_WRITES = {
 	Beast = true, BEAST_FOODS = true, BEAST_DIETS = true,
@@ -191,7 +208,7 @@ local MYBUFF_KEYS = {
 	OwnSpells = true, OwnSpellLines = true, Pet = true,
 	ModuleActive = true,
 	ReadPet = true, PetHold = true, PetFromJournal = true,
-	PetJournalOwned = true, Supplies = true,
+	PetJournalOwned = true, Supplies = true, RefreshOptionsDisplay = true,
 	ContextDecision = true, ContextTarget = true,
 }
 local MYBUFF_WRITES = {
@@ -215,14 +232,19 @@ local SERVICE_KEYS = {
 }
 local SERVICE_WRITES = { Courtesy = true }
 
-local ACHIEVEMENT_KEYS = { L = true, addon = true }
+-- The page draws its rows framed (WindowLayout's notes), repaints the window
+-- when a count moves, and names the spells given for Varied Gifts.
+local ACHIEVEMENT_KEYS = { L = true, addon = true, WindowLayout = true,
+	RefreshOptionsDisplay = true, SpellNameFor = true, Achievements = true, WindowWidgets = true }
+-- Its own reading of the list, for the tests and /manners debug.
+local ACHIEVEMENT_WRITES = { Achievements = true }
 
 local CONTEXTS = {
 	combat = { keys = COMBAT_KEYS, writes = COMBAT_WRITES, title = "Manners: Combat" },
 	pets = { keys = PET_KEYS, writes = PET_WRITES, title = "Manners: Pets" },
 	mybuffs = { keys = MYBUFF_KEYS, writes = MYBUFF_WRITES, title = "Manners: My Buffs" },
 	services = { keys = SERVICE_KEYS, writes = SERVICE_WRITES, title = "Manners: Services" },
-	achievements = { keys = ACHIEVEMENT_KEYS, writes = {}, title = "Manners: Achievements" },
+	achievements = { keys = ACHIEVEMENT_KEYS, writes = ACHIEVEMENT_WRITES, title = "Manners: Achievements" },
 }
 
 -- A module sees a narrow facade of the core, not its private namespace. The
@@ -247,6 +269,9 @@ function api:ModuleContext(id)
 	moduleContexts[id] = context
 	return context
 end
+
+-- Where each module's page sits in the sidebar's modules group.
+local MODULE_PAGE_ORDER = { modules = 0, combat = 1, self = 2, services = 3, pet = 4, achievements = 9 }
 
 -- One module page: `build` returns an AceConfig page table; `layout` is the
 -- Options/Window/Layout.lua page table. A module owns both, so the core never
@@ -286,6 +311,13 @@ function api:RegisterOptionsPage(id, build, layout, sidebarGroup)
 					groups[#groups + 1] = group
 				end
 				group[#group + 1] = id
+				-- The modules' pages keep one order whatever loads first: the
+				-- chooser, then what is used most, the achievements last.
+				if group == moduleGroup then
+					table.sort(group, function(a, b)
+						return (MODULE_PAGE_ORDER[a] or 50) < (MODULE_PAGE_ORDER[b] or 50)
+					end)
+				end
 			end
 		end
 		if event == "CoreReady" then
@@ -329,6 +361,7 @@ function api:InsertLayoutItems(page, afterPath, items)
 					table.insert(section.items, at, item)
 					at = at + 1
 				end
+				if ns.OptionsPage and ns.OptionsPage.ForgetPageMap then ns.OptionsPage.ForgetPageMap() end
 				return true
 			end
 		end
@@ -340,6 +373,13 @@ function api:AddLayoutSection(page, section)
 	local layout = ns.WindowLayout
 	local target = layout and layout.pages and layout.pages[page]
 	if type(target) ~= "table" or type(section) ~= "table" then return false end
+	for i, old in ipairs(target.sections or {}) do
+		if old.key == section.key then
+			target.sections[i] = section
+			if ns.OptionsPage and ns.OptionsPage.ForgetPageMap then ns.OptionsPage.ForgetPageMap() end
+			return true
+		end
+	end
 	target.sections[#target.sections + 1] = section
 	return true
 end

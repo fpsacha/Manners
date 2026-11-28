@@ -106,7 +106,7 @@ Page.RESET = {
 		"filters.skipMuted",
 		"filters.skipNearbyClasses",
 		-- How long a right-click skips (Who to skip > After a right-click).
-		"timing.skipSeconds", "timing.ownSkipMinutes",
+		"timing.skipSeconds", "timing.ownSkipMinutes", "timing.ownSkipChoices",
 		after = function() rescan() end,
 	},
 	when = {
@@ -301,7 +301,7 @@ Page.RESET.fight = {
 -- restyle covers the wording.
 Page.RESET.advanced = {
 	"sources.owedClassBuffsOnly", "timing.reciprocateWindow", "filters.reachableOnly",
-	"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.scanInterval",
+	"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.ownSkipChoices", "timing.scanInterval",
 	"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
 	"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
 	"prompt.reasonRefresh", "prompt.reasonUnknown",
@@ -327,7 +327,7 @@ end
 -- it change; a colour gets a fresh copy, so the profile never holds the
 -- defaults' own table for a picker to write into.
 local function ResetField(path)
-	local section, name = path:match("^(%w+)%.(%w+)$")
+	local section, name = path:match("^([^.]+)%.(.+)$")
 	local default = ns.defaults.profile[section][name]
 	local into = ns.db.profile[section]
 	local current = into[name]
@@ -544,6 +544,15 @@ function Page.BuildAdvancedTab()
 				max = 240,
 				step = 1,
 				bigStep = 5,
+				get = tGet,
+				set = tSet,
+			},
+			ownSkipChoices = {
+				type = "toggle",
+				name = L["After a right-click on my own buff, offer 15, 30, 45 or 60 minutes"],
+				desc = L["Four small buttons come up under the prompt for a few seconds after you right-click one of your own buffs: press one to leave that buff alone that long instead, while fishing or crafting for example. Off until you turn it on."],
+				order = 21.61,
+				width = "full",
 				get = tGet,
 				set = tSet,
 			},

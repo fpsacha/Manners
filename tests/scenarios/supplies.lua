@@ -322,3 +322,31 @@ do
 		end
 	end)
 end
+
+do
+	-- A small square on the screen must read as Manners' and be easy to move:
+	-- the item's name under it, a mover from My own buffs that shows it with a
+	-- named plate and lets any drag move it with the prompt locked, unarmed.
+	local scenario = "supplies: the button is named and moved from My own buffs"
+	fed(scenario, true, function(ns)
+		local b = button(ns)
+		if not b then fail(scenario, "SKIPPED -- no button") return end
+		if ns.defaults.profile.supplies.size < 48 then fail(scenario, "the button is still small by default") end
+		if (b.caption:GetText() or "") == "" then fail(scenario, "nothing under the button says what it is") end
+		ns.db.profile.prompt.locked = true
+		ns.Supplies:Move(true)
+		if not b.plate:IsShown() then fail(scenario, "moving it shows no plate naming it") end
+		if b:GetAttribute("macrotext1") ~= nil then fail(scenario, "the button is armed while it is moved") end
+		local moved = false
+		b.StartMoving = function() moved = true end
+		b.scripts.OnDragStart(b)
+		if not moved then fail(scenario, "a drag does not move it with the prompt locked") end
+		Mock.inCombat = true
+		ns.Supplies:Pull()
+		Mock.inCombat = false
+		if ns.Supplies:Moving() then fail(scenario, "a fight did not end the move") end
+		tick(ns)
+		if b.plate:IsShown() then fail(scenario, "the plate stayed after the move") end
+		if not (b:GetAttribute("macrotext1") or ""):find("/use", 1, true) then fail(scenario, "not armed again after the move") end
+	end)
+end

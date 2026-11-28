@@ -1,15 +1,42 @@
 {
   "key": "outline",
-  "socket": {"shape": "square", "cx": 958, "cy": 515, "half": 145},
-  "name_xy": [1220, 382],
-  "reason_xy": [1225, 545],
-  "keycap": {"cx": 3292, "cy": 516, "w": 185, "h": 198},
-  "bar": [855, 321, 3525, 735],
-  "pane": [872, 334, 3510, 720],
-  "see_through": true,
-  "stretch": [1450, 3050],
+  "socket": {
+    "shape": "square",
+    "cx": 425,
+    "cy": 265,
+    "half": 79
+  },
+  "name_xy": [
+    540,
+    190
+  ],
+  "reason_xy": [
+    540,
+    269
+  ],
+  "keycap": {
+    "cx": 1711.5,
+    "cy": 265,
+    "w": 134,
+    "h": 137
+  },
+  "bar": [
+    303,
+    126,
+    1809,
+    400
+  ],
+  "stretch": [
+    655,
+    1456
+  ],
+  "keep_stretch_edge": true,
   "text_colour_ok": true,
-  "contrast": {"white": 12.0, "gold": 8.0},
   "clip": true,
-  "notes": "A static near-black bar with a crisp black outline and one restrained inner rim. The frame itself carries no motion; only the live icon, key and prompt effects move."
+  "notes": "A flat charcoal bar in a hard black edge with a soft black shadow all round, a square black-edged socket for a cropped icon; no notch, no keycap. Painted through the Gemini image API (gemini-3.1-flash-image) over the player's flat reference.",
+  "margin": 60,
+  "shadow": {
+    "spread": 0.12,
+    "alpha": 0.9
+  }
 }

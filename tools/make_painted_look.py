@@ -154,6 +154,8 @@ KEYCAP_HIDDEN = {"glass", "framed", "toast", "arcane", "luxe", "minimal", "ghost
 MASK_PX = 128
 # The largest texture side written.
 LARGEST = 1024
+# Texels of shadow each end leaves to the middle piece at its seam.
+SHADOW_SEAM = 4
 
 
 def linear(c):
@@ -390,6 +392,9 @@ def read_meta(key, src):
                                         for f in ("lo", "ramp")), "keying must be { lo, ramp }, numbers over 0")
     meta["tune"] = {"lo": tune.get("lo"), "ramp": tune.get("ramp")}
     meta["clip"] = bool(raw.get("clip"))
+    meta["margin"] = raw.get("margin") or 0
+    meta["shadow"] = raw.get("shadow")
+    meta["keep_stretch_edge"] = bool(raw.get("keep_stretch_edge"))
     # The well's brightest the words can stand, where a look's own fight dims
     # them more than most (well_hi: under WELL_HI darkens the well further).
     wh = raw.get("well_hi")
@@ -477,8 +482,10 @@ def build(key):
     # Everything that is not slate, a texel of margin round it.
     cols = np.where((alpha > 0.5).sum(axis=0) > 2)[0]
     rows = np.where((alpha > 0.5).sum(axis=1) > 2)[0]
-    x0, x1 = max(0, cols.min() - EDGE_PX - 2), min(alpha.shape[1], cols.max() + EDGE_PX + 3)
-    y0, y1 = max(0, rows.min() - EDGE_PX - 2), min(alpha.shape[0], rows.max() + EDGE_PX + 3)
+    # meta.json's `margin` (picture px) leaves room round the bar for a shadow.
+    m = EDGE_PX + int(meta.get("margin") or 0)
+    x0, x1 = max(0, cols.min() - m - 2), min(alpha.shape[1], cols.max() + m + 3)
+    y0, y1 = max(0, rows.min() - m - 2), min(alpha.shape[0], rows.max() + m + 3)
     k = CORE_PX / core_h
     cw, ch = x1 - x0, y1 - y0
     size = (int(round(cw * k)), int(round(ch * k)))
@@ -515,7 +522,7 @@ def build(key):
     # where it rises, the row's own median colour fills in.
     r0, r1 = int(round(px(s0))), int(round(px(s1)))
     fe = int(EVEN_FEATHER * C)
-    if r1 - r0 > 4:
+    if r1 - r0 > 4 and not meta["keep_stretch_edge"]:
         lo_x, hi_x = max(0, r0 - fe), min(a.shape[1], r1 + fe)
         target = np.median(a[:, r0:r1], axis=1)[:, None]
         x = np.arange(lo_x, hi_x, dtype=np.float32)
@@ -665,6 +672,37 @@ def build(key):
     fill = left * (1 - t) + right * t
     rgba[by0:by1, bx0:bx1] = np.clip(np.round(fill), 0, 255).astype(np.uint8)
 
+    # A registered Gemini shadow matte sits behind the finished painting. Apply
+    # it before slicing, but after measuring: a shadow never sizes the prompt.
+    shadow_path = os.path.join(src, "outer-shadow.png")
+    if os.path.isfile(shadow_path):
+        frame = Image.fromarray(rgba)
+        with Image.open(shadow_path) as matte:
+            if matte.size != frame.size or matte.mode != "L":
+                raise SystemExit("%s: outer-shadow.png must be a grayscale matte, %dx%d" % (key, *frame.size))
+            shadow = Image.new("RGBA", frame.size)
+            shadow.putalpha(matte)
+        rgba = np.asarray(Image.alpha_composite(shadow, frame))
+    elif meta.get("shadow"):
+        # meta.json's `shadow`: a soft black shadow all round, drawn from the
+        # painting's own silhouette, `spread` of the core's height wide.
+        sh = meta["shadow"]
+        solid = rgba[..., 3].astype(np.float32) / 255
+        matte = ndimage.gaussian_filter(solid, max(0.5, float(sh.get("spread", 0.08)) * C / 2))
+        matte = np.clip(matte * float(sh.get("alpha", 0.8)) * 1.6, 0, 1)
+        shadow = Image.new("RGBA", (rgba.shape[1], rgba.shape[0]))
+        shadow.putalpha(Image.fromarray(np.round(matte * 255).astype(np.uint8), "L"))
+        rgba = np.asarray(Image.alpha_composite(shadow, Image.fromarray(rgba)))
+
+    if meta.get("shadow") and not os.path.isfile(shadow_path):
+        # The middle piece is laid a pixel over each end (Looks/Painted.lua,
+        # SEAM): where only the shadow is, the ends leave that pixel to the
+        # middle, or the shadow is drawn twice there, a dark line.
+        rgba = rgba.copy()
+        bare = solid < 0.5
+        for c, step in ((c0, -1), (c1, 1)):
+            cols = slice(c - SHADOW_SEAM, c) if step < 0 else slice(c, c + SHADOW_SEAM)
+            rgba[:, cols, 3] = np.where(bare[:, cols], 0, rgba[:, cols, 3])
     pieces = {"Left": rgba[:, :c0], "Middle": rgba[:, c0:c1], "Right": rgba[:, c1:], "Keycap": keycap_piece}
     textures = {}
     tex = {}
@@ -714,6 +752,10 @@ def build(key):
         "wellColour": well_colour,
         "keyInk": key_ink,
         "keyOutline": key_outline,
+        # The band of shadow taken off each end's inner edge, in u: Looks/Painted.lua
+        # lays the middle over at least that much, so the shadow is never doubled
+        # nor missing there at any size.
+        "seam": SHADOW_SEAM / CORE_PX if meta.get("shadow") and not os.path.isfile(os.path.join(src, "outer-shadow.png")) else None,
     }
     measured = {"slate": slate, "core": (core_top, core_bot), "crop": (x0, y0, x1, y1), "k": k,
                 "cuts": (c0, c1), "darkened": darkened, "well_px": (wx0, wy0, wx1, wy1), "rgba": rgba}
@@ -788,6 +830,8 @@ def lua_data(all_data):
         out.append("\t\tkeyInk = { %s }," % ", ".join(num(v) for v in d["keyInk"]))
         if d["keyOutline"]:
             out.append("\t\tkeyOutline = true,")
+        if d.get("seam"):
+            out.append("\t\tseam = %s," % num(d["seam"]))
         out.append("\t},")
     out.append("}")
     return "\n".join(out) + "\n"

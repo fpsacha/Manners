@@ -55,8 +55,8 @@ mutate(GLASS,
        expect="the name starts at", script=S)
 
 mutate("Looks/Painted.lua",
-       "\tBox(s[2], rel, g.x1 - SEAM, g.y0, g.x2 + SEAM, g.y1)\n",
-       "\tBox(s[2], rel, g.x1 + SEAM, g.y0, g.x2 + SEAM, g.y1)\n",
+       "\tBox(s[2], rel, g.x1 - seam, g.y0, g.x2 + seam, g.y1)\n",
+       "\tBox(s[2], rel, g.x1 + seam, g.y0, g.x2 + seam, g.y1)\n",
        "painted-glass: a gap between the left end and the middle",
        expect="the middle meets the ends at", script=S)
 

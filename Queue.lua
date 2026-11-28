@@ -2678,19 +2678,6 @@ local function HeldBackExceptList(db, now, pastFight)
 	return nil, full
 end
 
--- What "Myself" may offer in a fight: a shout CastsOnSelf allows (a warrior
--- in no group, with the switch on), and nothing else. nil for none.
-local function FightShouts(candidates)
-	local out
-	for _, buff in ipairs(ns.SelfBuffs(candidates)) do
-		if buff.selfCast then
-			out = out or {}
-			out[#out + 1] = buff
-		end
-	end
-	return out
-end
-
 function ns.MyselfHeldBack(db, now)
 	local held, full = HeldBackExceptList(db, now)
 	if held then return held end
@@ -2953,16 +2940,15 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	-- My own buffs are an optional module; a pending disable stops them at once.
 	if not (ns.ModuleActive and ns.ModuleActive("mybuffs")) then return nil end
 	local held, full = HeldBackExceptList(db, now)
-	-- In a fight nothing of your own is offered but a warrior's shout, alone
-	-- with "Remind me of my shout when I'm alone" on (CastsOnSelf): it lasts
-	-- minutes and runs out mid-fight, which is when it is wanted, and on the
-	-- pull the prompt kept it rather than emptying (GitHub issue 13). The
-	-- other rules are asked again past the fight.
-	local fight = held == "fight" and not ownOnly and FightShouts(candidates)
+	-- Every class may snapshot its enabled own buff on the pull. The macro is
+	-- then frozen for the fight; under lockdown none of this is reconsidered.
+	local prompt = ns.Prompt
+	local fight = held == "fight" and not ownOnly and prompt ~= nil
+		and prompt.armedForFight == true and not InCombatLockdown()
 	if fight then held, full = HeldBackExceptList(db, now, true) end
 	if held then return nil end
 	-- A shout already covers you, and a few spells refuse the caster.
-	local mine = fight or (ownOnly and {} or ns.SelfBuffs(candidates))
+	local mine = ownOnly and {} or ns.SelfBuffs(candidates)
 	-- Hold back short buffs in cities and inns reaches you too: a group buff for
 	-- yourself that lasts no longer than that is not offered while you rest
 	-- (own buffs in cities on lets the rest through; CurseForge, Thorns at 15).
@@ -2979,8 +2965,10 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	end
 	local buff, has, remaining, charges, seconds, lead, kind
 	if #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end
-	if not buff and fight then return nil end
-	if not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end
+	if not buff then
+		buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now)
+		if fight and buff and ns.ItemFamily(buff.family) then buff = nil end
+	end
 	-- In a battleground or an arena (Battle.lua), your group buff only running
 	-- low steps behind something you fight with and are missing altogether:
 	-- after a death there it is the armor that is gone.

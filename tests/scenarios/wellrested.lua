@@ -279,9 +279,15 @@ do
 end
 
 do
-	local scenario = "wellrested: Classic Era offers it too"
+	local scenario = "wellrested: Classic Era offers it too, laid at your feet in one press"
 	with(scenario, { flavour = "vanilla", on = true, bags = { [BAG] = 1 } }, function(ns)
 		if key(mine(ns)) ~= "rested" .. BAG then fail(scenario, "offered " .. key(mine(ns)) .. ", not the bag") end
+		-- A second press does not place a bag waiting for the ground (asked on
+		-- CurseForge, with a controller): where [@player] resolves, one press does.
+		ns.Prompt:Refresh()
+		if macro(ns) ~= "/use [@player] item:" .. BAG then
+			fail(scenario, "the macro is " .. tostring(macro(ns)) .. ", not /use [@player] item:" .. BAG)
+		end
 	end)
 end
 

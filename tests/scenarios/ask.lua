@@ -71,6 +71,7 @@ local function ready(scenario, setup)
 	end
 	freshPrompt(ns, scenario)
 	ns.db.profile.sources.ask = true
+	ns.Ask.ARRIVE_SECONDS = 0
 	return ns, restoreUnits
 end
 
@@ -118,6 +119,24 @@ do
 				fail(scenario, "the prompt's second line reads |" .. tostring(ns.Prompt:ReasonText(entry)) .. "|")
 			end
 		end
+		noErrors(scenario, ns)
+		restoreUnits()
+	end)
+end
+
+-- With Proximity on Anywhere I can cast nothing is measured: somebody in sight
+-- on a nameplate is still asked (issue 68: a paladin never asked the druid
+-- beside them for Mark of the Wild).
+do
+	local scenario = "ask: with Anywhere I can cast, a passer-by in sight is asked"
+	with(scenario, {}, function()
+		local ns, restoreUnits = ready(scenario)
+		if not ns then return end
+		ns.db.profile.filters.proximity = "cast"
+		if ns.ProximityMeasured() then fail(scenario, "Anywhere I can cast is taken for a measured step") end
+		if not asking(ns) then fail(scenario, "nobody is asked with Proximity on Anywhere I can cast") end
+		rawset(_G, "UnitIsVisible", function() return false end)
+		if asking(ns) then fail(scenario, "somebody out of sight is asked") end
 		noErrors(scenario, ns)
 		restoreUnits()
 	end)
@@ -435,6 +454,7 @@ do
 		end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		ns.db.profile.sources.self = false
 		local entry = asking(ns)
 		if not entry then
@@ -482,6 +502,7 @@ do
 		end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		ns.db.profile.sources.self = false
 		local first = asking(ns)
 		if not (first and first.buff.wanted.key == "fortitude") then
@@ -546,6 +567,7 @@ do
 		end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		-- Both priests lack your Intellect: they are offered it, and nobody
 		-- with a buff coming is asked for one.
 		local queue = ns.BuildQueue()
@@ -840,6 +862,7 @@ do
 		ns.db.profile.sources.ask = false
 		has(L["asking for buffs: off -- %s is not ticked."], "switched off")
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		rawset(_G, "IsResting", function() return true end)
 		has(L["asking for buffs: held back in a city or an inn -- tick %s to ask there too."], "in a city")
 		rawset(_G, "IsResting", function() return false end)
@@ -883,6 +906,7 @@ do
 		end
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		local entry = asking(ns)
 		if not entry then
 			fail(scenario, "a priest in the party is not asked")
@@ -911,6 +935,33 @@ do
 		if text:find(ns.L["Hands your own target back afterwards."], 1, true) then
 			fail(scenario, "the tooltip speaks of a target the press never takes")
 		end
+		noErrors(scenario, ns)
+		restoreUnits()
+	end)
+end
+
+-- Asked on Discord: a dungeon group was whispered the moment it met. Somebody
+-- is asked only after staying within reach Ask.ARRIVE_SECONDS (30); out of
+-- reach, the wait starts again.
+do
+	local scenario = "ask: nobody is asked the moment they come near, only after staying"
+	with(scenario, {}, function()
+		local ns, restoreUnits = ready(scenario)
+		if not ns then return end
+		ns.Ask.ARRIVE_SECONDS = 30
+		if ns.Ask.ARRIVE_SECONDS ~= 30 then return end
+		if asking(ns) then fail(scenario, "somebody was asked the moment they came near") end
+		Mock.advance(20)
+		if asking(ns) then fail(scenario, "somebody was asked after twenty seconds near") end
+		Mock.advance(11)
+		if not asking(ns) then fail(scenario, "nobody was asked after thirty seconds near") end
+		-- Gone out of reach for a scan: the wait starts again.
+		local nameplates = ns.nameplateUnits
+		ns.nameplateUnits = {}
+		asking(ns)
+		ns.nameplateUnits = nameplates
+		Mock.advance(5)
+		if asking(ns) then fail(scenario, "somebody who left and came back was asked at once") end
 		noErrors(scenario, ns)
 		restoreUnits()
 	end)

@@ -18,7 +18,6 @@ mutate(
 
 mutate(
     "Prompt/Fight.lua",
-    "\t\tlocal outOnly = entry.buff and entry.buff.neverInCombat == true\n"
     "\t\tif outOnly or (entry.remembered and entry.reason == \"nearby\") then\n",
     "\t\tif entry.remembered and entry.reason == \"nearby\" then\n",
     "services-module: Fire Shield is frozen onto the fight rota",

@@ -1536,38 +1536,38 @@ function Page.BuildStartTab()
 			},
 			modulesCombat = {
 				type = "toggle", name = L["Manners: Combat"], order = 68.2, width = "full",
-				desc = L["Cure, break-free and Mend Pet buttons in a fight."],
+				desc = L["One combat prompt for interrupts, defensives and other actions, and the cure, Will of the Forsaken and Mend Pet buttons."],
 				disabled = function() return not MannersAPI:CanToggleModule("combat") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("combat") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("combat", value == true) end end,
 			},
 			modulesCombatHelp = {
-				type = "description", name = L["Cure, break-free and Mend Pet buttons in a fight."],
+				type = "description", name = L["One combat prompt for interrupts, defensives and other actions, and the cure, Will of the Forsaken and Mend Pet buttons."],
 				order = 68.21,
 			},
 			modulesAchievements = {
-				type = "toggle", name = L["Manners: Achievements"], order = 68.3, width = "full",
-				desc = L["Manners achievements in a tab of the favour ledger."],
+				type = "toggle", name = L["Manners: Achievements"], order = 68.6, width = "full",
+				desc = L["Quiet achievements for good manners, with medals, points and ranks, on a page of their own."],
 				disabled = function() return not MannersAPI:CanToggleModule("achievements") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("achievements") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("achievements", value == true) end end,
 			},
 			modulesAchievementsHelp = {
-				type = "description", name = L["Manners achievements in a tab of the favour ledger."],
-				order = 68.31,
+				type = "description", name = L["Quiet achievements for good manners, with medals, points and ranks, on a page of their own."],
+				order = 68.61,
 			},
 			modulesPets = {
-				type = "toggle", name = L["Manners: Pets"], order = 68.4, width = "full",
-				desc = L["Hunter pet care and moments."],
+				type = "toggle", name = L["Manners: Pets"], order = 68.5, width = "full",
+				desc = L["Hunter pet care and moments, and moments with a companion pet for every class."],
 				disabled = function() return not MannersAPI:CanToggleModule("pets") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("pets") == true end,
 				set = function(_, value) local api = _G.MannersAPI if api then api:SetModuleEnabled("pets", value == true) end end,
 			},
 			modulesPetsHelp = {
-				type = "description", name = L["Hunter pet care and moments."], order = 68.41,
+				type = "description", name = L["Hunter pet care and moments, and moments with a companion pet for every class."], order = 68.51,
 			},
 			modulesMyBuffs = {
-				type = "toggle", name = L["Manners: My Buffs"], order = 68.5, width = "full",
+				type = "toggle", name = L["Manners: My Buffs"], order = 68.3, width = "full",
 				desc = L["Own buffs, consumables and companion-pet reminders."],
 				disabled = function() return not MannersAPI:CanToggleModule("mybuffs") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("mybuffs") == true end,
@@ -1575,10 +1575,10 @@ function Page.BuildStartTab()
 			},
 			modulesMyBuffsHelp = {
 				type = "description", name = L["Own buffs, consumables and companion-pet reminders."],
-				order = 68.51,
+				order = 68.31,
 			},
 			modulesServices = {
-				type = "toggle", name = L["Manners: Services"], order = 68.6, width = "full",
+				type = "toggle", name = L["Manners: Services"], order = 68.4, width = "full",
 				desc = L["Mage, priest, shaman and warlock services on explicit request."],
 				disabled = function() return not MannersAPI:CanToggleModule("services") end,
 				get = function() local api = _G.MannersAPI return api and api:IsModuleEnabled("services") == true end,
@@ -1586,7 +1586,7 @@ function Page.BuildStartTab()
 			},
 			modulesServicesHelp = {
 				type = "description", name = L["Mage, priest, shaman and warlock services on explicit request."],
-				order = 68.61,
+				order = 68.41,
 			},
 			modulesReload = {
 				type = "execute", name = L["Reload now"], order = 68.7, width = "full",

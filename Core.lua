@@ -155,6 +155,13 @@ local function safecall(fn, ...)
 end
 ns.safecall = safecall
 
+local function safecallok(fn, ...)
+	if type(fn) ~= "function" then return false end
+	local ok, a, b, c = pcall(fn, ...)
+	return ok, a, b, c
+end
+ns.safecallok = safecallok
+
 -- One token swapped for one piece of text, never read as a pattern: in a gsub
 -- template "%" is an escape, and players type the reason lines and phrases
 -- ("10% left"); a function replacement is returned verbatim.
@@ -571,6 +578,12 @@ local defaults = {
 			praise = true, comfort = true, welcome = true, sorry = true, hello = true, morning = true,
 			road = true, play = true, share = true, family = true, missed = true, saved = true,
 			grown = true, anniversary = true,
+			-- Moments with a companion pet, any class (Modules/Pets/Companion.lua): off,
+			-- and under it a pace, a switch a moment, its answer and your line, all on.
+			companion = false, companionPace = "sometimes", companionHello = true, companionPraise = true,
+			companionRoad = true, companionAnswer = true, companionWords = true,
+		companionPlay = true, companionLevel = true, companionHome = true, companionBack = true,
+		companionQuest = true,
 		},
 
 		-- The rest of "Myself": the buffs only your class puts on itself
@@ -798,6 +811,9 @@ local defaults = {
 			skipSeconds = 12,
 			-- How long a right-click on one of your own buffs leaves it alone, in minutes; 0 follows skipSeconds.
 			ownSkipMinutes = 0,
+			-- Asked for on CurseForge: after a right-click on one of your own buffs,
+			-- small buttons to leave it alone 15, 30, 45 or 60 minutes. Off.
+			ownSkipChoices = false,
 			scanInterval = 0.4,
 			graceSeconds = 45,
 			keepDebts = true,
@@ -1025,7 +1041,11 @@ local defaults = {
 		-- The consumables button (Prompt/Supplies.lua), shown with
 		-- ownBuffs.apart on: where it sits (left of the prompt's default
 		-- spot, above the action bars) and its size in pixels.
-		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 40 },
+		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 48 },
+		-- Manners: Combat's one detected-action prompt. Every action is off until
+		-- the player enables its own switch.
+		moments = { health = 20, mana = 20, cardSize = 150, look = "same", alert = "pulse", alertSound = false,
+			layout = "row", grow = "right" },
 	},
 }
 ns.defaults = defaults
@@ -6962,6 +6982,8 @@ function addon:TickBody()
 	if cureFight and cureFight:Wanted() then ns.Guard("cure in a fight", cureFight.Refresh, cureFight) end
 	local wards = ns.ReactiveWards
 	if wards and wards:Wanted() then ns.Guard("reactive wards", wards.Refresh, wards) end
+	local actions = ns.CombatActions
+	if actions and actions:Wanted() then ns.Guard("combat actions", actions.Refresh, actions) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
@@ -7220,6 +7242,7 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- the rota the prompt's presses step through in the fight
 	-- (Prompt/Fight.lua), the queue as that repaint built it.
 	if ns.Prompt then ns.Guard("rota for the fight", ns.Prompt.ArmFightRota, ns.Prompt) end
+	if ns.CombatActions then ns.Guard("combat actions at fight start", ns.CombatActions.Take, ns.CombatActions) end
 	-- Nothing of yours is used in a fight: the consumables button goes now,
 	-- before the lockdown, and its snippet makes sure of it at the lockdown.
 	if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
@@ -7297,6 +7320,7 @@ function addon:PLAYER_REGEN_ENABLED()
 	if ns.CureFight then ns.Guard("cure fight release", ns.CureFight.Release, ns.CureFight) end
 	-- The ward buttons taken down and armed for the next fight.
 	if ns.ReactiveWards then ns.Guard("reactive wards release", ns.ReactiveWards.Release, ns.ReactiveWards) end
+	if ns.CombatActions then ns.Guard("combat actions release", ns.CombatActions.Release, ns.CombatActions) end
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed

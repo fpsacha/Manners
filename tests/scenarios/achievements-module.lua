@@ -143,16 +143,136 @@ do
 end
 
 do
-	local scenario = "achievements-module: the ledger owns the tab"
+	local scenario = "achievements-module: the Achievements page holds everything, with no ledger tab"
 	Mock.reset()
 	MannersAchievementsDB = nil
 	local ns = load(scenario)
 	if not ns then return end
 	drive(scenario, ns)
-	if not MannersAPI:LedgerTabs().achievements then fail(scenario, "no achievements tab") end
+	if MannersAPI:LedgerTabs().achievements then fail(scenario, "Achievements still adds a tab to the ledger") end
 	if _G.MannersAchievements then fail(scenario, "a separate achievements window was published") end
-	ns.Ledger.Show("achievements")
-	local window = ns.Ledger.Window()
-	if not (window and window.modulePanel and window.modulePanel:IsShown()) then fail(scenario, "the ledger did not paint the tab") end
-	if not H.findOption(ns.optionsTable, "achievementNotification") then fail(scenario, "notification controls are missing") end
+	if H.findOption(ns.optionsTable, "achievementOpen") then fail(scenario, "the page still sends the player to the ledger") end
+	local pages = MannersAPI:OptionsPages()
+	if not (pages and pages.achievements) then fail(scenario, "Achievements has no sidebar page") end
+	for _, path in ipairs({ "achievementBoard", "achievementStats", "achievementNotification", "achievementReset" }) do
+		if ns.WindowUI.PageOf("achievements." .. path) ~= "achievements" then
+			fail(scenario, path .. " is not on the Achievements page")
+		end
+	end
+	local A = ns.Achievements
+	if not (A and #A.DEFS >= 30) then fail(scenario, "fewer than thirty achievements") return end
+	-- The board: a widget of its own, a card for every achievement it lists.
+	local W = ns.WindowWidgets
+	if not (W.KIND.achievementBoard and W.KIND.achievementStats) then
+		fail(scenario, "the board and the statistics have no widget") return
+	end
+	local board = W.Build("achievementBoard", UIParent, H.findItem and H.findItem(ns, "achievements.achievementBoard") or {})
+	board:Layout(700)
+	local shown = 0
+	for _, card in ipairs(board.cards or {}) do if card:IsShown() then shown = shown + 1 end end
+	if shown ~= #A.List() or shown < 30 then
+		fail(scenario, ("the board shows %d cards for %d achievements"):format(shown, #A.List()))
+	end
+	if board.cols ~= 2 then fail(scenario, "a 700 wide board has " .. tostring(board.cols) .. " columns, not two") end
+	board:Layout(1200)
+	if board.cols ~= 2 then fail(scenario, "a wide board has " .. tostring(board.cols) .. " columns: names get cut off past two") end
+	board:Layout(320)
+	if board.cols ~= 1 then fail(scenario, "a narrow board has " .. tostring(board.cols) .. " columns, not one") end
+	-- One returned favour: Much Obliged is earned and Earned finds it alone.
+	MannersAPI:Fire("Favour.Settled", "Kind Soul", { at = GetTime(), class = "MAGE" }, { reason = "owed" })
+	local earnedTab
+	for _, b in ipairs(board.showTabs or {}) do if b.value == "earned" then earnedTab = b end end
+	if not earnedTab then fail(scenario, "the board has no Earned tab") return end
+	earnedTab:GetScript("OnClick")(earnedTab)
+	if A.Database().filter ~= "earned" then fail(scenario, "the Earned tab did not show what was earned") end
+	board:Refresh()
+	board:Layout(700)
+	local earned = A.List()
+	local found = false
+	for _, def in ipairs(earned) do
+		if def.id == "first" then found = true end
+		if (A.State().earned[def.id] or 0) < 1 then fail(scenario, "Earned lists " .. def.id .. ", not earned") end
+	end
+	if not found then fail(scenario, "Much Obliged was not earned by the first returned favour") end
+	shown = 0
+	for _, card in ipairs(board.cards) do if card:IsShown() then shown = shown + 1 end end
+	if shown ~= #earned then fail(scenario, ("Earned shows %d cards for %d earned"):format(shown, #earned)) end
+	if (board.recentCount or 0) < 1 then fail(scenario, "Earned lately shows nothing after a medal") end
+	-- A card of several goals says which one it works toward, never a medal.
+	A.SetView("filter", "all")
+	board:Refresh()
+	board:Layout(700)
+	local returnsCard
+	for _, card in ipairs(board.cards) do
+		if card:IsShown() and card.def and card.def.id == "returns" then returnsCard = card end
+	end
+	if not (returnsCard and returnsCard.step:GetText() == "Goal 1 of 3") then
+		fail(scenario, "Returning the Favour does not say which goal it works toward: "
+			.. tostring(returnsCard and returnsCard.step:GetText()))
+	end
+	if A.GoalOf(A.DEFS[1], 1) ~= nil or (returnsCard and A.GoalOf(returnsCard.def, 2) ~= "goal 2 of 3") then
+		fail(scenario, "the goal reached is not named as a count")
+	end
+	A.SetView("filter", "all")
+	A.SetView("theme", "courtesy")
+	for _, def in ipairs(A.List()) do
+		if def.theme ~= "courtesy" then fail(scenario, "Courtesy shows " .. def.id) break end
+	end
+	A.SetView("theme", "nonsense")
+	if MannersAchievementsDB.theme ~= "all" then fail(scenario, "an unknown kind was kept") end
+	A.SetView("sort", "closest")
+	if A.Database().sort ~= "closest" then fail(scenario, "the order was not kept") end
+	A.SetView("sort", "theme")
+	local stats = W.Build("achievementStats", UIParent, {})
+	if stats:Layout(700) <= 0 or #stats.tiles ~= #A.STATS then fail(scenario, "the statistics have no tiles") end
+	local points = A.Totals(A.State())
+	if points < 15 then fail(scenario, "the earned medal gave " .. tostring(points) .. " points") end
+	H.findOption(ns.optionsTable, "achievementReset").func()
+	if (A.State().earned.first or 0) ~= 0 or (A.State().metrics.returns or 0) ~= 0 then
+		fail(scenario, "Start this character over kept its progress")
+	end
+end
+
+do
+	local scenario = "achievements-module: an old save keeps its counts and earns medals by the new goals"
+	Mock.reset()
+	MannersAchievementsDB = { characters = {} }
+	local ns = load(scenario, true)
+	if not ns then return end
+	drive(scenario, ns)
+	local key = (MannersAPI:Plain(UnitGUID("player")) or "local") .. ":" .. select(2, UnitClass("player"))
+	MannersAchievementsDB.characters[key] = { seeded = true, metrics = { returns = 12, res = 1 },
+		earned = { first = 3, hundred = 1 }, classes = { MAGE = true, PRIEST = true } }
+	if not H.loadModule(scenario, "Modules/Achievements/Manners_Achievements.toc") then return end
+	local st = ns.Achievements and ns.Achievements.State()
+	if not st then fail(scenario, "no state") return end
+	if st.earned.first ~= 1 then fail(scenario, "Much Obliged reads tier " .. tostring(st.earned.first) .. " of its one goal") end
+	if st.earned.returns ~= 1 then fail(scenario, "twelve returns did not earn bronze Returning the Favour") end
+	if st.earned.res ~= 1 then fail(scenario, "a resurrection did not earn Back on Your Feet") end
+	if st.metrics.classes ~= 2 then fail(scenario, "the classes were not counted again: " .. tostring(st.metrics.classes)) end
+	if st.earned.hundred then fail(scenario, "a retired achievement kept its medal") end
+end
+
+do
+	local scenario = "achievements-module: buffs received, refusals and services count"
+	Mock.reset()
+	MannersAchievementsDB = nil
+	local ns = load(scenario)
+	if not ns then return end
+	drive(scenario, ns)
+	local api = MannersAPI
+	api:Fire("Favour.Received", { name = "Giver One" })
+	api:Fire("Favour.Received", { name = "Giver Two" })
+	api:Fire("Favour.Refused", "Proud One", time())
+	api:Fire("Service.Given", "water", "Thirsty One")
+	api:Fire("Service.Given", "portal", "Traveller")
+	local st = ns.Achievements.State()
+	if st.metrics.givers ~= 2 or st.metrics.received ~= 2 then
+		fail(scenario, "two people who buffed you read " .. tostring(st.metrics.givers))
+	end
+	if (st.earned.grace or 0) ~= 1 then fail(scenario, "a refused buff did not reveal No Hard Feelings") end
+	if st.metrics.serviceKinds ~= 2 or (st.earned.trades or 0) ~= 1 then
+		fail(scenario, "two kinds of service read " .. tostring(st.metrics.serviceKinds))
+	end
+	if (st.metrics.activeDays or 0) ~= 1 then fail(scenario, "today was not counted as a day of good manners") end
 end

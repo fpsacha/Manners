@@ -260,7 +260,7 @@ local TAB = {
 	quiet = L["Quiet times"],
 	fight = L["In a fight"],
 	appearance = L["Look"],
-	modules = L["Optional modules"],
+	modules = L["Choose modules"],
 	diagnostics = L["Diagnostics"],
 }
 
@@ -285,7 +285,7 @@ local TITLE = {
 	quiet = function() return L["Quiet times"] end,
 	fight = function() return L["In a fight"] end,
 	appearance = function() return L["Look"] end,
-	modules = function() return L["Optional modules"] end,
+	modules = function() return L["Choose modules"] end,
 	profiles = function() return L["Profiles"] end,
 	diagnostics = function() return L["Diagnostics"] end,
 }
@@ -329,6 +329,8 @@ function Page.TabOf(path)
 	local page = ns.WindowLayout.pages[id]
 	return page and page.title or nil
 end
+
+function Page.ForgetPageMap() pageOfPath = nil end
 
 -- A control's name in gold and the page it is on, for text beside it.
 function Page.RefTo(label, path)

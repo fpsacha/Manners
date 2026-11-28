@@ -154,8 +154,13 @@ end
 -- the weapon the game asks whether to replace it: that question is the
 -- player's to answer, and Manners never answers it.
 STRATEGIES.scroll = function(entry)
-	local lines = { "/use item:" .. tostring(entry.buff.item) }
 	local family = entry.buff.family
+	-- The sleeping bag's Unroll Bag waits for a place on the ground, and a second
+	-- press of the key does not give it one (with a controller nothing does but
+	-- the cursor's click; asked on CurseForge). Where [@player] resolves it goes
+	-- down at your feet in the one press; Forever resolves no unit conditional.
+	local at = family and family.rest and ns.caps.conditionalTargeting and "[@player] " or ""
+	local lines = { "/use " .. at .. "item:" .. tostring(entry.buff.item) }
 	local slot = family and family.slot or 16
 	if entry.buff.enchant then lines[2] = "/use " .. slot end
 	return lines, false,
@@ -194,6 +199,15 @@ STRATEGIES.target = function(entry, spell)
 		"/cast " .. spell,
 	}, restore,
 		{ targeted = true, selfCast = false, aimedAt = who }
+end
+
+-- You, targeted by name, the line a press of one of your own starts with: the
+-- combat prompt's self rows (Modules/Combat/Moments.lua) use it where
+-- [@player] does not resolve. nil while the client has no name for you.
+function Prompt.SelfTargetLine()
+	local name = ns.plain(UnitName("player"))
+	if type(name) ~= "string" or name == "" then return nil end
+	return TargetCommand() .. " " .. name
 end
 
 -- A courtesy somebody asked for (Courtesy.lua): a conjure or a portal at nobody, or a trade or a summon at them.

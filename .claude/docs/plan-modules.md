@@ -65,10 +65,13 @@ when off, rewards good manners rather than grinding, never noisy.
   on three days).
 - No grind: only real exchanges with other players count; daily caps per
   person; nothing rewards spamming buffs at nameplates.
-- Quiet: one tab of the ledger with progress bars
-  and the next goal per theme; toasts OFF by default (choice: none, a small
-  toast, or one chat line; no sound unless picked); titles only inside that
-  window; nothing on the minimap or in the ledger itself.
+- Quiet: since 27 November everything is on the module's own options page
+  (the owner: "the achievement tab should have everything, no external
+  ledger"): rank, points, earned lately, every achievement with filters and
+  sorting, statistics; no ledger tab. Toasts OFF by default (choice: none, a
+  small toast, or one chat line; no sound unless picked); nothing on the
+  minimap or in the ledger itself. Goals are per achievement (one goal, or
+  bronze, silver and gold of its own), not 10 / 100 / 1000 for all.
 - Decided 25 November: (1) reuse the old 13 milestones' names and ideas
   where they fit, but the owner wants MORE and BETTER ones; (2) NO share card and no hall
   of fame (owner: no reason to have one); (3) credit the ledger's last

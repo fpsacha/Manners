@@ -77,6 +77,12 @@ function MendPet.MendName()
 	return id and ns.SpellNameFor(id) or nil
 end
 
+function MendPet.MendIcon()
+	local id = MendId()
+	if not id then return nil end
+	return ns.safecall(_G.C_Spell and _G.C_Spell.GetSpellTexture, id) or "Interface\\Icons\\Ability_Hunter_MendPet"
+end
+
 function MendPet.IsMend(id)
 	return MEND_SET[id] == true
 end

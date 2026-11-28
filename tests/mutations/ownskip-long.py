@@ -53,3 +53,41 @@ mutate("Core.lua",
        "\t\t\townSkipMinutes = 15,\n",
        "ownskip-long: the minutes are on by default",
        expect="ownskip-long: by default", script=S)
+
+mutate("Core.lua",
+       "\t\t\townSkipChoices = false,",
+       "\t\t\townSkipChoices = true,",
+       "ownskip-long: the skip buttons are on by default",
+       expect="ownskip-long: the 15 to 60 minute buttons after a right-click, off by default", script="runscenarios.py")
+mutate("Prompt/Press.lua",
+       "if db and db.timing and db.timing.ownSkipChoices == true then Prompt:OfferSkipChoices(victim, ownKey) end",
+       "if false then Prompt:OfferSkipChoices(victim, ownKey) end",
+       "ownskip-long: the skip buttons never come up",
+       expect="ownskip-long: the 15 to 60 minute buttons after a right-click, off by default", script="runscenarios.py")
+mutate("Prompt/Press.lua",
+       "ns.Guard(\"longer skip\", ns.SkipOwn, c.name, c.key, self.minutes * 60)",
+       "ns.Guard(\"longer skip\", ns.SkipOwn, c.name, c.key, self.minutes)",
+       "ownskip-long: a skip button skips seconds, not minutes",
+       expect="ownskip-long: the 15 to 60 minute buttons after a right-click, off by default", script="runscenarios.py")
+mutate("Prompt/Press.lua",
+       "if choices and choices.shownAt == shownAt then choices.frame:Hide() end",
+       "if false then choices.frame:Hide() end",
+       "ownskip-long: the skip buttons never go away",
+       expect="ownskip-long: the 15 to 60 minute buttons after a right-click, off by default", script="runscenarios.py")
+mutate("Prompt/Macro.lua",
+       "local at = family and family.rest and ns.caps.conditionalTargeting and \"[@player] \" or \"\"",
+       "local at = \"\"",
+       "wellrested: the bag waits for a place on the ground",
+       expect="wellrested: Classic Era offers it too, laid at your feet in one press", script="runscenarios.py")
+
+mutate("Prompt/Fight.lua",
+       "\t\t\tor (entry.reason == \"self\" and not (entry.buff and entry.buff.selfCast))",
+       "\t\t\tor false",
+       "ownskip-long: your own buff is held on the prompt all fight",
+       expect="ownskip-long: your own buff is not held on the prompt into a fight", script="runscenarios.py")
+
+mutate("Prompt/Fight.lua",
+       "\t\t\tor (entry.reason == \"self\" and not (entry.buff and entry.buff.selfCast))",
+       "\t\t\tor (entry.reason == \"self\")",
+       "shoutfight: a shout is dropped at the pull with the other own buffs",
+       expect="the prompt the pull armed lost the shout", script="runscenarios.py")

@@ -10,9 +10,7 @@ GONE = "par-core2: a pull three seconds after a crowd walked off arms none of th
 
 # 1. What the pull arms: nobody offered from memory alone.
 mutate(FIGHT,
-       "\t\tlocal outOnly = entry.buff and entry.buff.neverInCombat == true\n"
        "\t\tif outOnly or (entry.remembered and entry.reason == \"nearby\") then\n",
-       "\t\tlocal outOnly = entry.buff and entry.buff.neverInCombat == true\n"
        "\t\tif outOnly or false then\n",
        "par-core2: the pull keeps passers-by remembered",
        expect=GONE, script=S)
@@ -30,9 +28,7 @@ mutate(REFRESH,
        expect="par-core2: at a pull with one passer-by still beside you and two gone", script=S)
 
 mutate(FIGHT,
-       "\t\tlocal outOnly = entry.buff and entry.buff.neverInCombat == true\n"
        "\t\tif outOnly or (entry.remembered and entry.reason == \"nearby\") then\n",
-       "\t\tlocal outOnly = entry.buff and entry.buff.neverInCombat == true\n"
        "\t\tif outOnly or entry.unit == nil then\n",
        "par-core2: the pull leaves out everybody with no token",
        expect="par-core2: a favour owed with no token is still armed at the pull", script=S)

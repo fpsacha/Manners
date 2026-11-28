@@ -102,13 +102,20 @@ and the toc is the one file every branch would then change.
    Checker must show through everywhere outside the bar and nowhere inside it.
    If the slate eats a soft rim or leaves a shadow's flecks: meta.json
    `"keying": {"lo": .., "ramp": ..}` (the edge's tolerance) or `"clip": true`
-   (nothing outside `bar`); a wrong keycap default: `"keycap_shown"`; a well
+   (nothing outside `bar`). Set `"keep_stretch_edge": true` only for an
+   intentional silhouette in the middle, like Outline's small painted notch;
+   otherwise each row's alpha is evened to remove stray flecks. A wrong
+   keycap default: `"keycap_shown"`; a well
    the look's own fight dims the words too far on: `"well_hi"` (under 0.10
    darkens it further; Frost's is 0.035). The key's letter is pale or dark,
    whichever reads better on the keycap, and outlined (`keyOutline`) where
    neither reaches 4.5:1. Run again
    until every mark sits right. The printed line says whether the well was
    darkened, the ink and the key's letter colour.
+   For an outside shadow without changing the layout, `outer-shadow.png` is
+   optional: a grayscale alpha matte from Gemini, registered to the keyed
+   bar's final texel canvas. Black is transparent. Outline keeps the soft
+   shadow in the existing margin; the original painting and keycap stay intact.
 3. **The look's Lua**, at its `Register` table:
    ```lua
    paintedHides = { "body", "shadow", ... },   -- fields of the look the painting replaces

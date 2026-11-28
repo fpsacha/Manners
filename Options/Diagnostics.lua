@@ -132,6 +132,9 @@ local function BugReport()
 		for _, key in ipairs(ns.Beast.SWITCHES) do parts[#parts + 1] = key .. "=" .. tostring(db.beast[key]) end
 		lines[#lines + 1] = "beast: " .. table.concat(parts, " ")
 		for _, line in ipairs(ns.BeastLines(GetTime())) do lines[#lines + 1] = line end
+	elseif ns.BeastLines and type(db.beast) == "table" and db.beast.companion == true then
+		-- Anybody else: the companion's moments (Modules/Pets/Companion.lua).
+		for _, line in ipairs(ns.BeastLines(GetTime())) do lines[#lines + 1] = line end
 	end
 	-- In battlegrounds and arenas (Battle.lua): its four switches, and which
 	-- of its states stands now (nil anywhere else).

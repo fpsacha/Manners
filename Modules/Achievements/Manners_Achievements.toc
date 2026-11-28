@@ -2,11 +2,12 @@
 ## Title: Manners: Achievements
 ## Notes: Optional quiet manners achievements for Manners.
 ## Author: Sacha
-## Version: 1.12.6
+## Version: 1.13.0
 ## Dependencies: Manners
 ## DefaultState: enabled
 ## SavedVariables: MannersAchievementsDB
 ## X-License: MIT
 
 Achievements.lua
+Board.lua
 Init.lua

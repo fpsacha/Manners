@@ -598,6 +598,7 @@ do
 		ready(ns, scenario, { "courtesyRefresh" })
 		local db = ns.db.profile
 		db.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		db.buff.skip = { intellect = true }
 		if #ns.CastableBuffs() ~= 0 then
 			fail(scenario, "SKIPPED -- the mage still has a buff to give")

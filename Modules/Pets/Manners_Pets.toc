@@ -1,8 +1,8 @@
 ## Interface: 16001, 11509, 20506, 50504, 120105
 ## Title: Manners: Pets
-## Notes: Optional hunter pet care, hints, lines and moments for Manners.
+## Notes: Optional hunter pet care, hints, lines and moments, and moments with a companion pet, for Manners.
 ## Author: Sacha
-## Version: 1.12.6
+## Version: 1.13.0
 ## Dependencies: Manners
 ## DefaultState: enabled
 ## X-License: MIT
@@ -10,5 +10,6 @@
 BeastFoods.lua
 HunterPet.lua
 HunterPetHints.lua
+Companion.lua
 Options.lua
 Init.lua

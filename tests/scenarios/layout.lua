@@ -74,10 +74,13 @@ local STAND_IN = {
 }
 
 local function ExpectedGroups()
-	local modules = { "modules" }
-	if Mock.class == "HUNTER" then modules[#modules + 1] = "pet" end
-	modules[#modules + 1] = "self"
-	modules[#modules + 1] = "services"
+	local modules = { "modules", "combat", "self", "services" }
+	-- My pet for a hunter; My companion for anybody else on a client with a pet journal.
+	local journal = _G.C_PetJournal
+	if Mock.class == "HUNTER" or (type(journal) == "table" and type(journal.GetSummonedPetGUID) == "function") then
+		modules[#modules + 1] = "pet"
+	end
+	modules[#modules + 1] = "achievements"
 	return {
 		{ "general" }, { "who", "skip", "when" }, { "click", "quiet" },
 		{ "fight", "appearance" }, modules, { "profiles", "diagnostics" },
@@ -153,7 +156,7 @@ local function Collect(layout, problem)
 end
 
 -- The shape of the table itself: pages, groups, sections, keys and flags.
-local function CheckShape(layout, problem)
+local function CheckShape(layout, problem, kinds)
 	local GROUPS = ExpectedGroups()
 	local pages, inGroups = layout.pages or {}, {}
 	for g, group in ipairs(layout.groups or {}) do
@@ -188,9 +191,12 @@ local function CheckShape(layout, problem)
 			end
 		elseif type(icon) == "string" then
 			local name = icon:match("^Interface\\AddOns\\Manners\\Textures\\Menu\\(%a+)$")
-			if not name then
+			-- Or one of the game's own icons, named as the game names it (a
+			-- module's page: Combat, Services, Achievements...).
+			if not name and icon:match("^Interface\\Icons\\[%w_]+$") then name = false end
+			if name == nil then
 				problem("page " .. pageId .. "'s icon is not one of Textures\\Menu: " .. icon)
-			else
+			elseif name then
 				local file = io.open(dir .. "/Textures/Menu/" .. name .. ".tga", "rb")
 				if not file then
 					problem("page " .. pageId .. "'s icon has no file: Textures/Menu/" .. name .. ".tga")
@@ -236,7 +242,10 @@ local function CheckShape(layout, problem)
 					if item.columns ~= nil and not (type(item.columns) == "number" and item.columns >= 2) then
 						problem(where .. ": " .. tostring(item[1]) .. " has columns = " .. tostring(item.columns))
 					end
-					if item.widget ~= nil and item.widget ~= "number" and item.widget ~= "themes" then
+					-- A widget is one the window has: its own (number, themes) or one a
+					-- module registered (Manners: Achievements' board).
+					kinds = kinds or {}
+					if item.widget ~= nil and item.widget ~= "number" and item.widget ~= "themes" and not kinds[item.widget] then
 						problem(where .. ": " .. tostring(item[1]) .. " asks for a widget the window does not have: " .. tostring(item.widget))
 					end
 				elseif type(item) == "table" and item.composite ~= "never" and item.composite ~= "order" then
@@ -251,7 +260,7 @@ end
 -- some class's model, for the check after the last class.
 local function CheckClass(scenario, ns, layout, seen)
 	local function problem(msg) fail(scenario, msg) end
-	CheckShape(layout, problem)
+	CheckShape(layout, problem, ns.WindowWidgets and ns.WindowWidgets.KIND)
 	local uses = Collect(layout, problem)
 	local model = {}
 	for tab, group in pairs(ns.optionsTable.args) do

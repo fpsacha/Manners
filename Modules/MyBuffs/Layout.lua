@@ -7,7 +7,7 @@ local L = ns.L
 local layout = {
 			title = L["My own buffs"],
 			blurb = L["Reminders for your own buffs, weapon oils, food, flasks and scrolls."],
-			icon = "Interface\\AddOns\\Manners\\Textures\\Menu\\Self",
+			icon = "Interface\\Icons\\Spell_Holy_InnerFire",
 			sections = {
 				{ key = "self.myself", header = "who.myselfHeader", items = {
 					"who.self",
@@ -68,7 +68,9 @@ local layout = {
 					"who.ownHoldMoving",
 					-- The consumables on a button of their own (Prompt/Supplies.lua).
 					"who.ownApart",
-					-- Its key, set here rather than only under Key Bindings.
+					-- Where it sits, then its key, set here rather than
+					-- only under Key Bindings.
+					{ "who.ownApartMove", indent = true },
 					{ "who.ownApartKey", indent = true },
 					-- A warrior's shout for himself, alone (shown to a warrior only).
 					"who.ownShout",

@@ -707,6 +707,7 @@ do
 		H.freshPrompt(ns, scenario)
 		local db = ns.db.profile
 		db.sources.ask = true
+		ns.Ask.ARRIVE_SECONDS = 0
 		db.ask.channel = "WHISPER"
 		local entry
 		for _, e in ipairs(ns.BuildQueue()) do

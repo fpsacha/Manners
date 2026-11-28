@@ -1,9 +1,9 @@
 -- A lone warrior's shout in a fight (GitHub issue 13). With "Remind me of my
 -- shout when I'm alone" on, a warrior in no group was offered Battle Shout out
 -- of a fight, and the prompt emptied the moment one started: "Myself" offers
--- nothing of yours in a fight. The shout is the exception now (Queue.lua,
--- SelfEntry and FightShouts): it lasts minutes and runs out mid-fight. Nothing
--- else of yours is offered in one, and the shout keeps the other rules.
+-- nothing of yours in a fight. The pre-fight snapshot keeps the shout and now
+-- uses the same rule for every class's enabled own buff; hidden in-fight values
+-- never create a new offer.
 --
 -- Every scenario name starts with "shoutfight:" so the mutations in
 -- tests/mutations/shoutfight.py can name the one that has to catch them.
@@ -58,14 +58,20 @@ local function fighting(on)
 	rawset(_G, "UnitAffectingCombat", function(unit) return on and unit == "player" end)
 end
 
+local function pull(ns)
+	Mock.inCombat = false
+	ns.Prompt.armedForFight = true
+	rawset(_G, "UnitAffectingCombat", function(unit) return unit == "player" end)
+end
+
 do
-	local scenario = "shoutfight: a lone warrior's shout stays on in a fight"
+	local scenario = "shoutfight: a lone warrior's shout stays in the pull snapshot"
 	warrior(scenario, true, function(ns)
 		if not mine(ns) then fail(scenario, "SKIPPED -- the shout was not offered out of a fight") return end
-		fighting(true)
+		pull(ns)
 		local entry = mine(ns)
 		if not entry or entry.buff.key ~= "battleshout" then
-			fail(scenario, "in a fight the shout was not offered: " .. tostring(entry and entry.buff.key))
+			fail(scenario, "at the pull the shout was not offered: " .. tostring(entry and entry.buff.key))
 		end
 	end)
 end
@@ -73,17 +79,22 @@ end
 do
 	local scenario = "shoutfight: on the pull, before the lockdown, the shout stays"
 	warrior(scenario, true, function(ns)
-		Mock.inCombat = false
-		rawset(_G, "UnitAffectingCombat", function(unit) return unit == "player" end)
+		pull(ns)
 		local entry = mine(ns)
 		if not entry or entry.buff.key ~= "battleshout" then fail(scenario, "on the pull the shout was dropped") end
+		-- And the prompt the pull arms keeps it (Fight.lua, ForFight).
+		ns.Prompt:Refresh()
+		local showing = ns.Prompt:Showing()
+		if not (showing and showing.buff and showing.buff.key == "battleshout") then
+			fail(scenario, "the prompt the pull armed lost the shout: " .. tostring(showing and showing.buff and showing.buff.key))
+		end
 	end)
 end
 
 do
 	local scenario = "shoutfight: with the switch off, nothing of yours in a fight"
 	warrior(scenario, false, function(ns)
-		fighting(true)
+		pull(ns)
 		if mine(ns) then fail(scenario, "something of yours was offered in a fight: " .. mine(ns).buff.key) end
 	end)
 end
@@ -94,12 +105,13 @@ do
 		-- Wearing the shout: nothing else of yours (a stone, food) may come up instead.
 		local ids = {}
 		for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do ids[id] = true end
-		fighting(true)
+		pull(ns)
 		Mock.playerHeld = ids
 		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
 		-- And a stone of his own due, which a fight never offers.
 		local family = { key = "stonemain", spells = {} }
-		local stone = { key = "w2862m", family = family, name = "Stone" }
+		local stone = { key = "w2862m", family = family, name = "Stone", item = 2862 }
+		family.spells[1] = stone
 		local families, verdict = ns.KnownOwnFamilies, ns.OwnVerdict
 		ns.KnownOwnFamilies = function() return { family } end
 		ns.OwnVerdict = function() return stone, false end
@@ -123,7 +135,7 @@ do
 		-- Resting in a city, with Also in cities and inns off (the default).
 		local saved = rawget(_G, "IsResting")
 		rawset(_G, "IsResting", function() return true end)
-		fighting(true)
+		pull(ns)
 		local ok, entry = pcall(mine, ns)
 		rawset(_G, "IsResting", saved)
 		if not ok then fail(scenario, "threw: " .. tostring(entry)) return end
@@ -131,9 +143,9 @@ do
 	end)
 end
 
--- A mage's own Intellect is no shout: a fight still holds it back.
+-- A mage's own Intellect uses the same pre-fight snapshot rule as a shout.
 do
-	local scenario = "shoutfight: a mage's own Intellect is not offered in a fight"
+	local scenario = "shoutfight: a mage's own Intellect is offered from the pre-fight snapshot"
 	Mock.reset()
 	Mock.class = "MAGE"
 	local savedCombat = rawget(_G, "UnitAffectingCombat")
@@ -152,9 +164,11 @@ do
 				.. tostring(ns.MyselfHeldBack(ns.db.profile)) .. ", " .. #ns.SelfBuffs())
 			return
 		end
-		fighting(true)
+		pull(ns)
 		local entry = mine(ns)
-		if entry then fail(scenario, "in a fight the mage was offered " .. tostring(entry.buff.key)) end
+		if not (entry and entry.buff.key == "intellect") then
+			fail(scenario, "in a fight the mage was not offered Intellect: " .. tostring(entry and entry.buff.key))
+		end
 	end)
 	Mock.inCombat = false
 	Mock.playerHeld = nil

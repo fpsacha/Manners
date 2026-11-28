@@ -101,6 +101,11 @@ local function ForFight(queue)
 	local kept
 	for i, entry in ipairs(queue) do
 		local outOnly = entry.buff and entry.buff.neverInCombat == true
+		-- Your own buff is not frozen on the prompt for a fight ("held -- in
+		-- combat" over yourself, which the owner found useless), unless it is
+		-- cast where it stands and reaches the group in the fight, as a
+		-- warrior's shout does (GitHub issue 13).
+			or (entry.reason == "self" and not (entry.buff and entry.buff.selfCast))
 		if outOnly or (entry.remembered and entry.reason == "nearby") then
 			if not kept then
 				kept = {}

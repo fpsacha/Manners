@@ -194,7 +194,10 @@ local function Place(art, rel, g)
 	local d, s = art.data, art.pieces
 	Box(s[1], rel, g.left, g.y0, g.x1, g.y1)
 	s[1]:SetTexCoord(0, g.leftR, 0, d.left.b)
-	Box(s[2], rel, g.x1 - SEAM, g.y0, g.x2 + SEAM, g.y1)
+	-- A look with a shadow round it has the shadow's band taken off each end's
+	-- inner edge (tools/make_painted_look.py, seam): the middle covers it all.
+	local seam = math.max(SEAM, (d.seam or 0) * g.unit)
+	Box(s[2], rel, g.x1 - seam, g.y0, g.x2 + seam, g.y1)
 	s[2]:SetTexCoord(0, d.middle.r, 0, d.middle.b)
 	Box(s[3], rel, g.x2, g.y0, g.right, g.y1)
 	s[3]:SetTexCoord(g.rightL, d.right.r, 0, d.right.b)

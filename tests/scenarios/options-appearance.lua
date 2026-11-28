@@ -90,7 +90,9 @@ do
 		local known = {}
 		for _, key in ipairs(ORDER) do known[key] = true end
 		for key in pairs(args) do
-			if not known[key] then
+			-- Manners: Combat's controls keep their Look tab paths but are drawn
+			-- on the module's own page (Modules/Combat/Options.lua).
+			if not known[key] and not key:find("^moment%u") and not key:find("^combatAction") then
 				fail(scenario, "the tab has a control the spec does not: " .. key)
 			end
 		end

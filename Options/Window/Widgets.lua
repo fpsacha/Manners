@@ -642,7 +642,7 @@ local function PlaceOffNote(row, width, h)
 		fs = W.Wrapping(W.Text(row.frame, T.fonts.small, T.hint))
 		row.offNote = fs
 	end
-	local x = row.kind == "toggle" and 25 or 0
+	local x = row.kind == "toggle" and (row.textX or 25) or 0
 	fs:ClearAllPoints()
 	fs:SetPoint("TOPLEFT", row.frame, "TOPLEFT", x, -(h + 2))
 	fs:SetWidth(math.max(1, width - x))
@@ -958,6 +958,18 @@ function W.CheckLook(box, on, off)
 	W.BorderColour(box.edges, off and T.boxOff or T.boxEdge)
 end
 
+-- A switch that names a spell wears the spell's icon between the box and the
+-- words: the def's `image`, a texture path or file id, or a function giving one.
+local ICON_SIZE, ICON_GAP = 18, 4
+
+function W.Image(row)
+	local def = row.item.def
+	local value = def and def.image
+	if type(value) == "function" then value = value(row.item.info) end
+	if type(value) == "number" or (type(value) == "string" and value ~= "") then return value end
+	return nil
+end
+
 local function ToggleClicked(hit)
 	local row = hit.row
 	if W.Off(row) then return end
@@ -971,9 +983,15 @@ KIND.toggle = {
 		hit:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, 0)
 		row.box = W.CheckBox(hit)
 		row.box:SetPoint("TOPLEFT", hit, "TOPLEFT", 0, 0)
+		row.icon = hit:CreateTexture(nil, "ARTWORK")
+		row.icon:SetSize(ICON_SIZE, ICON_SIZE)
+		row.icon:SetPoint("TOPLEFT", hit, "TOPLEFT", 25, 0)
+		row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+		row.icon:Hide()
 		local fs = W.Wrapping(W.Text(hit, T.fonts.label, T.ink))
 		fs:SetPoint("TOPLEFT", hit, "TOPLEFT", 25, -2)
 		row.label = fs
+		row.textX = 25
 		hit:SetScript("OnClick", function(self) ns.Guard("options toggle", ToggleClicked, self) end)
 		W.Tip(hit, row)
 		row.hit = hit
@@ -981,16 +999,30 @@ KIND.toggle = {
 	Refresh = function(row)
 		row.label:SetText(W.Trim(W.Name(row)))
 		TextColour(row.label, row.off and T.dim or T.ink)
+		local image = W.Image(row)
+		local x = image and 25 + ICON_SIZE + ICON_GAP or 25
+		if image then
+			row.icon:SetTexture(image)
+			row.icon:SetDesaturated(row.off and true or false)
+			row.icon:SetAlpha(row.off and 0.55 or 1)
+		end
+		row.icon:SetShown(image ~= nil)
+		if x ~= row.textX then
+			row.textX = x
+			row.label:ClearAllPoints()
+			row.label:SetPoint("TOPLEFT", row.hit, "TOPLEFT", x, -2)
+		end
 		W.CheckLook(row.box, Bind().Value(row.item) == true, row.off)
 		row.hit:SetEnabled(not row.off)
 	end,
 	Layout = function(row, width)
-		local room = math.max(1, width - 25)
+		local x = row.textX or 25
+		local room = math.max(1, width - x)
 		row.label:SetWidth(room)
 		local h = math.max(18, math.ceil(W.TextHeight(row.label)) + 3)
-		row.hit:SetSize(25 + math.min(room, math.ceil(W.Measure(row.label))), h)
+		row.hit:SetSize(x + math.min(room, math.ceil(W.Measure(row.label))), h)
 		row.fieldTop, row.fieldHeight = 0, 18
 		return h
 	end,
-	Natural = function(row) return 25 + W.Measure(row.label) end,
+	Natural = function(row) return (row.textX or 25) + W.Measure(row.label) end,
 }

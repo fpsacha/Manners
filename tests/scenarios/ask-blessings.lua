@@ -34,6 +34,7 @@ local function ready(scenario)
 	end
 	freshPrompt(ns, scenario)
 	ns.db.profile.sources.ask = true
+	ns.Ask.ARRIVE_SECONDS = 0
 	return ns, function()
 		restoreUnits()
 		restore()

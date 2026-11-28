@@ -47,8 +47,9 @@ of Pandaria Classic** and **retail**, in nine languages.
   offered first: Wisdom for mages, say, where the order would give them Kings.
 - **The favour ledger.** Who buffed you, what you gave back, and who you
   buffed first.
-- **Optional achievements.** **Manners: Achievements** adds quiet bronze,
-  silver and gold goals as a tab of the ledger, with toasts off by default.
+- **Optional achievements.** **Manners: Achievements** adds thirty-one quiet
+  achievements, goals, points and ranks for good manners, all on its own
+  options page, with toasts off by default.
 - **Profiles that switch by themselves.** One for the open world, one for
   dungeons, raids or battlegrounds, chosen as you arrive, and a profile
   manager that can use, duplicate, rename or delete any of them, with *Undo*.
@@ -237,6 +238,34 @@ Enable it on *Optional modules* to show the cure, Will of the Forsaken and
 in-fight Mend Pet controls. With it disabled, Manners creates
 none of those frames and shows none of their settings.
 
+With Manners: Combat on, its own **Combat** page (under *Optional modules*)
+lists the detected combat actions for this character: interrupts,
+defensives, hostile dispels, and the other reactions this client can actually
+read. It opens with how many are on, and *Turn all on* / *Turn all off* sit
+over the list. Every action has its own switch, all off by default. When a need is detected,
+that action's card appears with its icon and reason and pulses for attention.
+Each action you turn on has its own place in a short row, the most urgent
+first, so a card always appears where it appeared before; the game does not
+let an addon swap which button sits on top in a fight, so the cards are never
+stacked. There are no per-spell keys. Manners arms enabled actions before combat;
+it never rewrites a secure cast during lockdown. A need the client withholds is
+either read through a safe game-provided signal or left dark rather than
+guessed. Interrupts are immediate after a target-cast event even when the client
+withholds the interruptible flag; a plainly uninterruptible cast stays dark.
+The prompt's entire panel is clickable. Under *Look and alerts* it wears the
+Manners prompt's look (*Wear the Manners prompt's look*, on); untick that and a
+gallery of every look opens beneath, each one tried on the combat prompt as you
+point at it. You can resize it, choose a quiet, pulse or strong-pulse alert and
+add a sound (heard once as you turn it on). *Show and move the combat prompt*
+puts the options away and shows the prompt over everything with a small bar
+(*Reset*, *Done*); drag it, then *Done* or a right-click brings the options back.
+A look or size changed while it shows appears on it at once. By default it
+sits just above the Manners prompt, so each keeps its own clicks; placed over
+the Manners prompt, the Manners prompt takes the click where they meet. With Manners: Combat on, the
+round below, Will of the Forsaken, the cure in a fight and Mend Pet's button
+are set on this page too (*The prompt in a fight*, *Fight buttons beside the
+prompt*), and *In a fight* leaves the sidebar.
+
 The game locks the prompt for as long as a fight lasts: an addon may not
 change what a button casts then. So as a fight begins Manners hands the prompt
 everybody who still needed a buff at that moment (a passer-by who walked off
@@ -252,7 +281,7 @@ when the fight ends. Nobody is
 added to that list or taken off it before the fight ends, a skip cannot take
 somebody off it (chat says so), and names in the list cannot be clicked. *In a
 fight, each press moves on to the next person* (*In a fight*, on)
-switches the round off, and every press then casts at the one person the
+(*Combat* while Manners: Combat is on) switches the round off, and every press then casts at the one person the
 prompt was on. The Manners macro on an action bar keeps to that one person
 either way: the game does not let an addon rewrite a macro in a fight, nor a
 macro press a button that runs one, so in a fight the bar macro cannot move
@@ -448,7 +477,8 @@ once you carry one.
   Nothing is offered while you are eating, moving, mounted or in a fight, and a meal
   cut short brings the reminder back at once.
 - **Well-Rested** (Classic Era and WoW Forever), for the Cozy Sleeping Bag:
-  one press lays it down. Not at the level cap, nor during the hour its use
+  one press lays it down (on Classic Era at your feet; on Forever the game
+  asks where, a click on the ground). Not at the level cap, nor during the hour its use
   cools down, nor while you move. *Remind me before Well-Rested runs out*,
   under it, brings the bag back when five minutes are left, so you can renew
   it in time. *Sleeping bag before food and elixirs* holds food, flasks,
@@ -719,7 +749,8 @@ offered. Every action stays on the secure prompt until you press it.
 
 - **Mage:** conjured water and food can be traded to a level-appropriate
   target, named portal destinations remain explicit, and Slow Fall can be
-  requested for a friendly visible player.
+  requested for a friendly visible player. The prompt uses the resulting
+  water or food item icon for both the conjure and trade steps.
 - **Warlock:** healthstones use a trade or a Soulwell where the client has
   one; group summons, Soulstone preparation and Fire Shield from an imp are
   separate switches.
@@ -737,8 +768,9 @@ never accepts a trade or casts by itself.
 somebody in your group, or right beside you, could cast a buff you would want
 and do not have, they come up last of everything on the prompt, and a press
 whispers them one short polite line. It casts nothing and leaves your target
-alone. One ask a person for each buff in ten minutes, and one ask in all in
-two; never in a fight, a battleground or an arena; nobody on your never-offer
+alone. Nobody comes up until they have stayed within reach for half a
+minute, so a group that just met is not asked at once. One ask a person for
+each buff in ten minutes, and one ask in all in two; never in a fight, a battleground or an arena; nobody on your never-offer
 or `/ignore` list, nobody dead, fighting, away or busy. *Ask in* chooses a
 whisper (the default) or `/say`, *What the ask says* one of three lines or
 *My own words*, a line you write in the box under it (`{name}` their name,
@@ -826,13 +858,24 @@ the ledger* on Start here. It keeps the last 200 entries per character;
 *Clear* empties the list and today's count but keeps favours still owed, the
 all-time totals.
 
-With **Manners: Achievements** enabled, the same window gains an
-*Achievements* tab. Its four themes—Gratitude, Generosity, Fellowship and
-Courtesy—have bronze, silver and gold goals at 10, 100 and 1000, with progress
-kept separately per character and class. A few moments stay hidden until
-earned. Counts are capped once per person and goal each day, and a first enable
-seeds only the ledger's last 200 rows. Notifications are off by default; sound
-is off too, and there is no separate hall or share window.
+With **Manners: Achievements** enabled, the options sidebar gains an
+*Achievements* page that holds everything. At the top, your rank with a bar to
+the next one, your points, goals reached and achievements complete, and the
+achievements earned lately (each names itself under the mouse). Under them, tabs: *Kind*,
+*Show* (all, earned, in progress, not started) and *Sort by*. Then every
+achievement as a card, two to a row in the usual window (one when narrow,
+three when wide): its icon, name and kind, what to do to earn it, which goal it
+works toward (*Goal 2 of 3*), and a bar with the count to that goal; the card's
+tooltip lists every goal. *Statistics and settings* has the counts as tiles
+and the notification. Thirty-one achievements in five kinds (Gratitude,
+Generosity, Fellowship, Courtesy and Devotion) each have one to three goals of
+their own. A few stay hidden until
+earned. Progress is
+kept separately per character and class, counts are capped once per person
+and goal each day, and a first enable seeds only the ledger's last 200 rows.
+Notifications are off by default (*Show an example* tries the one you pick);
+sound is off too. *Start this character over* clears one character's
+achievements.
 
 ## The prompt's look
 
@@ -1058,11 +1101,15 @@ no room for. Defaults are in brackets.
   the fixes last, then the three releases before it in brief. In English, as
   the changelog is.
 
-### Optional modules
+### Choose modules
+
+The first page of the sidebar's *Optional modules* group; the modules' own
+pages follow it in one order: *Combat*, *My own buffs*, *Services*, *My pet*
+(or *My companion*) and *Achievements*, each with the game's own icon.
 
 - **Available modules** lists each optional addon beside a short description
-  of what it adds: *Manners: Combat*, *Manners: Achievements*, *Manners: Pets*,
-  *Manners: My Buffs* and *Manners: Services*.
+  of what it adds: *Manners: Combat*, *Manners: My Buffs*, *Manners: Services*,
+  *Manners: Pets* and *Manners: Achievements*.
 - Tick or untick a module here. *Reload now* appears under **Apply changes**
   only while a reload is needed; changing a switch back to the state of the
   current session clears it.
@@ -1156,7 +1203,9 @@ no room for. Defaults are in brackets.
   to four hours): the same for the consumables button and *Skip for now* in
   the minimap menu, and a skipped food skips every food in your bags, since
   any of them gives Well Fed. The box reads 12 s or 5 min, and you can type
-  5m or 1h.
+  5m or 1h. *After a right-click on my own buff, offer 15, 30, 45 or 60
+  minutes* (off) puts four small buttons under the prompt for a few seconds
+  after such a right-click, to leave that buff alone longer.
 - ***Players to skip***:
   - *Skip players flagged for PvP* (on): buffing somebody flagged flags you
     too, so while you are not flagged, nobody flagged is offered, not even a
@@ -1254,13 +1303,30 @@ alone. Your own spells are kept.
 
 ### My pet
 
-Supplied by **Manners: Pets**, which is enabled by default. For hunters; every
-other class, including warlocks, has no such page. *Looking after my pet* has
+Supplied by **Manners: Pets**, which is enabled by default. For hunters. *Looking after my pet* has
 *Everything for my pet* and, under it, a switch for each piece of care. *Mend
 Pet* and *Mend Pet in a fight* stand side by side: the first reminds you, the
 second is the button for a fight, and *In a fight* has it too. *Each moment
 with my pet* is folded: a switch for every moment, the pet's answer, your line
-and the memory. *Reset this page* puts them all back on.
+and the memory. *My companion*, at the end, has the switch below. *Reset this
+page* puts them all back on.
+
+### My companion
+
+Supplied by **Manners: Pets**, for every class but the hunter (whose *My pet*
+page has it), on the clients with a pet journal: WoW Forever, Mists and retail.
+*Moments with my companion* (off) offers, now and then, a moment with the
+companion pet that follows you: hello at login or when you call it out, well
+done after a fight of 45 seconds or more with it out from start to end, a pat
+on a quiet road, a game after a minute standing still, a celebration when you
+level up, a cuddle when you reach an inn or a city, a hug when you come back
+from the dead, and a treat when you hand in a quest. A press targets it by its
+name, does an emote for it, an */emote* of a gesture and its answer (each picked
+at random: it chirps, spins, wiggles with joy...), something sweet said to it
+when In character is on and lines go in /say, and gives your target back. Never
+in a fight; a right-click lets it pass. Under the switch: *How often moments
+come* (Sometimes: one in twenty minutes at most), a switch for each moment,
+*My companion answers* and *Say a line to my companion*, all on.
 
 ### Quiet times
 
