@@ -210,7 +210,7 @@ do
 					if realStrata then return realStrata(self, s, ...) end
 				end
 			end
-			if not ns.Moments.Preview() or not ns.Moments.Anchor():IsMouseEnabled() then
+			if not ns.Moments.Preview(nil, true) or not ns.Moments.Anchor():IsMouseEnabled() then
 				fail(scenario, "the safe combat prompt preview could not be dragged")
 			end
 			if strata[#strata] ~= "FULLSCREEN_DIALOG" then

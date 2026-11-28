@@ -33,7 +33,7 @@ mutate("Options/Window/WindowChrome.lua",
 
 FREE = "combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro"
 mutate("Modules/Combat/Moments.lua",
-       "\t\t\tif free and previewing then\n",
+       "\t\t\tif free and dragging then\n",
        "\t\t\tif false then\n",
        "combat-actions: no handle for each card",
        expect=FREE, script=S)
@@ -48,8 +48,8 @@ mutate("Modules/Combat/Moments.lua",
        "combat-actions: a saved card's place is not used",
        expect=FREE, script=S)
 mutate("Modules/Combat/Moments.lua",
-       "\tat:EnableMouse(previewing == true and not free)\n",
-       "\tat:EnableMouse(previewing == true)\n",
+       "\tat:EnableMouse(dragging and not free)\n",
+       "\tat:EnableMouse(dragging)\n",
        "combat-actions: the row's frame takes the drag in a free layout",
        expect=FREE, script=S)
 mutate("Modules/Combat/Moments.lua",

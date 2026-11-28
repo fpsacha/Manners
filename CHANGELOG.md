@@ -11,6 +11,9 @@
 - **A held Battle Shout no longer hides your other own buffs.** With *only for
   tanks and melee* or *only in dungeon and raid fights* on, food, flasks and
   the rest still come up (My own buffs).
+- **Pointing at a look no longer sets the combat cards moving.** Only *Move the
+  cards* lets them be dragged, and the preview a look brings up goes away with
+  the pointer (Manners: Combat).
 
 ### Combat
 - **Moving the combat prompt is simpler.** At the top of the Combat page:

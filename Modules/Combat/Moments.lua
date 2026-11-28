@@ -1198,8 +1198,11 @@ Place = function(p)
 	at:SetSize(W, H)
 	local free = moments.layout == "free"
 	local places = type(moments.places) == "table" and moments.places or {}
-	-- In a free layout the cards' own handles take the drag, not the row's.
-	at:EnableMouse(previewing == true and not free)
+	-- Dragged only while being moved (Move the cards): a preview that shows a
+	-- look or a size moves nothing. In a free layout the cards' own handles take
+	-- the drag, not the row's.
+	local dragging = previewing == true and moving == true
+	at:EnableMouse(dragging and not free)
 	-- The bar only while the prompt is being moved, not while a look is tried.
 	anchorLabel:SetShown(previewing == true and moving == true)
 	anchorLabel.how:SetText(free and L["Drag each card to move it."] or L["Drag it to move it."])
@@ -1237,7 +1240,7 @@ Place = function(p)
 				b:SetPoint("CENTER", at, "CENTER", (i - 1) * dx, (i - 1) * dy)
 			end
 			b:SetSize(W, H)
-			if free and previewing then
+			if free and dragging then
 				local h = Handle(slot)
 				h:ClearAllPoints()
 				h:SetPoint("CENTER", b, "CENTER", 0, 0)
@@ -1809,8 +1812,10 @@ end
 -- made, and stays until the player is done with it.
 function Moments.Restyle()
 	if InCombatLockdown() or Sense.fighting then return false end
+	-- A move under way stays one: the cards keep their handles.
+	local wasMoving = previewing and moving
 	Moments:Refresh()
-	Moments.Preview(true)
+	Moments.Preview(true, wasMoving)
 	return true
 end
 
@@ -1819,6 +1824,12 @@ end
 function Moments.TryLook(key)
 	if InCombatLockdown() or Sense.fighting then return false end
 	Moments.tried = key
+	-- The trial over: the preview it brought up goes with it, unless the cards
+	-- are being moved.
+	if key == nil and previewing and not moving then
+		EndPreview()
+		return true
+	end
 	return Moments.Restyle()
 end
 

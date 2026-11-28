@@ -28,8 +28,8 @@ mutate("Modules/Combat/Moments.lua",
        expect="the preview closed on its own before the player finished moving it", script=S)
 
 mutate("Modules/Combat/Moments.lua",
-       "\tMoments.Preview(true)",
-       "\tlocal _ = true",
+       "\tMoments.Preview(true, wasMoving)",
+       "\tlocal _ = wasMoving",
        "combat actions: changing the look does not show the prompt",
        expect="changing the look did not show the combat prompt to see the change", script=S)
 
