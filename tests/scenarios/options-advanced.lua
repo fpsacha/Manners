@@ -84,7 +84,7 @@ local PLACED = {
 	},
 	-- Who to skip: how long a right-click skips, open under its own heading.
 	skip = {
-		{ "advanced.skipSeconds" }, { "advanced.ownSkipMinutes" },
+		{ "advanced.skipSeconds" }, { "advanced.ownSkipMinutes" }, { "advanced.ownSkipChoices" },
 	},
 	appearance = {
 		{ "advanced.x", folded = true }, { "advanced.y", folded = true },

@@ -424,7 +424,7 @@ local EXPECTED = {
 		"sources.courtesyTarget", "sources.courtesyAmount",
 	},
 	skip = { "filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.skipGuilds", "filters.skipMuted", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel",
-		"timing.skipSeconds", "timing.ownSkipMinutes" },
+		"timing.skipSeconds", "timing.ownSkipMinutes", "timing.ownSkipChoices" },
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid",
 		"filters.verifiedOnly",
@@ -471,7 +471,7 @@ local EXPECTED = {
 	-- wording, and never the exact position drawn on the same tab.
 	advanced = {
 		"sources.owedClassBuffsOnly", "timing.reciprocateWindow", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.ownSkipChoices", "timing.scanInterval",
 		"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
 		"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
 		"prompt.reasonRefresh", "prompt.reasonUnknown", "filters.repayCovered",

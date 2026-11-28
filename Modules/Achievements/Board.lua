@@ -248,15 +248,12 @@ local function Fit(card, width)
 	local inner = width - x - PAD
 	local stepW = card.step:GetText() ~= "" and math.ceil(W.Measure(card.step)) + 2 or 0
 	local kindW = math.ceil(W.Measure(card.kind))
-	card.step:ClearAllPoints()
-	card.step:SetPoint("TOPRIGHT", card, "TOPRIGHT", -PAD, -(PAD + 2))
-	card.step:SetWidth(math.max(1, stepW))
 	card.kind:ClearAllPoints()
-	card.kind:SetPoint("TOPRIGHT", card, "TOPRIGHT", -(PAD + stepW + (stepW > 0 and 8 or 0)), -(PAD + 2))
+	card.kind:SetPoint("TOPRIGHT", card, "TOPRIGHT", -PAD, -(PAD + 2))
 	card.kind:SetWidth(kindW + 2)
 	card.title:ClearAllPoints()
 	card.title:SetPoint("TOPLEFT", card, "TOPLEFT", x, -PAD)
-	card.title:SetWidth(math.max(1, inner - stepW - kindW - 18))
+	card.title:SetWidth(math.max(1, inner - kindW - 10))
 	local y = PAD + math.ceil(W.TextHeight(card.title)) + 4
 	card.desc:ClearAllPoints()
 	card.desc:SetPoint("TOPLEFT", card, "TOPLEFT", x, -y)
@@ -267,9 +264,14 @@ local function Fit(card, width)
 		card.count:ClearAllPoints()
 		card.count:SetPoint("TOPRIGHT", card, "TOPRIGHT", -PAD, -(y - 4))
 		card.count:SetWidth(countW)
+		-- Which goal, left of the count on the bar's own line.
+		card.step:ClearAllPoints()
+		card.step:SetPoint("TOPRIGHT", card.count, "TOPLEFT", -6, 0)
+		card.step:SetWidth(math.max(1, stepW))
+		card.step:SetShown(stepW > 0)
 		card.bar:ClearAllPoints()
 		card.bar:SetPoint("TOPLEFT", card, "TOPLEFT", x, -y)
-		BarWidth(card.bar, inner - countW - 8)
+		BarWidth(card.bar, inner - countW - 8 - (stepW > 0 and stepW + 6 or 0))
 		y = y + BAR_H
 	elseif card.done:IsShown() then
 		card.done:ClearAllPoints()

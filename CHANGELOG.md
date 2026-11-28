@@ -32,7 +32,7 @@
 - **Achievements** on a page of their own, drawn as a board: your rank and
   points, what you earned lately, tabs by kind, by progress and by order,
   and a card for each achievement that says what to do, which goal it works
-  toward (*Goal 2 of 3*) and the count. Old saves keep their counts.
+  toward, such as Goal 2 of 3, and the count. Old saves keep their counts.
 
 ### Changes
 - **Where the combat cards sit** (Combat, Look and alerts): *A row* that grows

@@ -83,7 +83,9 @@ withTree("merge-fix: every painting's middle reaches a unit under each end", fun
 				seen = seen + 1
 				local L, M, R = box(art.pieces[1]), box(art.pieces[2]), box(art.pieces[3])
 				local inL, inR = L and M and (L.x1 - M.x0), M and R and (M.x1 - R.x0)
-				if not (inL and inR and inL >= 0.5 and inL <= 1.05 and inR >= 0.5 and inR <= 1.05) then
+				-- A painted shadow (data seam) has the middle reach further, by its band.
+				local limit = 1.05 + (art.data and art.data.seam or 0) * size[2]
+				if not (inL and inR and inL >= 0.5 and inL <= limit and inR >= 0.5 and inR <= limit) then
 					fail(scenario, ("%s at %dx%d: the middle reaches %s under the left end and %s under the right"):format(style,
 						size[1], size[2], tostring(inL), tostring(inR)))
 				end

@@ -555,6 +555,8 @@ local added = {
 		rawset(_G, "UnitAffectingCombat", function() return false end)
 		boot(ns, { nameplate1 = SABLE })
 		ns.db.profile.sources.ask = true
+		-- Nobody is asked until they have stayed in reach a while; the picture skips the wait.
+		if ns.Ask then ns.Ask.ARRIVE_SECONDS = 0 end
 		settleKind(ns)
 	end },
 	-- The hero: a favour to return, the pulse near its brightest.
