@@ -235,7 +235,7 @@ local SERVICE_WRITES = { Courtesy = true }
 -- The page draws its rows framed (WindowLayout's notes), repaints the window
 -- when a count moves, and names the spells given for Varied Gifts.
 local ACHIEVEMENT_KEYS = { L = true, addon = true, WindowLayout = true,
-	RefreshOptionsDisplay = true, SpellNameFor = true, Achievements = true }
+	RefreshOptionsDisplay = true, SpellNameFor = true, Achievements = true, WindowWidgets = true }
 -- Its own reading of the list, for the tests and /manners debug.
 local ACHIEVEMENT_WRITES = { Achievements = true }
 

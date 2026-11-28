@@ -11,4 +11,5 @@
 ## X-License: MIT
 
 Achievements.lua
+Board.lua
 Init.lua

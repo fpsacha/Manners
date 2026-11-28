@@ -852,12 +852,18 @@ the ledger* on Start here. It keeps the last 200 entries per character;
 all-time totals.
 
 With **Manners: Achievements** enabled, the options sidebar gains an
-*Achievements* page that holds everything: your rank and points, what you
-earned lately, every achievement with its icon, progress bar and medal goals,
-and the counts behind them. Thirty-one achievements in five kinds (Gratitude,
+*Achievements* page that holds everything. At the top, your rank with a bar to
+the next one, your points, medals and achievements complete, and the medals
+earned lately (each names itself under the mouse). Under them, tabs: *Kind*,
+*Show* (all, earned, in progress, not started) and *Sort by*. Then every
+achievement as a card, two to a row in the usual window (one when narrow,
+three when wide): its icon, name and kind, its line, a bar with the count to
+the next medal, and a pip for each medal, coloured once earned; the card's
+tooltip lists every goal. *Statistics and settings* has the counts as tiles
+and the notification. Thirty-one achievements in five kinds (Gratitude,
 Generosity, Fellowship, Courtesy and Devotion) each have goals of their own:
 one for a single medal, or bronze, silver and gold. A few stay hidden until
-earned. *Kind*, *Show* and *Sort by* narrow and order the list. Progress is
+earned. Progress is
 kept separately per character and class, counts are capped once per person
 and goal each day, and a first enable seeds only the ledger's last 200 rows.
 Notifications are off by default (*Show an example* tries the one you pick);

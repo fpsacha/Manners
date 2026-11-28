@@ -166,7 +166,6 @@ local function Database()
 	if not SETTINGS.filter[db.filter] then db.filter = "all" end
 	if not SETTINGS.sort[db.sort] then db.sort = "theme" end
 	if db.theme ~= "all" and not THEME[db.theme] then db.theme = "all" end
-	db.page = math.max(1, math.floor(tonumber(db.page) or 1))
 	return db
 end
 
@@ -528,110 +527,6 @@ local function List()
 	return rows
 end
 
--- The list a page at a time, so the page stays short however many there are.
-local PAGE_SIZE = 8
-local function Pages()
-	return math.max(1, math.ceil(#List() / PAGE_SIZE))
-end
-local function Page()
-	local db = Database()
-	if db.page > Pages() then db.page = Pages() end
-	return db.page
-end
-local function OnPage(i)
-	return List()[(Page() - 1) * PAGE_SIZE + i]
-end
-
--- A bar drawn in the text: two stretched white squares, filled and empty.
-local BAR_W = 150
-local function Bar(fraction, colour)
-	local filled = math.floor(BAR_W * math.max(0, math.min(1, fraction)) + 0.5)
-	local r = tonumber(colour:sub(1, 2), 16) or 255
-	local g = tonumber(colour:sub(3, 4), 16) or 255
-	local b = tonumber(colour:sub(5, 6), 16) or 255
-	local out = ""
-	if filled > 0 then
-		out = ("|TInterface\\Buttons\\WHITE8X8:6:%d:0:0:8:8:0:8:0:8:%d:%d:%d|t"):format(filled, r, g, b)
-	end
-	if filled < BAR_W then
-		out = out .. ("|TInterface\\Buttons\\WHITE8X8:6:%d:0:0:8:8:0:8:0:8:60:60:66|t"):format(BAR_W - filled)
-	end
-	return out
-end
-
-local function Goals(def, tier)
-	if #def.goals == 1 then return "" end
-	local parts = {}
-	for i, goal in ipairs(def.goals) do
-		local medal = MedalOf(def, i)
-		local text = ("%s %d"):format(medal.name, goal)
-		parts[i] = i <= tier and ("|cff" .. medal.colour .. text .. "|r") or ("|cff808080" .. text .. "|r")
-	end
-	return table.concat(parts, "  ")
-end
-
-local function RowText(def)
-	local st = State()
-	local theme = THEME[def.theme]
-	local tier = st.earned[def.id] or 0
-	local progress = Value(st, def)
-	if def.hidden and tier == 0 then
-		return ("|T%s:24:24|t  |cff808080%s|r  |cff%s%s|r\n%s"):format(LOCKED_ICON, L["A hidden moment"],
-			theme.colour, theme.name, L["Good manners will reveal it."])
-	end
-	local medal = MedalOf(def, tier)
-	local title = ("|T%s:24:24|t  |cffffffff%s|r  |cff%s%s|r"):format(ICONS .. def.icon, def.name, theme.colour, theme.name)
-	if medal then title = title .. ("  |cff%s[%s]|r"):format(medal.colour, medal.name) end
-	local lines = { title, def.desc }
-	local nextGoal = def.goals[tier + 1]
-	if nextGoal then
-		lines[#lines + 1] = Bar(Closeness(st, def), theme.colour) .. "  " .. L["%d / %d"]:format(progress, nextGoal)
-	elseif st.when[def.id] then
-		lines[#lines + 1] = "|cff80d18c" .. L["Completed on %s"]:format(date("%Y-%m-%d", st.when[def.id])) .. "|r"
-	else
-		lines[#lines + 1] = "|cff80d18c" .. L["Completed"] .. "|r"
-	end
-	local goals = Goals(def, tier)
-	if goals ~= "" then lines[#lines + 1] = goals end
-	return table.concat(lines, "\n")
-end
-
-local function SummaryText()
-	local st = State()
-	local points, medals, max, done, rank, nextRank = Totals(st)
-	local lines = {
-		("|cffffd100%s|r"):format(rank.name),
-		L["%d points, %d of %d medals, %d of %d achievements complete."]:format(points, medals, max, done, #DEFS),
-	}
-	if nextRank then
-		local from = rank.at
-		lines[#lines + 1] = Bar((points - from) / math.max(1, nextRank.at - from), "ffd100") .. "  "
-			.. L["%d points to %s"]:format(nextRank.at - points, nextRank.name)
-	end
-	if (st.metrics.streak or 0) > 1 and st.days[Day()] then
-		lines[#lines + 1] = L["Good manners %d days in a row."]:format(st.metrics.streak)
-	end
-	return table.concat(lines, "\n")
-end
-
-local function RecentText()
-	local st = State()
-	local earned = {}
-	for _, def in ipairs(DEFS) do
-		if (st.earned[def.id] or 0) > 0 and st.when[def.id] then earned[#earned + 1] = def end
-	end
-	table.sort(earned, function(a, b) return st.when[a.id] > st.when[b.id] end)
-	if #earned == 0 then return "|cff808080" .. L["Nothing earned yet. Return a favour to begin."] .. "|r" end
-	local lines = {}
-	for i = 1, math.min(5, #earned) do
-		local def = earned[i]
-		local medal = MedalOf(def, st.earned[def.id])
-		lines[i] = ("|T%s:16:16|t %s  |cff%s%s|r  |cff808080%s|r"):format(ICONS .. def.icon, def.name,
-			medal.colour, medal.name, date("%Y-%m-%d", st.when[def.id]))
-	end
-	return table.concat(lines, "\n")
-end
-
 local STATS = {
 	{ "returns", L["Favours you returned"] }, { "quick", L["Returned within ten seconds"] },
 	{ "received", L["Buffs other players gave you"] }, { "givers", L["Different people who buffed you"] },
@@ -642,15 +537,6 @@ local STATS = {
 	{ "thanks", L["People you thanked"] }, { "activeDays", L["Days with good manners"] },
 	{ "bestStreak", L["Longest run of days"] },
 }
-
-local function StatsText()
-	local st = State()
-	local lines = {}
-	for i, stat in ipairs(STATS) do
-		lines[i] = ("%s: |cffffffff%d|r"):format(stat[2], st.metrics[stat[1]] or 0)
-	end
-	return table.concat(lines, "\n")
-end
 
 ShowToast = function(def, tier, line)
 	toastEpoch = toastEpoch + 1
@@ -700,86 +586,29 @@ api:RegisterCallback("Service.Given", OnService, A)
 -- the page
 ---------------------------------------------------------------------------
 
+-- What the board shows (Board.lua): one kind or every kind, what of it, and
+-- in which order; a value it does not know is the default.
+local VIEW_DEFAULT = { theme = "all", filter = "all", sort = "theme" }
+local function SetView(field, value)
+	local db = Database()
+	if field == "theme" then
+		db.theme = (value == "all" or THEME[value]) and value or "all"
+	elseif field == "filter" or field == "sort" then
+		db[field] = SETTINGS[field][value] and value or VIEW_DEFAULT[field]
+	else
+		return
+	end
+	Bump()
+end
+
 local function Options()
 	local args = {}
-	args.achievementSummary = { type = "description", order = 1, fontSize = "medium",
-		name = function() return SummaryText() end }
-	args.achievementRecent = { type = "description", order = 2,
-		name = function() return RecentText() end }
-	local themes, themeOrder = { all = L["Every kind"] }, { "all" }
-	for _, theme in ipairs(THEMES) do
-		themes[theme.id] = theme.name
-		themeOrder[#themeOrder + 1] = theme.id
-	end
-	args.achievementTheme = {
-		type = "select", name = L["Kind"], order = 3,
-		desc = L["Show one kind of achievement, or every kind."],
-		values = themes, sorting = themeOrder,
-		get = function() return Database().theme end,
-		set = function(_, value)
-			local db = Database()
-			db.theme, db.page = THEME[value] and value or "all", 1
-		end,
-	}
-	args.achievementFilter = {
-		type = "select", name = L["Show"], order = 4,
-		desc = L["Which achievements the list shows."],
-		values = { all = L["All"], earned = L["Earned"], progress = L["In progress"], locked = L["Not started"] },
-		sorting = { "all", "earned", "progress", "locked" },
-		get = function() return Database().filter end,
-		set = function(_, value)
-			local db = Database()
-			db.filter, db.page = SETTINGS.filter[value] and value or "all", 1
-		end,
-	}
-	args.achievementSort = {
-		type = "select", name = L["Sort by"], order = 5,
-		desc = L["The order of the list."],
-		values = { theme = L["Kind"], closest = L["Closest to the next medal"],
-			recent = L["Most recently earned"], name = L["Name"] },
-		sorting = { "theme", "closest", "recent", "name" },
-		get = function() return Database().sort end,
-		set = function(_, value)
-			local db = Database()
-			db.sort, db.page = SETTINGS.sort[value] and value or "theme", 1
-		end,
-	}
-	args.achievementNone = { type = "description", order = 6,
-		name = "|cff808080" .. L["Nothing matches. Choose another kind or show all."] .. "|r",
-		hidden = function() return #List() > 0 end }
-	for i = 1, PAGE_SIZE do
-		args["achievementRow" .. i] = {
-			type = "description", order = 10 + i, width = "full",
-			name = function()
-				local def = OnPage(i)
-				return def and RowText(def) or ""
-			end,
-			hidden = function() return OnPage(i) == nil end,
-		}
-	end
-	local function OnePage() return Pages() < 2 end
-	args.achievementPrev = {
-		type = "execute", name = L["Previous"], order = 50,
-		disabled = function() return Page() <= 1 end, hidden = OnePage,
-		func = function()
-			local db = Database()
-			db.page = math.max(1, Page() - 1)
-			Bump()
-		end,
-	}
-	args.achievementPageOf = { type = "description", order = 51, hidden = OnePage,
-		name = function() return L["Page %d of %d"]:format(Page(), Pages()) end }
-	args.achievementNext = {
-		type = "execute", name = L["Next"], order = 52,
-		disabled = function() return Page() >= Pages() end, hidden = OnePage,
-		func = function()
-			local db = Database()
-			db.page = math.min(Pages(), Page() + 1)
-			Bump()
-		end,
-	}
+	-- The board and the statistics are drawn by widgets of their own
+	-- (Board.lua); the text here is what search and the simple view read.
+	args.achievementBoard = { type = "description", order = 1, fontSize = "medium",
+		name = function() return L["Achievements"] end }
 	args.achievementStats = { type = "description", order = 100,
-		name = function() return StatsText() end }
+		name = function() return L["Statistics"] end }
 	args.achievementNotification = {
 		type = "select", name = L["Achievement notification"], order = 101, width = "full",
 		values = { none = L["None"], toast = L["Small toast"], chat = L["One line in chat"] },
@@ -832,27 +661,11 @@ end, {
 	blurb = L["Quiet rewards for good manners: returning favours, helping strangers, answering and thanking."],
 	icon = "Interface\\AddOns\\Manners\\Textures\\Manners64",
 	sections = {
-		{ key = "achievements.overview", title = L["Your manners"], items = {
-			"achievements.achievementSummary",
+		{ key = "achievements.board", title = L["Your manners"], items = {
+			{ "achievements.achievementBoard", widget = "achievementBoard" },
 		} },
-		{ key = "achievements.recent", title = L["Earned lately"], items = {
-			"achievements.achievementRecent",
-		} },
-		{ key = "achievements.list", title = L["Achievements"], items = (function()
-			local items = {
-				{ "achievements.achievementTheme", pair = true, match = "achievementBrowse" },
-				{ "achievements.achievementFilter", pair = true, match = "achievementBrowse" },
-				{ "achievements.achievementSort", pair = true, match = "achievementBrowse" },
-				"achievements.achievementNone",
-			}
-			for i = 1, PAGE_SIZE do items[#items + 1] = "achievements.achievementRow" .. i end
-			items[#items + 1] = { "achievements.achievementPrev", buttons = true }
-			items[#items + 1] = { "achievements.achievementPageOf", buttons = true }
-			items[#items + 1] = { "achievements.achievementNext", buttons = true }
-			return items
-		end)() },
 		{ key = "achievements.stats", title = L["Statistics"], fold = true, items = {
-			"achievements.achievementStats",
+			{ "achievements.achievementStats", widget = "achievementStats" },
 		} },
 		{ key = "achievements.notifications", title = L["Achievement notification"], fold = true, items = {
 			"achievements.achievementNotification", "achievements.achievementSound",
@@ -861,24 +674,29 @@ end, {
 		} },
 	},
 	subpages = {
-		{ "achievements.list", title = L["Achievements"] },
+		{ "achievements.board", title = L["Achievements"] },
 		{ "achievements.stats", "achievements.notifications", title = L["Statistics and settings"] },
 	},
 }, "modules")
 do
 	local layout = ns.WindowLayout
-	-- The simple view keeps where you stand and what you earned lately.
+	-- The simple view keeps the board: where you stand and what you earned.
 	if layout and layout.simple and type(layout.simple.items) == "table" then
-		layout.simple.items["achievements.achievementSummary"] = true
-		layout.simple.items["achievements.achievementRecent"] = true
+		layout.simple.items["achievements.achievementBoard"] = true
 	end
-	if layout and type(layout.notes) == "table" then
-		layout.notes["achievements.achievementSummary"] = { block = true }
-		layout.notes["achievements.achievementStats"] = { block = true }
-		for i = 1, PAGE_SIZE do layout.notes["achievements.achievementRow" .. i] = { block = true } end
+	-- The board and the statistics run the page's whole width.
+	if layout and type(layout.spans) == "table" then
+		layout.spans["achievements.board"] = true
+		layout.spans["achievements.stats"] = true
 	end
 end
 
 -- For the tests and /manners debug: the definitions and the reading of a row.
-A.DEFS, A.RowText, A.List, A.Totals, A.State = DEFS, RowText, List, Totals, State
+A.DEFS, A.List, A.Totals, A.State = DEFS, List, Totals, State
+-- And what the board (Board.lua) draws with.
+A.THEMES, A.THEME, A.MEDALS, A.RANKS, A.STATS = THEMES, THEME, MEDALS, RANKS, STATS
+A.ICONS, A.LOCKED_ICON = ICONS, LOCKED_ICON
+A.MedalOf, A.PointsOf, A.Value, A.Closeness, A.Day, A.Database = MedalOf, PointsOf, Value, Closeness, Day, Database
+A.SetView, A.Active = SetView, Active
+function A.Version() return version end
 ns.Achievements = A

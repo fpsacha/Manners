@@ -80,18 +80,36 @@ mutate(
 )
 mutate(
     "Modules/Achievements/Achievements.lua",
-    "\t\t\tdb.filter, db.page = SETTINGS.filter[value] and value or \"all\", 1",
-    "\t\t\tdb.filter = SETTINGS.filter[value] and value or \"all\"",
-    "achievements-module: a new filter keeps the page it was on",
-    expect="changing what the list shows did not go back to its first page",
+    'db.theme = (value == "all" or THEME[value]) and value or "all"',
+    "db.theme = value",
+    "achievements-module: an unknown kind is kept for the board",
+    expect="an unknown kind was kept",
     script="runscenarios.py",
 )
 
 mutate(
-    "Modules/Achievements/Achievements.lua",
-    "\treturn List()[(Page() - 1) * PAGE_SIZE + i]",
-    "\treturn List()[i]",
-    "achievements-module: Next shows the same achievements",
-    expect="Next did not show the ninth achievement first",
+    "Modules/Achievements/Board.lua",
+    "local cols = math.max(1, math.min(CARD_MAX_COLS, math.floor((width + GAP) / (CARD_MIN + GAP))))",
+    "local cols = 1",
+    "achievements-module: the board keeps one column however wide",
+    expect="columns, not two",
+    script="runscenarios.py",
+)
+
+mutate(
+    "Modules/Achievements/Board.lua",
+    "for i = #list + 1, #row.cards do row.cards[i]:Hide() end",
+    "local _ = list",
+    "achievements-module: a filtered board keeps the cards it no longer lists",
+    expect="Earned shows",
+    script="runscenarios.py",
+)
+
+mutate(
+    "Modules/Achievements/Board.lua",
+    "A.SetView(b.field, b.value)",
+    "local _ = b.field",
+    "achievements-module: a tab on the board does nothing",
+    expect="the Earned tab did not show what was earned",
     script="runscenarios.py",
 )

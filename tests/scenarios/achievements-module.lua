@@ -154,22 +154,37 @@ do
 	if H.findOption(ns.optionsTable, "achievementOpen") then fail(scenario, "the page still sends the player to the ledger") end
 	local pages = MannersAPI:OptionsPages()
 	if not (pages and pages.achievements) then fail(scenario, "Achievements has no sidebar page") end
-	for _, path in ipairs({ "achievementSummary", "achievementRecent", "achievementRow1", "achievementStats",
-		"achievementFilter", "achievementSort", "achievementTheme", "achievementNotification", "achievementReset" }) do
+	for _, path in ipairs({ "achievementBoard", "achievementStats", "achievementNotification", "achievementReset" }) do
 		if ns.WindowUI.PageOf("achievements." .. path) ~= "achievements" then
 			fail(scenario, path .. " is not on the Achievements page")
 		end
 	end
 	local A = ns.Achievements
 	if not (A and #A.DEFS >= 30) then fail(scenario, "fewer than thirty achievements") return end
-	local row = H.findOption(ns.optionsTable, "achievementRow1")
-	if not (row and type(row.name) == "function" and row.name():find("|T", 1, true)) then
-		fail(scenario, "an achievement row has no icon and words")
+	-- The board: a widget of its own, a card for every achievement it lists.
+	local W = ns.WindowWidgets
+	if not (W.KIND.achievementBoard and W.KIND.achievementStats) then
+		fail(scenario, "the board and the statistics have no widget") return
 	end
-	-- One returned favour: Much Obliged is earned and the filter finds it alone.
+	local board = W.Build("achievementBoard", UIParent, H.findItem and H.findItem(ns, "achievements.achievementBoard") or {})
+	board:Layout(700)
+	local shown = 0
+	for _, card in ipairs(board.cards or {}) do if card:IsShown() then shown = shown + 1 end end
+	if shown ~= #A.List() or shown < 30 then
+		fail(scenario, ("the board shows %d cards for %d achievements"):format(shown, #A.List()))
+	end
+	if board.cols ~= 2 then fail(scenario, "a 700 wide board has " .. tostring(board.cols) .. " columns, not two") end
+	board:Layout(320)
+	if board.cols ~= 1 then fail(scenario, "a narrow board has " .. tostring(board.cols) .. " columns, not one") end
+	-- One returned favour: Much Obliged is earned and Earned finds it alone.
 	MannersAPI:Fire("Favour.Settled", "Kind Soul", { at = GetTime(), class = "MAGE" }, { reason = "owed" })
-	local filter = H.findOption(ns.optionsTable, "achievementFilter")
-	filter.set(nil, "earned")
+	local earnedTab
+	for _, b in ipairs(board.showTabs or {}) do if b.value == "earned" then earnedTab = b end end
+	if not earnedTab then fail(scenario, "the board has no Earned tab") return end
+	earnedTab:GetScript("OnClick")(earnedTab)
+	if A.Database().filter ~= "earned" then fail(scenario, "the Earned tab did not show what was earned") end
+	board:Refresh()
+	board:Layout(700)
 	local earned = A.List()
 	local found = false
 	for _, def in ipairs(earned) do
@@ -177,28 +192,22 @@ do
 		if (A.State().earned[def.id] or 0) < 1 then fail(scenario, "Earned lists " .. def.id .. ", not earned") end
 	end
 	if not found then fail(scenario, "Much Obliged was not earned by the first returned favour") end
-	filter.set(nil, "all")
-	local theme = H.findOption(ns.optionsTable, "achievementTheme")
-	theme.set(nil, "courtesy")
+	shown = 0
+	for _, card in ipairs(board.cards) do if card:IsShown() then shown = shown + 1 end end
+	if shown ~= #earned then fail(scenario, ("Earned shows %d cards for %d earned"):format(shown, #earned)) end
+	if (board.recentCount or 0) < 1 then fail(scenario, "Earned lately shows nothing after a medal") end
+	A.SetView("filter", "all")
+	A.SetView("theme", "courtesy")
 	for _, def in ipairs(A.List()) do
 		if def.theme ~= "courtesy" then fail(scenario, "Courtesy shows " .. def.id) break end
 	end
-	theme.set(nil, "all")
-	local nextPage = H.findOption(ns.optionsTable, "achievementNext")
-	local first = H.findOption(ns.optionsTable, "achievementRow1")
-	local ninth = A.List()[9]
-	if not (nextPage and ninth) then
-		fail(scenario, "the list has no second page")
-	else
-		nextPage.func()
-		if not first.name():find(ninth.name, 1, true) then
-			fail(scenario, "Next did not show the ninth achievement first: " .. first.name())
-		end
-		H.findOption(ns.optionsTable, "achievementFilter").set(nil, "all")
-		if not first.name():find(A.List()[1].name, 1, true) then
-			fail(scenario, "changing what the list shows did not go back to its first page")
-		end
-	end
+	A.SetView("theme", "nonsense")
+	if MannersAchievementsDB.theme ~= "all" then fail(scenario, "an unknown kind was kept") end
+	A.SetView("sort", "closest")
+	if A.Database().sort ~= "closest" then fail(scenario, "the order was not kept") end
+	A.SetView("sort", "theme")
+	local stats = W.Build("achievementStats", UIParent, {})
+	if stats:Layout(700) <= 0 or #stats.tiles ~= #A.STATS then fail(scenario, "the statistics have no tiles") end
 	local points = A.Totals(A.State())
 	if points < 15 then fail(scenario, "the earned medal gave " .. tostring(points) .. " points") end
 	H.findOption(ns.optionsTable, "achievementReset").func()
