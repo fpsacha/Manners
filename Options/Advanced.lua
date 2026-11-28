@@ -194,6 +194,7 @@ Page.RESET.self = {
 	"ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst",
 	"ownBuffs.restedEarly", "ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart", "ownBuffs.holdMoving",
 	"filters.selfTopUp", "filters.selfLead",
+	"ownBuffs.restedFirst",
 	-- Which pet, drawn on this page (Layout.lua).
 	"ownBuffs.petChoice",
 	keep = function() return not ModuleActive("mybuffs") end,

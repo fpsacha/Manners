@@ -35,6 +35,9 @@
   toward, such as Goal 2 of 3, and the count. Old saves keep their counts.
 
 ### Changes
+- **Sleeping bag before food and elixirs.** Off by default, under *Well-Rested*
+  on *My own buffs*: food, flasks, elixirs and scrolls wait while the sleeping
+  bag is due or you lie in it, so none of them runs out while you rest.
 - **Where the combat cards sit** (Combat, Look and alerts): *A row* that grows
   right, left, up or down from your spot, or *One spot* where every card shows
   in the same place, the most urgent on top.

@@ -817,6 +817,30 @@ local function AddSelfControls(args)
 				end,
 			},
 
+			-- Food, flasks, elixirs and scrolls wait for the sleeping bag
+			-- (Core.lua, ns.RestedComesFirst), asked for on CurseForge: their
+			-- minutes are not spent lying in it. Shown under Well-Rested while
+			-- it is on.
+			ownRestedFirst = {
+				type = "toggle",
+				name = L["Sleeping bag before food and elixirs"],
+				desc = L["On: while the sleeping bag is due, or you are lying in it, food, flasks, elixirs and scrolls wait, so none of them runs out while you rest. Off: they come up as usual."],
+				order = 15.969,
+				width = "full",
+				hidden = function()
+					for _, family in ipairs(ns.KnownOwnFamilies()) do
+						if family.rest then return ns.OwnPick(family) == "off" end
+					end
+					return true
+				end,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.restedFirst == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.restedFirst = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
 			-- Every scroll at once (Buffs.lua, isScroll), asked for by a player
 			-- who wanted them off this list: off, none is offered and their
 			-- switches go (ns.ScrollsOff); each keeps its own pick for when it

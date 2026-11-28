@@ -17,6 +17,9 @@ released (the owner runs `python tools/release.py 1.13.0`).*
   longer own-buff skips (#69), Ask's 30 s arrival wait, own buffs not held into
   a fight, Outline repainted through Gemini, sidebar/tabs/spell icons, #68 and
   #70 (Classic Era) fixes. Changelog written.
+- **Nightly 28 November** (`feedback-20261128`, in 1.13.0): *Sleeping bag
+  before food and elixirs* (`ownBuffs.restedFirst`, off; Lucitha on CurseForge;
+  `tests/scenarios/restedfirst.lua`). #71 opened (Blessing of Freedom).
 - **Validated:** focused scenarios and mutations for every change, combat
   actions on all five clients, the 104 pull-touching files, quick check green.
   The full suite runs inside release.py.

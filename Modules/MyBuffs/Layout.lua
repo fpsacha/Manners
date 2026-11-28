@@ -121,6 +121,8 @@ local layout = {
 					"who.own_rested",
 					-- Its last five minutes, asked for on CurseForge.
 					{ "who.ownRestedEarly", indent = true },
+					-- Food and elixirs wait for the bag, asked for on CurseForge.
+					{ "who.ownRestedFirst", indent = true },
 					-- A companion pet, off until it is turned on; shown while one is in
 					-- the bags or (Forever) the pet journal. Which pet, under it.
 					-- HOME: companion pets (the journal's reminder on Mists and

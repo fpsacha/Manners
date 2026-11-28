@@ -628,6 +628,9 @@ local defaults = {
 			-- On: the sleeping bag comes up again in Well-Rested's last five
 			-- minutes, not only once it has gone (OwnVerdict).
 			restedEarly = false,
+			-- On: food, flasks, elixirs and scrolls wait while the sleeping bag is
+			-- due or you lie in it, so none of them runs while you rest (OwnVerdict).
+			restedFirst = false,
 			-- Off: food, flasks, elixirs, scrolls and a weapon's oils, stones and
 			-- poisons come up on the prompt as "You". On: on a button of their
 			-- own (Prompt/Supplies.lua, ns.SupplyEntry), asked for on CurseForge,
@@ -4479,9 +4482,9 @@ do
 	-- the minute before Well-Rested comes), or its use cooling down, the hour
 	-- after the bag was laid down. Either way a press would do nothing.
 	-- Asked only when Well-Rested is due.
-	local function BagBusy(family, spell)
-		-- Mid-cast: Unroll Bag takes up to fifteen seconds, and neither the aura
-		-- nor the cooldown shows until it ends.
+	-- In the bag now: Unroll Bag mid-cast (up to fifteen seconds, and neither
+	-- the aura nor the cooldown shows until it ends), or lying in it.
+	local function InBag(family, spell)
 		local casting = _G.UnitCastingInfo
 		if type(casting) == "function" and plain((select(9, casting("player")))) == spell.ranks[1] then
 			return true
@@ -4493,6 +4496,11 @@ do
 			if ok and type(aura) == "table" then return true end
 			if ok and aura == nil and HiddenAura(family.resting) then return true end
 		end
+		return false
+	end
+
+	local function BagBusy(family, spell)
+		if InBag(family, spell) then return true end
 		local cooldown = C_Container and C_Container.GetItemCooldown
 		if type(cooldown) ~= "function" then cooldown = _G.GetItemCooldown end
 		if type(cooldown) ~= "function" then return false end
@@ -4725,6 +4733,7 @@ do
 	--   "grouped"   Dampen or Amplify Magic with its alone switch on, held back in a party or raid
 	--   "battle"    a gathering tracking, and you are in a battleground or an arena
 	--   "moving"    one cut short by moving (Buffs.lua, still), and you are moving or just stopped
+	--   "rested"    food, a flask, an elixir or a scroll, with the sleeping bag first (ns.RestedComesFirst)
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
@@ -4733,6 +4742,26 @@ do
 	-- (nil when nobody knows), the lead that made it due and its kind, as
 	-- the seventh to ninth returns (ns.LeadFor). `ctx` is the scan's: name,
 	-- now, whenBuffed, refreshUnder.
+	-- With "Sleeping bag before food and elixirs" on (ownBuffs.restedFirst):
+	-- true while Well-Rested is switched on and the bag is due, held only by
+	-- your moving, or you are in it now (Unroll Bag
+	-- casting, or lying in the bag). Its cooldown alone holds nothing back.
+	function ns.RestedComesFirst(ctx)
+		local db = addon.db
+		if not (db and db.profile.ownBuffs.restedFirst == true) then return false end
+		for _, rest in ipairs(ns.KnownOwnFamilies()) do
+			if rest.rest then
+				local spell, _, _, why, held = ns.OwnVerdict(rest, ctx)
+				if spell then return true end
+				if why == "moving" then return true end
+				-- "tried" is also a right-click that skipped the bag: then it is not first.
+				if (why == "resting" or why == "tried") and held then return InBag(rest, held) end
+				return false
+			end
+		end
+		return false
+	end
+
 	function ns.OwnVerdict(family, ctx)
 		local pick, spell = ns.OwnPick(family)
 		if pick == "off" then return nil, nil, nil, "off" end
@@ -4908,6 +4937,12 @@ do
 		-- The sleeping bag's own cast runs 15 seconds, past the retry block.
 		if spell.family.rest and ns.HandBusy(spell.family.key, ctx.now) then
 			return nil, up, left, "tried", spell
+		end
+		-- Food, a flask, an elixir or a scroll while the sleeping bag comes
+		-- first (ownBuffs.restedFirst, asked for on CurseForge): it waits, so
+		-- its minutes are not spent lying in the bag.
+		if (family.consumable or family.food) and ns.RestedComesFirst(ctx) then
+			return nil, up, left, "rested", spell
 		end
 		-- A scroll is used, not cast: the bags, your level and your weapon
 		-- answer for it rather than the spellbook.
