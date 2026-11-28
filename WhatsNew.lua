@@ -11,9 +11,10 @@ ns.WhatsNew = {
 			"|cffffd100The Combat page.|r Everything for a fight on one page under |cffffffffOptional modules|r: how many actions are on, |cffffffffTurn all on|r / |cffffffffTurn all off|r, the actions grouped by kind (each with its spell's icon), the round of the fight, Will of the...",
 			"|cffffd100More defensives found for every class|r : Shield Wall, Mana Shield, Feign Death, Vanish, Barkskin, Power Word: Shield, Pain Suppression and Blessing of Protection, each listed once.",
 			"|cffffd100My companion|r (Manners: Pets, any class with a pet journal).",
-			"|cffffd100Achievements|r on a page of their own, drawn as a board: your rank and points, what you earned lately, tabs by kind, by progress and by order, and a card for each achievement with its medals.",
+			"|cffffd100Achievements|r on a page of their own, drawn as a board: your rank and points, what you earned lately, tabs by kind, by progress and by order, and a card for each achievement that says what to do, which goal it works toward (*Goal 2...",
 		} },
 		{ title = "Changes", accent = "7cc4ff", entries = {
+			"|cff7cc4ffWhere the combat cards sit|r (Combat, Look and alerts): |cffffffffA row|r that grows right, left, up or down from your spot, or |cffffffffOne spot|r where every card shows in the same place, the most urgent on top.",
 			"|cff7cc4ffLonger skips for your own buffs.|r |cffffffffAfter a right-click on my own buff, offer 15, 30, 45 or 60 minutes|r (Who to skip, off) puts four small buttons under the prompt after a right-click on your own buff (#69).",
 			"|cff7cc4ffConsumables button|r is bigger (48), shows the item's name under it, and has |cffffffffShow and move the consumables button|r on My own buffs: a named bar, |cffffffffReset|r and |cffffffffDone|r, dragged with the prompt locked.",
 			"|cff7cc4ffAsk waits half a minute.|r Nobody is offered as an ask until they have stayed within reach thirty seconds, so a group that just met is not asked at once.",
