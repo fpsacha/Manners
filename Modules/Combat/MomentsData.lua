@@ -21,8 +21,8 @@
 --   stop       "/stopcasting" before the cast or the use of an item, so the press
 --              fires at once (a cast under way refuses a channel and an item)
 --   self       the cast must land on you
---   fast       lights under the global cooldown (a spell whose only wait is the
---              global cooldown counts as ready) and appears at once, with no fade
+--   fast       appears at once, with no fade (every row lights under the global
+--              cooldown alone: a spell whose only wait is the global cooldown counts as ready)
 --              (Blink, Counterspell, Ice Block, Cold Snap: the need passes fast)
 --   peace      works out of a fight too
 --   calm       the reverse: out of a fight only (the driver hides it at the

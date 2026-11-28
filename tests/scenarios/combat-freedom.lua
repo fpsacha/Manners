@@ -55,3 +55,27 @@ do
 	end
 	Mock.reset()
 end
+do
+	-- A wand's shot starts the global cooldown: a lit card that is not one of the
+	-- four fast ones went dark and came back on every shot.
+	local scenario = "combat-freedom: the global cooldown alone keeps every card lit"
+	Mock.reset()
+	Mock.class = "PALADIN"
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		-- The game's word at the cooldown event: cooling, and not on the global
+		-- cooldown (slot.onGCD false), though its wait ends with the global one.
+		local slot = { id = 1044, onGCD = false, row = { ranks = { 1044 } } }
+		Mock.spellCooldowns = { [61304] = { startTime = Mock.now - 0.3, duration = 1.5, isActive = true },
+			[1044] = { startTime = Mock.now - 0.3, duration = 1.5, isActive = true } }
+		if ns.Sense.ready(slot, Mock.now) ~= "yes" then
+			fail(scenario, "a card that is not fast goes dark under the global cooldown alone")
+		end
+		Mock.spellCooldowns = { [61304] = { startTime = Mock.now - 0.3, duration = 1.5, isActive = true },
+			[1044] = { startTime = Mock.now - 0.3, duration = 20, isActive = true } }
+		if ns.Sense.ready(slot, Mock.now) ~= "no" then fail(scenario, "a spell on its own cooldown is called ready") end
+		Mock.spellCooldowns = nil
+	end
+	Mock.reset()
+end

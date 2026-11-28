@@ -23,3 +23,8 @@ mutate("Modules/Combat/ImpairData.lua",
        "ns.IMPAIRING = {}",
        "combat-freedom: the list of slowing spells is empty",
        expect=OFFER, script=S)
+mutate("Modules/Combat/MomentsSense.lua",
+       "\t\tif OnlyGcd(slot, now) then return \"yes\" end",
+       "\t\tif slot.row.fast and OnlyGcd(slot, now) then return \"yes\" end",
+       "combat-freedom: only the fast cards light under the global cooldown",
+       expect="combat-freedom: the global cooldown alone keeps every card lit", script=S)

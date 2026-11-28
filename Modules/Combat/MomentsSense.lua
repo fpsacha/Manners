@@ -323,9 +323,10 @@ end
 function Sense.ready(slot, now)
 	local cooling = Cooling(slot, slot.id, now)
 	if cooling == true then
-		-- Blink, Counterspell, Ice Block and Cold Snap light under the global cooldown:
-		-- a wait of a second and a half is no reason to hold back one of those.
-		if slot.row.fast and OnlyGcd(slot, now) then return "yes" end
+		-- Every action lights under the global cooldown alone: a wait of a second
+		-- and a half (a wand's shot starts one) is no reason to take a needed card
+		-- down and up again.
+		if OnlyGcd(slot, now) then return "yes" end
 		return "no", "cooling down"
 	end
 	if cooling == false then return "yes" end

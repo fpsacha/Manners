@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+- **Combat cards no longer blink off while you shoot a wand.** Every card stays
+  lit through the global cooldown alone (Manners: Combat).
+
 ## 1.13.1
 
 *28 November 2026*
