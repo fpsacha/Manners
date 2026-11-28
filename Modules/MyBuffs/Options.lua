@@ -659,7 +659,7 @@ local function AddSelfControls(args)
 			ownApart = {
 				type = "toggle",
 				name = L["Put consumables on a button of their own"],
-				desc = L["Food, flasks, elixirs, scrolls and your weapon's oils, stones and poisons come up on a small button of their own instead of on the prompt. Unlock the prompt to drag it where you want it; its key is set just below, and a right-click skips that item for now. It is never shown in a fight."],
+				desc = L["Food, flasks, elixirs, scrolls and your weapon's oils, stones and poisons come up on a button of their own instead of on the prompt, with the item's name under it. Show and move the consumables button, just below, puts it where you want it; its key is set below too, and a right-click skips that item for now. It is never shown in a fight."],
 				order = 15.955,
 				width = "full",
 				hidden = NothingForSelf,
@@ -674,6 +674,21 @@ local function AddSelfControls(args)
 			-- Its key, the game's binding as the prompt's is (Options/Start.lua,
 			-- Setup), saved with the binding set; under the switch. Shown only
 			-- while the button is on.
+			-- Shown, named and dragged where it goes, as the combat prompt is moved.
+			ownApartMove = {
+				type = "execute",
+				name = function()
+					if ns.Supplies and ns.Supplies:Moving() then return L["Done moving"] end
+					return L["Show and move the consumables button"]
+				end,
+				desc = L["Shows the consumables button with its name over it. Drag it where you want it, then press Done or this button again."],
+				order = 15.9555,
+				hidden = function() return NothingForSelf() or ns.db.profile.ownBuffs.apart ~= true end,
+				disabled = function() return InCombatLockdown() end,
+				func = function()
+					if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Move, ns.Supplies, not ns.Supplies:Moving()) end
+				end,
+			},
 			ownApartKey = {
 				type = "keybinding",
 				name = L["Key for the consumables button"],

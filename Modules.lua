@@ -208,7 +208,7 @@ local MYBUFF_KEYS = {
 	OwnSpells = true, OwnSpellLines = true, Pet = true,
 	ModuleActive = true,
 	ReadPet = true, PetHold = true, PetFromJournal = true,
-	PetJournalOwned = true, Supplies = true,
+	PetJournalOwned = true, Supplies = true, RefreshOptionsDisplay = true,
 	ContextDecision = true, ContextTarget = true,
 }
 local MYBUFF_WRITES = {

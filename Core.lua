@@ -1033,7 +1033,7 @@ local defaults = {
 		-- The consumables button (Prompt/Supplies.lua), shown with
 		-- ownBuffs.apart on: where it sits (left of the prompt's default
 		-- spot, above the action bars) and its size in pixels.
-		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 40 },
+		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 48 },
 		-- Manners: Combat's one detected-action prompt. Every action is off until
 		-- the player enables its own switch.
 		moments = { health = 20, mana = 20, cardSize = 150, look = "same", alert = "pulse", alertSound = false },

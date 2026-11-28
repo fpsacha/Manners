@@ -41,8 +41,8 @@ mutate("Modules/MyBuffs/Supplies.lua",
        expect="supplies: a right-click skips it for the skip time", script=S)
 
 mutate("Modules/MyBuffs/Supplies.lua",
-       "\tif not db.prompt.locked then\n\t\tDisarm()\n",
-       "\tif not db.prompt.locked then\n",
+       "\tif moving or not db.prompt.locked then\n\t\tDisarm()\n",
+       "\tif moving or not db.prompt.locked then\n",
        "supplies: armed while unlocked",
        expect="supplies: unlocked it shows, arms nothing, and a drag keeps its place", script=S)
 
@@ -87,3 +87,34 @@ mutate("Modules/MyBuffs/Options.lua",
        "",
        "supplies: the switch stores nothing",
        expect="supplies: the switch is under Myself", script=S)
+
+mutate("Modules/MyBuffs/Supplies.lua",
+       "\tcaption:SetText(ns.BuffName(entry.buff) or \"\")",
+       "\tcaption:SetText(\"\")",
+       "supplies: nothing under the button says what it is",
+       expect="supplies: the button is named and moved from My own buffs", script=S)
+mutate("Modules/MyBuffs/Supplies.lua",
+       "if db and (moving or not db.prompt.locked) and not InCombatLockdown()",
+       "if db and (not db.prompt.locked) and not InCombatLockdown()",
+       "supplies: the mover cannot drag it with the prompt locked",
+       expect="supplies: the button is named and moved from My own buffs", script=S)
+mutate("Modules/MyBuffs/Supplies.lua",
+       "\tplate:SetShown(moving)",
+       "\tplate:SetShown(false)",
+       "supplies: the mover shows no plate naming the button",
+       expect="supplies: the button is named and moved from My own buffs", script=S)
+mutate("Modules/MyBuffs/Supplies.lua",
+       "function Supplies:Pull()\n\tmoving = false",
+       "function Supplies:Pull()\n\tmoving = moving",
+       "supplies: a fight leaves the button in the mover",
+       expect="supplies: the button is named and moved from My own buffs", script=S)
+mutate("Modules/MyBuffs/Supplies.lua",
+       "\tif moving or not db.prompt.locked then",
+       "\tif not db.prompt.locked then",
+       "supplies: the button stays armed while it is moved",
+       expect="supplies: the button is named and moved from My own buffs", script=S)
+mutate("Core.lua",
+       "x = -170, y = 300, size = 48 },",
+       "x = -170, y = 300, size = 40 },",
+       "supplies: the button stays small by default",
+       expect="supplies: the button is named and moved from My own buffs", script=S)

@@ -47,9 +47,7 @@ mutate("Looks/Painted.lua",
        expect="supplieslook: the button wears the look's socket", script=S)
 
 mutate("Modules/MyBuffs/Supplies.lua",
-       "\tWear(db)\n\t-- Unlocked: shown, holding nothing, to be dragged where it goes.\n"
-       "\tif not db.prompt.locked then\n\t\tDisarm()\n\t\ticon:SetTexture(PLACEHOLDER)\n\t\tbutton:Show()\n\t\treturn\n\tend\n",
-       "\t-- Unlocked: shown, holding nothing, to be dragged where it goes.\n"
-       "\tif not db.prompt.locked then\n\t\tDisarm()\n\t\ticon:SetTexture(PLACEHOLDER)\n\t\tbutton:Show()\n\t\treturn\n\tend\n\tWear(db)\n",
+       "\tWear(db)\n\tplate:SetShown(moving)\n",
+       "\tplate:SetShown(moving)\n",
        "supplieslook: the drag placeholder does not wear the look",
        expect="supplieslook: the button wears the look's socket", script=S)
