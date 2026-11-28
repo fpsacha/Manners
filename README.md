@@ -1284,13 +1284,25 @@ alone. Your own spells are kept.
 
 ### My pet
 
-Supplied by **Manners: Pets**, which is enabled by default. For hunters; every
-other class, including warlocks, has no such page. *Looking after my pet* has
+Supplied by **Manners: Pets**, which is enabled by default. For hunters. *Looking after my pet* has
 *Everything for my pet* and, under it, a switch for each piece of care. *Mend
 Pet* and *Mend Pet in a fight* stand side by side: the first reminds you, the
 second is the button for a fight, and *In a fight* has it too. *Each moment
 with my pet* is folded: a switch for every moment, the pet's answer, your line
-and the memory. *Reset this page* puts them all back on.
+and the memory. *My companion*, at the end, has the switch below. *Reset this
+page* puts them all back on.
+
+### My companion
+
+Supplied by **Manners: Pets**, for every class but the hunter (whose *My pet*
+page has it), on the clients with a pet journal: WoW Forever, Mists and retail.
+*Moments with my companion* (off) offers, now and then, a moment with the
+companion pet that follows you: at login, after a fight of 45 seconds or more
+with it out from start to end, and on a quiet road. A press targets it by its
+name, does an emote for it, an */emote* of the gesture and its answer, a line
+from your people when In character is on and lines go in /say, and gives your
+target back. Never in a fight; at most one in twenty minutes (a hunter's *How
+often moments come* sets that gap); a right-click lets it pass.
 
 ### Quiet times
 

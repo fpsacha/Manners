@@ -244,7 +244,9 @@ do
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do ids[#ids + 1] = id end
 		end
-		if table.concat(ids, " ") ~= "general who skip when click quiet fight appearance modules combat achievements self services profiles diagnostics" then
+		local journal = _G.C_PetJournal
+		local pet = (type(journal) == "table" and type(journal.GetSummonedPetGUID) == "function") and "pet " or ""
+		if table.concat(ids, " ") ~= "general who skip when click quiet fight appearance modules combat achievements " .. pet .. "self services profiles diagnostics" then
 			fail(scenario, "the page ids are " .. table.concat(ids, " "))
 		end
 

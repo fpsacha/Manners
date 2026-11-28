@@ -75,7 +75,11 @@ local STAND_IN = {
 
 local function ExpectedGroups()
 	local modules = { "modules", "combat", "achievements" }
-	if Mock.class == "HUNTER" then modules[#modules + 1] = "pet" end
+	-- My pet for a hunter; My companion for anybody else on a client with a pet journal.
+	local journal = _G.C_PetJournal
+	if Mock.class == "HUNTER" or (type(journal) == "table" and type(journal.GetSummonedPetGUID) == "function") then
+		modules[#modules + 1] = "pet"
+	end
 	modules[#modules + 1] = "self"
 	modules[#modules + 1] = "services"
 	return {

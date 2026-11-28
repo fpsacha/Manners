@@ -2,7 +2,7 @@
 # Camelot client. Everything but the interface number comes from Modules/Pets/Manners_Pets.toc.
 ## Interface: 16001
 ## Title: Manners: Pets
-## Notes: Optional hunter pet care, hints, lines and moments for Manners.
+## Notes: Optional hunter pet care, hints, lines and moments, and moments with a companion pet, for Manners.
 ## Author: Sacha
 ## Version: 1.12.6
 ## Dependencies: Manners
@@ -12,5 +12,6 @@
 BeastFoods.lua
 HunterPet.lua
 HunterPetHints.lua
+Companion.lua
 Options.lua
 Init.lua

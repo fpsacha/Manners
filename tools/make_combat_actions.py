@@ -39,7 +39,16 @@ DEFENSE_AURAS = {
     37, 38, 39, 40, 41, 47, 49, 51, 69, 74, 113, 114, 125, 126,
     147, 194, 229, 255, 295, 310, 316, 381, 393, 414, 421, 422,
     436, 507, 528, 529,
+    # Feign Death, damage taken cut (Shield Wall, Pain Suppression), Mana Shield.
+    66, 87, 97,
 }
+# A shield laid on a friend (Power Word: Shield, Blessing of Protection, Pain
+# Suppression): offered with the heals, when a friend is low.
+FRIEND_GUARD_AURAS = {39, 69, 87, 97}
+# Any unit, friend or foe (Banish): not a friend's shield.
+ANY_TARGET = {25}
+# Spells for the pet alone: Mend Pet's button and the pet's own bar keep them.
+PET_ONLY = {"Health Funnel", "Bestial Wrath"}
 FORM_AURAS = {36, 56, 110, 223, 268, 293, 311, 668}
 DAMAGE_EFFECTS = {2, 7, 8, 9, 17, 31, 58, 121}
 DISPEL_NAMES = {1: "Magic", 2: "Curse", 3: "Disease", 4: "Poison", 9: "Enrage"}
@@ -77,7 +86,7 @@ def defense_aura(effect):
     aura = num(effect.get("aura"))
     if aura not in DEFENSE_AURAS:
         return False
-    if aura in {113, 114, 125, 126, 147, 255, 295, 381, 436, 507}:
+    if aura in {87, 113, 114, 125, 126, 147, 255, 295, 381, 436, 507}:
         base = effect.get("base")
         basef = effect.get("basef") or 0
         return (base is not None and base < 0) or basef < 0
@@ -96,6 +105,11 @@ def classify(effects):
     if heal_targets & PARTY_TARGETS and not (targets & ENEMY_TARGETS) and not (effect_ids & DAMAGE_EFFECTS):
         return "party_heal"
     if heal_targets & FRIEND_TARGETS and not (targets & ENEMY_TARGETS) and not (effect_ids & DAMAGE_EFFECTS):
+        return "target_heal"
+    if not (targets & ENEMY_TARGETS) and not (effect_ids & DAMAGE_EFFECTS) \
+            and any(effect["effect"] == 6 and effect["t0"] in FRIEND_TARGETS - ANY_TARGET
+                    and num(effect.get("aura")) in FRIEND_GUARD_AURAS and defense_aura(effect)
+                    for effect in effects):
         return "target_heal"
     if heal_targets & SELF_TARGETS:
         if targets & ENEMY_TARGETS:
@@ -177,7 +191,7 @@ def action_rows(flavour, cache):
     for spell, classes in spell_owners.items():
         if spell not in client.names or passive(misc, spell):
             continue
-        if internal_name(client.names[spell]):
+        if internal_name(client.names[spell]) or client.names[spell] in PET_ONLY:
             continue
         casting = False
         for row in misc.get(spell, ()):
@@ -220,7 +234,11 @@ def action_rows(flavour, cache):
             group["effects"], group["cooldown"]))
     order = {"interrupt": 0, "enemy_dispel": 1, "self_heal": 2, "enemy_self_heal": 3,
              "self_defense": 4, "target_heal": 5, "party_heal": 6, "self_resource": 7}
-    for rows in by_class.values():
+    for class_name, rows in by_class.items():
+        # A spell the class casts on itself and also on a friend (Mana Shield,
+        # Barkskin, the wards) stays one row: the one for yourself.
+        own = {row["name"] for row in rows if row["category"] == "self_defense"}
+        rows[:] = [row for row in rows if not (row["category"] == "target_heal" and row["name"] in own)]
         rows.sort(key=lambda row: (order[row["category"]], row["name"]))
     if any(len(rows) + 11 > 64 for rows in by_class.values()):
         raise ValueError("%s has a class with more than 64 combat action slots" % flavour)
@@ -288,17 +306,22 @@ def render(data):
     out.extend([
         "}",
         "",
-        "for catalogue, generated in pairs(GENERATED) do",
-        "\tfor class, rows in pairs(generated) do",
+        "-- Two clients' sets may share a class's table: each client's own rows go in",
+        "-- first, in this order, and a spell already there by id or by name (an",
+        "-- ally's Barkskin beside your own) is not added twice.",
+        "local function Named(key) return key and key:match(\"^combat%-[%w_]+%-(.+)$\") end",
+        "for _, catalogue in ipairs({ \"camelot\", \"vanilla\", \"tbc\", \"mists\", \"mainline\" }) do",
+        "\tfor class, rows in pairs(GENERATED[catalogue] or {}) do",
         "\t\tlocal existing = ns.MOMENT_SETS[catalogue][class] or {}",
         "\t\tns.MOMENT_SETS[catalogue][class] = existing",
-        "\t\tlocal used, last = {}, 0",
+        "\t\tlocal used, named, last = {}, {}, 0",
         "\t\tfor _, row in ipairs(existing) do",
         "\t\t\tlast = math.max(last, row.slot or 0)",
         "\t\t\tfor _, id in ipairs(row.ranks or {}) do used[id] = true end",
+        "\t\t\tif Named(row.key) then named[Named(row.key)] = true end",
         "\t\tend",
         "\t\tfor _, row in ipairs(rows) do",
-        "\t\t\tlocal new = true",
+        "\t\t\tlocal new = not named[Named(row.key)]",
         "\t\t\tfor _, id in ipairs(row.ranks) do if used[id] then new = false break end end",
         "\t\t\tif new then",
         "\t\t\t\tlast = last + 1",
@@ -307,6 +330,7 @@ def render(data):
         "\t\t\t\tns.MOMENT_DEFAULTS[row.key] = false",
         "\t\t\t\tns.MOMENT_KEYS[#ns.MOMENT_KEYS + 1] = row.key",
         "\t\t\t\tfor _, id in ipairs(row.ranks) do used[id] = true end",
+        "\t\t\t\tnamed[Named(row.key)] = true",
         "\t\t\tend",
         "\t\tend",
         "\tend",

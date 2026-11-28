@@ -14,6 +14,34 @@ local ALL = {
 		"DRUID", "MONK", "DEMONHUNTER", "EVOKER" },
 }
 
+do
+	-- The defensives a class reaches for when low: each on the list once, as
+	-- Forever's spell book names it.
+	local scenario = "combat-actions: Forever lists every class's emergency defensives once"
+	Mock.reset()
+	local ns = load(scenario)
+	if ns then
+		local want = {
+			WARRIOR = "combat-self_defense-shield-wall", MAGE = "combat-self_defense-mana-shield",
+			HUNTER = "combat-self_defense-feign-death", ROGUE = "combat-self_defense-vanish",
+			PRIEST = "combat-target_heal-power-word-shield", PALADIN = "combat-target_heal-blessing-of-protection",
+			DRUID = "combat-self_defense-barkskin",
+		}
+		for class, rows in pairs(ns.MOMENT_SETS and ns.MOMENT_SETS.camelot or {}) do
+			local keys, names = {}, {}
+			for _, row in ipairs(rows) do
+				keys[row.key] = true
+				local name = row.key:gsub("^combat%-[%w_]+%-", "")
+				if row.key:find("^combat%-") then
+					if names[name] then fail(scenario, class .. " lists " .. name .. " twice") end
+					names[name] = true
+				end
+			end
+			if want[class] and not keys[want[class]] then fail(scenario, class .. " has no " .. want[class]) end
+		end
+	end
+end
+
 local scenario = "combat-actions: every client and class has an off-by-default detected action"
 Mock.reset()
 local ns = load(scenario)

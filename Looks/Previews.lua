@@ -60,7 +60,7 @@ ns.Looks.previewIcon = {
 	luxe = { l = 0.13497, t = 0.2778, r = 0.241, b = 0.7019, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	minimal = { l = 0.08988, t = 0.20294, r = 0.22947, b = 0.7613, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	monk = { l = 0.0575, t = 0.29448, r = 0.16026, b = 0.70552, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
-	outline = { l = 0.04316, t = 0.23393, r = 0.16466, b = 0.71994, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	outline = { l = 0.18738, t = 0.32966, r = 0.2737, b = 0.67492, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	pill = { l = 0.08338, t = 0.23797, r = 0.21521, b = 0.76529, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	priest = { l = 0.07126, t = 0.27617, r = 0.17746, b = 0.70097, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	ribbon = { l = 0.13794, t = 0.25228, r = 0.26181, b = 0.74776, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
@@ -162,8 +162,8 @@ ns.Looks.previewText = {
 		reason = { l = 0.24507, t = 0.5334, r = 0.72984, b = 0.69469, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
 	},
 	outline = {
-		name = { l = 0.21592, t = 0.29266, r = 0.78629, b = 0.50234, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
-		reason = { l = 0.21592, t = 0.53588, r = 0.78629, b = 0.69717, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+		name = { l = 0.30298, t = 0.31922, r = 0.72942, b = 0.49728, h = "LEFT", v = "MIDDLE", size = 0.17806, color = { 1, 1, 1, 1 }, shadow = { x = 0.0137, y = -0.0137, color = { 0, 0, 0, 0.9 } } },
+		reason = { l = 0.30298, t = 0.52577, r = 0.72942, b = 0.66274, h = "LEFT", v = "MIDDLE", size = 0.13697, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.0137, y = -0.0137, color = { 0, 0, 0, 1 } } },
 	},
 	pill = {
 		name = { l = 0.23758, t = 0.29308, r = 0.80645, b = 0.50276, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
@@ -325,4 +325,4 @@ ns.Looks.previewTextEarlier = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "01664fee5db787c7009b7c3887a140fe77eafe80488db1d86fe4507eb53f7670"
+ns.Looks.previewHash = "42a2c23d7fcca54ecc3613f48cb2905e81006cf9a2202f060a17296b161030f0"

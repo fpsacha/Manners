@@ -115,8 +115,46 @@ end
 
 
 
+-- Moments with a companion pet, for every class (Companion.lua): only where the
+-- client has a pet journal that says which one is out.
+local function NoJournal()
+	local journal = _G.C_PetJournal
+	return not (type(journal) == "table" and type(journal.GetSummonedPetGUID) == "function")
+end
+
+local function AddCompanionControls(args)
+	args.beastCompanion = { type = "toggle", name = L["Moments with my companion"],
+		desc = L["Now and then, at login, after a long fight or on a quiet road, offers a moment with the companion pet that follows you: an emote for it, and a line from your people when In character is on and lines go in /say. A press targets it by its name and gives your target back. Never in a fight; letting it pass costs nothing."],
+		order = 15.9898, width = "full", hidden = NoJournal,
+		get = function() return ns.db.profile.beast.companion == true end,
+		set = function(_, value)
+			ns.db.profile.beast.companion = value == true
+			local companion = ns.Beast and ns.Beast.Companion
+			if companion then ns.Guard("companion resume", companion.Resume) end
+			ns.Guard("companion repaint", ns.Prompt.Refresh, ns.Prompt)
+		end }
+end
+
+local COMPANION_SECTION = { key = "pet.companion", title = L["My companion"], items = { "who.beastCompanion" } }
+
+	if ns.Beast and not ns.Beast.IsHunter() and not NoJournal() then
+		api:RegisterOptionsExtension("who", function(_, args) AddCompanionControls(args) end)
+		api:RegisterOptionsPage("pet", function()
+			return { type = "group", name = L["My companion"], args = {} }
+		end, {
+			title = L["My companion"],
+			blurb = L["Now and then, a moment with the companion pet that follows you."],
+			icon = "Interface\\AddOns\\Manners\\Textures\\Menu\\Pet",
+			sections = { COMPANION_SECTION },
+		}, "modules")
+		ns.WindowLayout.keywords["who.beastCompanion"] = L["companion pet critter emote moment"]
+	end
+
 	if ns.Beast and ns.Beast.IsHunter() then
-		api:RegisterOptionsExtension("who", function(_, args) AddBeastControls(args) end)
+		api:RegisterOptionsExtension("who", function(_, args)
+			AddBeastControls(args)
+			AddCompanionControls(args)
+		end)
 		local layout = {
 			title = L["My pet"],
 			blurb = L["Looking after your pet, and the moments you share with it."],
@@ -137,6 +175,7 @@ end
 					"who.beastGrown", "who.beastAnniversary", "who.beastAnswer", "who.beastWords",
 					"who.beastMilestones", { "who.beastMemory", indent = true },
 				} },
+				COMPANION_SECTION,
 			},
 		}
 		api:RegisterOptionsPage("pet", function()
@@ -170,4 +209,5 @@ end
 		coreLayout.keywords["who.beastGrowl"] = L["hunter pet growl autocast tank"]
 		coreLayout.keywords["who.beastTraining"] = L["hunter pet training points"]
 		coreLayout.keywords["appearance.mendInFight"] = L["hunter pet mend fight button key"]
+		coreLayout.keywords["who.beastCompanion"] = L["companion pet critter emote moment"]
 	end

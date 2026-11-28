@@ -578,6 +578,8 @@ local defaults = {
 			praise = true, comfort = true, welcome = true, sorry = true, hello = true, morning = true,
 			road = true, play = true, share = true, family = true, missed = true, saved = true,
 			grown = true, anniversary = true,
+			-- Moments with a companion pet, any class (Modules/Pets/Companion.lua): off.
+			companion = false,
 		},
 
 		-- The rest of "Myself": the buffs only your class puts on itself

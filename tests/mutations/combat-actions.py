@@ -200,3 +200,8 @@ mutate("Modules/Combat/Options.lua",
        'if section.key == "fight.buttons" then',
        "combat actions: the fight's rota stays alone on In a fight",
        expect="appearance.fightRota is not on the Combat page alone", script=S)
+mutate("Modules/Combat/ActionsData.lua",
+       '{ key = "combat-self_defense-shield-wall",',
+       '{ key = "combat-self_defense-shield-wall-gone",',
+       "combat actions: Forever's warrior loses Shield Wall",
+       expect="WARRIOR has no combat-self_defense-shield-wall", script=S)
