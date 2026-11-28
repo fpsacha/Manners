@@ -81,6 +81,11 @@ do
 		local macro = armed(ns)
 		local want = "/targetexact Panda Cub\n/praise\n/emote gives Panda Cub a proud nod. Panda Cub stays close.\n/targetlasttarget"
 		if macro ~= want then fail(scenario, "the macro is |" .. tostring(macro) .. "|") return end
+		local said = table.concat(ns.BeastLines(), "\n")
+		if not (said:find("Panda Cub", 1, true) and said:find("praise", 1, true)) then
+			fail(scenario, "/manners debug does not show the moment waiting: " .. said)
+		end
+		if not ns.FullReport():find("moments with your companion", 1, true) then fail(scenario, "the full check-up leaves the companion out") end
 		local ran = pressButton(ns)
 		if ran ~= macro then fail(scenario, "the press ran " .. tostring(ran)) end
 		if companionEntry(ns) then fail(scenario, "the moment is still offered after the press") end

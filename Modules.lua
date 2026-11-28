@@ -178,7 +178,7 @@ local PET_KEYS = {
 	CHANNEL_COMMANDS = true, MACRO_LIMIT = true, SyncMacroSlot = true,
 	lastMacro = true, CanCastAnything = true, LOCALE = true,
 	Battle = true, Beast = true, WindowLayout = true,
-	ModuleActive = true, BeastArm = true,
+	ModuleActive = true, BeastArm = true, BeastLines = true,
 }
 local PET_WRITES = {
 	Beast = true, BEAST_FOODS = true, BEAST_DIETS = true,

@@ -456,6 +456,26 @@ do
 	end
 end
 
+-- /manners debug and the full check-up: the switch, who is out, the moment
+-- waiting and the gap, after the hunter's own lines.
+do
+	local lines = ns.BeastLines
+	function ns.BeastLines(now)
+		local out = lines and lines(now) or {}
+		local beast = Switches()
+		if not (beast and beast.companion == true) then return out end
+		now = now or GetTime()
+		out[#out + 1] = L["moments with your companion: on, out now: |cffffffff%s|r"]:format(tostring(Out() or "-"))
+		if moment then
+			local left = moment.shownAt and C.SHOW - (now - moment.shownAt) or (C.EXPIRE[moment.kind] or 60) - (now - moment.at)
+			out[#out + 1] = L["a moment with your companion: %s, %ds left"]:format(moment.kind, math.max(0, math.floor(left)))
+		end
+		local gap = GapLeft()
+		if gap > 0 then out[#out + 1] = L["next moment with your companion in %s"]:format(ns.TimeText(gap)) end
+		return out
+	end
+end
+
 -- For /manners debug and the tests.
 function Companion.State()
 	return { moment = moment and moment.kind or nil, name = moment and moment.name or nil, gap = GapLeft() }
