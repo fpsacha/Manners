@@ -908,6 +908,37 @@ do
 		if top:GetFrameLevel() <= under:GetFrameLevel() or under:GetFrameLevel() < 500 then
 			fail(scenario, "on one spot the first card in the order is not the one on top")
 		end
+		-- Where I drag each one: a card dragged by its own handle keeps its own
+		-- place; one never dragged stays where the row puts it.
+		ns.db.profile.moments.layout = "free"
+		ns.db.profile.moments.places = nil
+		if not ns.Moments.Preview(true, true) then fail(scenario, "SKIPPED -- the preview would not show") end
+		local handle = sa.handle
+		if not (handle and handle:IsShown() and handle:IsMouseEnabled()) then
+			fail(scenario, "a card has no handle of its own to drag in a free layout")
+		elseif ns.Moments.Anchor():IsMouseEnabled() then
+			fail(scenario, "the row's drag frame takes the drag over the cards' own handles")
+		else
+			local centre = prompt.GetCenter
+			prompt.GetCenter = function() return 500, 300 end
+			handle.GetCenter = function() return 800, 500 end
+			handle:GetScript("OnDragStart")(handle)
+			local follow = a.points[#a.points]
+			if not (follow and follow[2] == handle) then fail(scenario, "the card does not follow its handle while dragged") end
+			handle:GetScript("OnDragStop")(handle)
+			prompt.GetCenter = centre
+			local kept = ns.db.profile.moments.places and ns.db.profile.moments.places[pummel.row.key]
+			if not (kept and kept.x == 300 and kept.y == 200) then
+				fail(scenario, "the dragged card's place was not kept: " .. tostring(kept and kept.x) .. "," .. tostring(kept and kept.y))
+			end
+			pa, pb = a.points[#a.points], b.points[#b.points]
+			if not (pa and pa[4] == 300 and pa[5] == 200) then fail(scenario, "the dragged card is not where it was dropped") end
+			if pb and pb[4] == 300 and pb[5] == 200 then fail(scenario, "a card never dragged went with the other") end
+		end
+		ns.Moments.EndPreview()
+		if handle and handle:IsShown() then fail(scenario, "a card's handle stays up after the preview") end
+		ns.Moments:ResetPosition()
+		if ns.db.profile.moments.places ~= nil then fail(scenario, "Reset leaves the cards' own places") end
 		ns.db.profile.moments.layout = "row"
 	end
 	Mock.reset()

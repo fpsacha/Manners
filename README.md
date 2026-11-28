@@ -53,7 +53,7 @@ own buffs, food, flasks, scrolls and items), **Services**, **Achievements** and
 
 - **Combat prompt**: interrupts, defensives, dispels, heals and Blessing of
   Freedom on a slowed friend, each lit only when needed; one click casts. Cards
-  sit in a row (right, left, up or down) or on one spot.
+  sit in a row (right, left, up or down), on one spot, or each where you drag it.
 - **Spells and items of my own**: add any buff spell, or an item or trinket
   whose use gives a buff, and Manners reminds you of it.
 - **Achievements** that say what to do, with a goal count.

@@ -246,7 +246,7 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		desc = L["Returns the combat prompt to the normal Manners prompt's place."],
 		disabled = function()
 			local m = ns.db.profile.moments
-			return InCombatLockdown() or (m.promptX == nil and m.promptY == nil)
+			return InCombatLockdown() or (m.promptX == nil and m.promptY == nil and next(m.places or {}) == nil)
 		end,
 		hidden = function() return Off() or #Learned() == 0 end,
 		func = function() ns.Guard("reset combat prompt place", ns.Moments.ResetPosition, ns.Moments) end,
@@ -354,14 +354,18 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 	}
 	args.combatActionLayout = {
 		type = "select", name = L["Where the combat cards sit"], order = 32.50362,
-		desc = L["A row gives each action its own place, so a click always casts the card you see. One spot shows every card in the same place; the most urgent one sits on top and takes the click, and each action's own key casts any of them."],
-		values = { row = L["A row"], stack = L["One spot"] },
-		sorting = { "row", "stack" },
+		desc = L["A row gives each action its own place, so a click always casts the card you see. One spot shows every card in the same place; the most urgent one sits on top and takes the click, and each action's own key casts any of them."]
+			.. "\n\n" .. L["Where I drag each one: show the combat prompt and drag each card to its own place."],
+		values = { row = L["A row"], stack = L["One spot"], free = L["Where I drag each one"] },
+		sorting = { "row", "stack", "free" },
 		width = "full",
 		hidden = Off,
-		get = function() return ns.db.profile.moments.layout == "stack" and "stack" or "row" end,
+		get = function()
+			local layout = ns.db.profile.moments.layout
+			return (layout == "stack" or layout == "free") and layout or "row"
+		end,
 		set = function(_, value)
-			ns.db.profile.moments.layout = value == "stack" and "stack" or "row"
+			ns.db.profile.moments.layout = (value == "stack" or value == "free") and value or "row"
 			Restyle()
 		end,
 	}
@@ -371,7 +375,10 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		values = { right = L["Right"], left = L["Left"], up = L["Up"], down = L["Down"] },
 		sorting = { "right", "left", "up", "down" },
 		width = "full",
-		hidden = function() return Off() or ns.db.profile.moments.layout == "stack" end,
+		hidden = function()
+			local layout = ns.db.profile.moments.layout
+			return Off() or layout == "stack" or layout == "free"
+		end,
 		get = function()
 			local grow = ns.db.profile.moments.grow
 			return (grow == "left" or grow == "up" or grow == "down") and grow or "right"

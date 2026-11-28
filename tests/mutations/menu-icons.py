@@ -30,3 +30,35 @@ mutate("Options/Window/WindowChrome.lua",
        "\t\tfooter.changed:SetPoint(\"LEFT\", footer.reset, \"RIGHT\", FOOT_GAP, 0)\n",
        "window: the square buttons keep the hidden reset's gap",
        expect="window: the reset button is hidden on Start here, Profiles and Diagnostics", script=S)
+
+FREE = "combat-actions: the combat prompt sits above the buff prompt, a place each, and a self row has a macro"
+mutate("Modules/Combat/Moments.lua",
+       "\t\t\tif free and previewing then\n",
+       "\t\t\tif false then\n",
+       "combat-actions: no handle for each card",
+       expect=FREE, script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\tdb.moments.places[slot.row.key] = { x = hx - px, y = hy - py }\n",
+       "",
+       "combat-actions: a dragged card's place is not saved",
+       expect=FREE, script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\t\t\tlocal own = free and places[slot.row.key]\n",
+       "\t\t\tlocal own = nil\n",
+       "combat-actions: a saved card's place is not used",
+       expect=FREE, script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\tat:EnableMouse(previewing == true and not free)\n",
+       "\tat:EnableMouse(previewing == true)\n",
+       "combat-actions: the row's frame takes the drag in a free layout",
+       expect=FREE, script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\tdb.moments.places = nil\n",
+       "",
+       "combat-actions: Reset keeps the cards' own places",
+       expect=FREE, script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\t\tb:SetPoint(\"CENTER\", self, \"CENTER\", 0, 0)\n",
+       "",
+       "combat-actions: the card does not follow its handle",
+       expect=FREE, script=S)

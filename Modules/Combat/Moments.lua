@@ -1122,10 +1122,61 @@ local function Anchor()
 			if Moments:ResetPosition() then Moments.Preview(true, true) end
 		end)
 	end)
-	anchorLabel.done, anchorLabel.reset = done, reset
+	anchorLabel.done, anchorLabel.reset, anchorLabel.how = done, reset, how
 	anchorLabel:Hide()
 	return anchor
 end
+
+-- "free": each card where the player dragged it, saved per action
+-- (moments.places[key], from the buff prompt's centre). In the preview each
+-- card wears a handle of its own; the card follows it, and the place is kept on
+-- the drop. Out of a fight only, like every move.
+local function SaveCard(slot)
+	local db, at, handle = Profile(), R.button, slot.handle
+	if InCombatLockdown() or not (db and at and handle) then return end
+	local hx, hy = handle:GetCenter()
+	local px, py = at:GetCenter()
+	if type(hx) ~= "number" or type(hy) ~= "number" or type(px) ~= "number" or type(py) ~= "number" then return end
+	db.moments.places = type(db.moments.places) == "table" and db.moments.places or {}
+	db.moments.places[slot.row.key] = { x = hx - px, y = hy - py }
+	Place(db.prompt)
+end
+
+local function Handle(slot)
+	if slot.handle then return slot.handle end
+	local h = CreateFrame("Frame", nil, UIParent)
+	h:SetClampedToScreen(true)
+	h:SetMovable(true)
+	h:SetFrameStrata("TOOLTIP")
+	h:RegisterForDrag("LeftButton")
+	local rim = h:CreateTexture(nil, "OVERLAY")
+	rim:SetAllPoints()
+	rim:SetColorTexture(1, 0.82, 0, 0.18)
+	h:SetScript("OnDragStart", function(self)
+		if not (previewing and not InCombatLockdown()) then return end
+		self:StartMoving()
+		self.dragging = true
+		-- The card follows the handle while it is dragged.
+		local b = slot.button
+		b:ClearAllPoints()
+		b:SetPoint("CENTER", self, "CENTER", 0, 0)
+	end)
+	h:SetScript("OnDragStop", function(self)
+		self:StopMovingOrSizing()
+		self.dragging = nil
+		if InCombatLockdown() then return end
+		ns.Guard("moments", SaveCard, slot)
+	end)
+	h:SetScript("OnMouseUp", function(_, button)
+		if button == "RightButton" and previewing and Moments.EndPreview then
+			ns.Guard("moments", Moments.EndPreview)
+		end
+	end)
+	h:Hide()
+	slot.handle = h
+	return h
+end
+Moments.Handle = Handle
 
 local function CombatStyle(p)
 	local db = Profile()
@@ -1145,9 +1196,13 @@ Place = function(p)
 	at:ClearAllPoints()
 	at:SetPoint("CENTER", R.button, "CENTER", tonumber(moments.promptX) or 0, tonumber(moments.promptY) or DefaultY(H))
 	at:SetSize(W, H)
-	at:EnableMouse(previewing == true)
+	local free = moments.layout == "free"
+	local places = type(moments.places) == "table" and moments.places or {}
+	-- In a free layout the cards' own handles take the drag, not the row's.
+	at:EnableMouse(previewing == true and not free)
 	-- The bar only while the prompt is being moved, not while a look is tried.
 	anchorLabel:SetShown(previewing == true and moving == true)
+	anchorLabel.how:SetText(free and L["Drag each card to move it."] or L["Drag it to move it."])
 	-- A place each, in a row from the anchor, the most urgent first: the order is
 	-- fixed out of a fight, so a card always appears where it appeared before.
 	local order = {}
@@ -1163,7 +1218,7 @@ Place = function(p)
 	-- "stack": every card on the one spot, the most urgent on top (it takes the
 	-- click; a key casts any of them). Otherwise a row growing `grow`-wards.
 	local stack = moments.layout == "stack"
-	local grow = moments.grow
+	local grow = free and "right" or moments.grow
 	local dx, dy = W + ROW_GAP, 0
 	if grow == "left" then dx = -dx
 	elseif grow == "up" then dx, dy = 0, H + ROW_GAP
@@ -1174,8 +1229,25 @@ Place = function(p)
 		do
 			local b = slot.button
 			b:ClearAllPoints()
-			b:SetPoint("CENTER", at, "CENTER", (i - 1) * dx, (i - 1) * dy)
+			local own = free and places[slot.row.key]
+			if own and tonumber(own.x) and tonumber(own.y) then
+				b:SetPoint("CENTER", R.button, "CENTER", tonumber(own.x), tonumber(own.y))
+			else
+				-- Not dragged yet: where the row would put it.
+				b:SetPoint("CENTER", at, "CENTER", (i - 1) * dx, (i - 1) * dy)
+			end
 			b:SetSize(W, H)
+			if free and previewing then
+				local h = Handle(slot)
+				h:ClearAllPoints()
+				h:SetPoint("CENTER", b, "CENTER", 0, 0)
+				h:SetSize(W, H)
+				h:EnableMouse(true)
+				h:Show()
+			elseif slot.handle then
+				slot.handle:EnableMouse(false)
+				slot.handle:Hide()
+			end
 			-- Over the buff prompt, under it: where the two share the screen the
 			-- buff prompt takes the click (a level cannot change in a fight). In a
 			-- stack the first in the order is the highest.
@@ -1189,7 +1261,7 @@ Place = function(p)
 			end
 		end
 	end
-	Moments.placed = { side = stack and "stack" or (grow or "right"), w = W, h = H,
+	Moments.placed = { side = free and "free" or stack and "stack" or (grow or "right"), w = W, h = H,
 		cols = stack and 1 or placedN, perCol = 1, n = placedN, rightwards = grow ~= "left" }
 	return "prompt"
 end
@@ -1200,6 +1272,7 @@ function Moments:ResetPosition()
 	local db = Profile()
 	if InCombatLockdown() or not db or type(db.moments) ~= "table" then return false end
 	db.moments.promptX, db.moments.promptY = nil, nil
+	db.moments.places = nil
 	self:Refresh()
 	return true
 end
@@ -1391,6 +1464,13 @@ local function ClosePreview()
 	if anchor then
 		anchor:EnableMouse(false)
 		if anchorLabel then anchorLabel:Hide() end
+	end
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.handle then
+			slot.handle:EnableMouse(false)
+			slot.handle:Hide()
+		end
 	end
 	for n = 1, MAX do
 		local slot = slots[n]

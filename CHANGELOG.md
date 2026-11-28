@@ -12,6 +12,11 @@
   tanks and melee* or *only in dungeon and raid fights* on, food, flasks and
   the rest still come up (My own buffs).
 
+### Combat
+- **Place each card yourself.** *Where the combat cards sit* has a third choice,
+  *Where I drag each one*: show the combat prompt and drag every card to its
+  own place (Manners: Combat).
+
 ### Options window
 - **Spells wear their icons.** A switch, list or dropdown that names one of
   your spells shows that spell's icon beside it.
