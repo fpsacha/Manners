@@ -741,3 +741,73 @@ do
 	end
 	Mock.reset()
 end
+
+do
+	-- The combat prompt sits on Manners by default. A card only the game can see
+	-- (a hidden health) must not take the click meant for the buff prompt, nor may
+	-- the drink out of a fight; a card Lua knows is needed in a fight still wins,
+	-- and a combat prompt moved off the buff prompt never gives way.
+	local scenario = "combat-actions: the buff prompt keeps its clicks over a card only the game sees"
+	Mock.reset()
+	Mock.class = "WARRIOR"
+	Mock.knownSpells = { [6552] = true, [2565] = true }
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Guard("probe combat actions", ns.ProbeCapabilities)
+		local entry = ns.caps.moments and ns.caps.moments.byKey["combat-self_defense-shield-block"]
+		if not entry then fail(scenario, "Shield Block was not learned") Mock.reset() return end
+		ns.db.profile.moments[entry.row.key] = true
+		ns.Moments:Refresh()
+		local slot = ns.Moments:Slot(entry.row.slot)
+		local showing = { name = "Ann" }
+		local was = ns.Prompt.Showing
+		ns.Prompt.Showing = function() return showing end
+		ns.Sense.fighting = true
+		slot.mouseOn = true
+
+		slot.state = "game"
+		ns.Moments.Route()
+		if ns.Moments.selected == slot then
+			fail(scenario, "a card only the game can see took the top over a buff prompt that offers somebody a buff")
+		end
+		if not slot.cover:IsShown() then
+			fail(scenario, "the card under the buff prompt has no cover, so a click round its edge casts it")
+		end
+
+		slot.state = "lit"
+		ns.Moments.Route()
+		if ns.Moments.selected ~= slot then fail(scenario, "a card Lua knows is needed in a fight gave way to the buff prompt") end
+
+		showing = nil
+		slot.state = "game"
+		ns.Moments.Route()
+		if ns.Moments.selected ~= slot then fail(scenario, "with no buff on offer the card only the game sees did not take the top") end
+
+		showing = { name = "Ann" }
+		local function rect(frame, l, r, b, t)
+			frame.GetLeft = function() return l end
+			frame.GetRight = function() return r end
+			frame.GetBottom = function() return b end
+			frame.GetTop = function() return t end
+		end
+		rect(slot.button, 600, 900, 600, 700)
+		rect(ns.Prompt:GetButton(), 100, 320, 100, 144)
+		ns.Moments.Route()
+		if ns.Moments.selected ~= slot then
+			fail(scenario, "a combat prompt moved off the buff prompt still gave way to it")
+		end
+		rect(slot.button, 80, 340, 80, 160)
+
+		ns.Sense.fighting = false
+		slot.row = setmetatable({ calm = true }, { __index = slot.row })
+		slot.state = "lit"
+		ns.Moments.Route()
+		if ns.Moments.selected == slot then fail(scenario, "the drink took the top over a buff prompt out of a fight") end
+		showing = nil
+		ns.Moments.Route()
+		if ns.Moments.selected ~= slot then fail(scenario, "the drink did not come back once the buff prompt went") end
+		ns.Prompt.Showing = was
+	end
+	Mock.reset()
+end

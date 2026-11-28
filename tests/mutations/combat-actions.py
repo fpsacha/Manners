@@ -64,8 +64,8 @@ mutate("Modules/Combat/MomentsSense.lua",
        expect=N + "a generated interrupt uses a plain target-cast signal without secure writes", script=S)
 
 mutate("Modules/Combat/Moments.lua",
-       "Moments.selected = best",
-       "Moments.selected = nil",
+       "Moments.selected, Moments.yielded = best, yielded",
+       "Moments.selected, Moments.yielded = nil, yielded",
        "combat actions: the routed combat action is not exposed to one prompt",
        expect=N + "simultaneous needs use one prompt and one secure click target", script=S)
 
@@ -207,14 +207,14 @@ mutate("Modules/Combat/ActionsData.lua",
        expect="WARRIOR has no combat-self_defense-shield-wall", script=S)
 
 mutate("Modules/Combat/Moments.lua",
-       "\treturn slot.state == \"dark\"\nend\nMoments.CoverWanted = CoverWanted",
-       "\treturn slot.state ~= \"lit\"\nend\nMoments.CoverWanted = CoverWanted",
+       "\treturn slot.state == \"dark\" or slot.routed ~= true\nend\nMoments.CoverWanted = CoverWanted",
+       "\treturn slot.state ~= \"lit\" or slot.routed ~= true\nend\nMoments.CoverWanted = CoverWanted",
        "combat actions: a card the game shows keeps its cover, so a click does nothing",
        expect=N + "one click casts where only the game knows; a dark card swallows it", script=S)
 
 mutate("Modules/Combat/Moments.lua",
-       "\treturn slot.state == \"dark\"\nend\nMoments.CoverWanted = CoverWanted",
-       "\treturn false\nend\nMoments.CoverWanted = CoverWanted",
+       "\treturn slot.state == \"dark\" or slot.routed ~= true\nend\nMoments.CoverWanted = CoverWanted",
+       "\treturn slot.routed ~= true\nend\nMoments.CoverWanted = CoverWanted",
        "combat actions: a dark card has no cover, so a click casts anyway",
        expect=N + "one click casts where only the game knows; a dark card swallows it", script=S)
 
@@ -235,3 +235,29 @@ mutate("Options/Window/Widgets.lua",
        "\t\tlocal x = 25",
        "options window: a switch's name is drawn over its spell icon",
        expect=N + "a combat action's switch wears its spell's icon", script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\tif not busy then return false end\n\tif Sense.fighting",
+       "\tdo return false end\n\tif Sense.fighting",
+       "combat actions: a card only the game sees takes the buff prompt's click",
+       expect=N + "the buff prompt keeps its clicks over a card only the game sees", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\tif Sense.fighting and slot.state ~= \"game\" then return false end",
+       "\tif false then return false end",
+       "combat actions: a needed card in a fight gives way to the buff prompt",
+       expect=N + "the buff prompt keeps its clicks over a card only the game sees", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\treturn slot.state == \"dark\" or slot.routed ~= true",
+       "\treturn slot.state == \"dark\"",
+       "combat actions: a card under the buff prompt casts from a click round its edge",
+       expect=N + "the buff prompt keeps its clicks over a card only the game sees", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\treturn al < br and bl < ar and ab < bt and bb < at",
+       "\treturn true",
+       "combat actions: a combat prompt moved off Manners still gives way",
+       expect=N + "the buff prompt keeps its clicks over a card only the game sees", script=S)
+mutate("Modules/Combat/Moments.lua",
+       "\tlocal busy = Prompt ~= nil and type(Prompt.Showing) == \"function\" and Prompt:Showing() ~= nil",
+       "\tlocal busy = Prompt ~= nil and type(Prompt.Showing) == \"function\"",
+       "combat actions: the combat prompt gives way to a buff prompt that offers nothing",
+       expect=N + "the buff prompt keeps its clicks over a card only the game sees", script=S)

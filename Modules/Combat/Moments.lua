@@ -354,11 +354,12 @@ end
 -- the cover and what is painted
 ---------------------------------------------------------------------------
 
--- Whether the cover is up: while the button is dark, and only then. Lit, or lit
--- by the game from a value it hides, one click casts.
+-- Whether the cover is up: while the button is dark, or while another card has the
+-- top (a card left under it, or under the buff prompt, must not catch a click
+-- round the edge). The card on top, lit or lit by the game, takes one click.
 local function CoverWanted(slot)
 	if not slot.mouseOn then return false end
-	return slot.state == "dark"
+	return slot.state == "dark" or slot.routed ~= true
 end
 Moments.CoverWanted = CoverWanted
 
@@ -470,6 +471,36 @@ local function Apply(slot, state)
 	slot.cover:SetShown(CoverWanted(slot, now))
 end
 
+-- Whether a card and the buff prompt share any of the screen. A rect not on the
+-- screen yet counts as shared: the combat prompt sits on Manners by default.
+local function Edges(frame)
+	local l, r, t, b = frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetBottom()
+	local scale = frame:GetEffectiveScale()
+	if type(l) ~= "number" or type(r) ~= "number" or type(t) ~= "number" or type(b) ~= "number"
+		or type(scale) ~= "number" or r <= l or t <= b then return nil end
+	return l * scale, r * scale, t * scale, b * scale
+end
+
+local function OverPrompt(slot)
+	if not R.button then return false end
+	local al, ar, at, ab = Edges(slot.button)
+	local bl, br, bt, bb = Edges(R.button)
+	if not (al and bl) then return true end
+	return al < br and bl < ar and ab < bt and bb < at
+end
+Moments.OverPrompt = OverPrompt
+
+-- The buff prompt keeps its place while it offers somebody a buff, over a card
+-- only the game can see (Lua cannot tell whether it shows, and an invisible card
+-- on top would take the click meant for the buff) and over the drink out of a
+-- fight. A card Lua knows is needed in a fight still takes the top.
+local function GivesWay(slot, busy)
+	if not busy then return false end
+	if Sense.fighting and slot.state ~= "game" then return false end
+	return OverPrompt(slot)
+end
+Moments.GivesWay = GivesWay
+
 -- The internal secure slots are all at the same place. Only the highest
 -- priority one gets the prompt's art and the top click level. Frame level is
 -- visual: the macro, attributes, point, size and mouse setting stay untouched.
@@ -477,9 +508,15 @@ local function Route()
 	if previewing then return end
 	local before = Moments.selected
 	local best
+	local busy = Prompt ~= nil and type(Prompt.Showing) == "function" and Prompt:Showing() ~= nil
+	local yielded = false
 	for n = 1, MAX do
 		local slot = slots[n]
-		if slot and slot.armed and slot.state ~= "dark"
+		local yields = false
+		if slot and slot.armed and slot.state ~= "dark" and GivesWay(slot, busy) then
+			yields, yielded = true, true
+		end
+		if not yields and slot and slot.armed and slot.state ~= "dark"
 			and ((Sense.fighting and slot.row.calm ~= true) or (not Sense.fighting and slot.row.calm == true)) then
 			if not best or Priority(slot) < Priority(best)
 				or (Priority(slot) == Priority(best) and slot.n < best.n) then
@@ -501,6 +538,7 @@ local function Route()
 				slot.cover:SetFrameLevel(shown and level + 10 or 0)
 				slot.routed, slot.routeLevel = shown, level
 			end
+			slot.cover:SetShown(CoverWanted(slot))
 			if shown then
 				slot.face:SetAlpha(1)
 				slot.fading = false
@@ -514,7 +552,7 @@ local function Route()
 			end
 		end
 	end
-	Moments.selected = best
+	Moments.selected, Moments.yielded = best, yielded
 	local m = Profile() and Profile().moments
 	if best and best ~= before and Sense.fighting and type(m) == "table" and m.alertSound == true
 		and type(_G.PlaySound) == "function" then
@@ -529,7 +567,11 @@ local function CoverDown(slot, mouse)
 	-- or a click on the world.
 	if mouse ~= "LeftButton" then return end
 	slot.tally.cover = slot.tally.cover + 1
-	Trail(slot, "the cover took a click (dark: " .. tostring(slot.why or "no need") .. ")")
+	if slot.state == "dark" then
+		Trail(slot, "the cover took a click (dark: " .. tostring(slot.why or "no need") .. ")")
+	else
+		Trail(slot, "the cover took a click (another card or the buff prompt has the top)")
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -829,6 +871,14 @@ local function Create(n)
 	button:SetScript("OnLeave", function() OnLeave(slot) end)
 	button:Hide()
 	slot.button, slot.face, slot.hint, slot.inner, slot.mark, slot.cover = button, face, hint, inner, mark, cover
+	-- The buff prompt coming and going out of a fight decides whether a card gives
+	-- way to it (Route); a hook on its scripts, so the prompt's code is untouched.
+	if not Moments.promptHooked and R.button and type(R.button.HookScript) == "function" then
+		Moments.promptHooked = true
+		local function Again() ns.Guard("combat prompt beside the buff prompt", Route) end
+		R.button:HookScript("OnShow", Again)
+		R.button:HookScript("OnHide", Again)
+	end
 	-- The card's regions (the picture, the icon, the lines, the flare, the ring) are on
 	-- these frames, made out of a fight here.
 	Card.Build(slot)
@@ -2166,7 +2216,8 @@ function ns.MomentLines()
 				m[row.key] == true and "on" or "off",
 				armed and ("armed (" .. tostring(armed):gsub("\n", " | ") .. ")" .. shape) or (slot and slot.tooLong and "macro too long, not armed" or "not armed"),
 				tostring(slot and slot.keyLabel or (type(GetBindingKey) == "function" and (GetBindingKey("CLICK MannersMoment" .. row.slot .. ":LeftButton")) or "none")),
-				row.slot, "one click",
+				row.slot, (slot and slot.state ~= "dark" and Moments.selected ~= slot and Moments.yielded)
+					and "one click, under the buff prompt while it offers a buff" or "one click",
 				slot and (slot.state == "dark" and ("dark: " .. tostring(slot.why or "no need")) or slot.state) or "dark",
 				tally.lit, tally.game, tally.pressedLit + tally.pressedGame + tally.pressedDark, tally.out, tally.silent)
 		end
