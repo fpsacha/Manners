@@ -89,6 +89,7 @@ local GROUPS = {
 	self_defense = { order = 2, title = L["Defensive actions"], key = "combat.defense" },
 	enemy_self_heal = { order = 2, title = L["Defensive actions"], key = "combat.defense" },
 	control = { order = 3, title = L["Movement and control"], key = "combat.control" },
+	target_freedom = { order = 3, title = L["Movement and control"], key = "combat.control" },
 	target_heal = { order = 4, title = L["Healing"], key = "combat.heal" },
 	party_heal = { order = 4, title = L["Healing"], key = "combat.heal" },
 	self_heal = { order = 4, title = L["Healing"], key = "combat.heal" },
@@ -122,6 +123,9 @@ local function ActionDescription(row)
 	end
 	if category == "target_heal" then
 		return L["Detected when: your current friendly target is alive, in range and below the health threshold."]
+	end
+	if category == "target_freedom" then
+		return L["Detected when: your current friendly target is slowed or rooted, and this action is ready and in range."]
 	end
 	if category == "party_heal" then
 		return L["Detected when: a living party or raid member is below the health threshold."]

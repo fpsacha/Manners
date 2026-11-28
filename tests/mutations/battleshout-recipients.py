@@ -56,3 +56,4 @@ mutate("Options/Window/Layout.lua",
        "",
        "battleshout-recipients: the controls are absent from the page",
        expect=CONTROLS, script=S)
+

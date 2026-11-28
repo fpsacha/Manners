@@ -15,6 +15,7 @@ MendPet.lua
 CureFight.lua
 Wards.lua
 MomentsData.lua
+ImpairData.lua
 ActionsData.lua
 MomentsSense.lua
 MomentCardArt.lua

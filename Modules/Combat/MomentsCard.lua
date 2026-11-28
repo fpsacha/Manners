@@ -63,6 +63,7 @@ local function Words(slot)
 	if category == "enemy_dispel" or category == "strip" then return Pair(L["your target has a removable buff"]) end
 	if category == "target_heal" then return Pair(L["your friendly target is low on health"]) end
 	if category == "party_heal" then return Pair(L["someone in your group is low on health"]) end
+	if category == "target_freedom" then return Pair(L["your friendly target is slowed or rooted"]) end
 	if category == "self_heal" or category == "self_defense" or category == "enemy_self_heal" then
 		return Pair(L["your health is low"])
 	end

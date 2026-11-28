@@ -215,3 +215,9 @@ mutate("Modules/MyBuffs/Options.lua",
        "",
        "wellfed: the last-of-all switch writes nothing",
        expect="wellfed: my food goes after everybody else", script=S)
+
+mutate("Foods.lua",
+       "\t\t{ 16766, 35, 1248394 },\n",
+       "",
+       "wellfed: Forever's Undermine Clam Chowder is not food (#73)",
+       expect="wellfed: every client's table of food is whole and in order", script="runscenarios.py")

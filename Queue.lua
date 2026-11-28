@@ -3008,11 +3008,12 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 		charges = charges,
 		checked = true,
 	}
-	if db.buff.shoutMelee == true then
-		opts.isMelee, opts.shoutMelee = ns.IsMeleeUnit("player", caps.class), true
-	end
-	if db.buff.shoutCombatInstances == true then
-		opts.shoutCombatInstances, opts.shoutCombatAllowed = true, ns.ShoutCombatAllowed()
+	-- Battle Shout's own narrowing (#65) reaches you as it does the group: not
+	-- offered to a warrior who is not fighting in melee, nor out of a dungeon
+	-- or raid fight when it is kept to those.
+	if buff.recipientMelee then
+		if db.buff.shoutMelee == true and ns.IsMeleeUnit("player", caps.class) ~= true then return nil end
+		if db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() ~= true then return nil end
 	end
 	-- A top-up says how long the buff lasts and when it was due (the tooltip).
 	if remaining then entry.duration, entry.lead, entry.leadKind = seconds, lead, kind end

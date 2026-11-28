@@ -22,7 +22,7 @@ mutate("Prompt/Hold.lua",
        expect=FUSE, script=S)
 
 mutate("Modules/MyBuffs/OwnSpells.lua",
-       "\ttable.remove(Entries(), IndexOf(entry))\n\tlocal char = Char()\n\tif char and type(char.ownLast) == \"table\" then char.ownLast[PREFIX .. entry.id] = nil end\n",
+       "\ttable.remove(Entries(), IndexOf(entry))\n\tlocal char = Char()\n\tif char and type(char.ownLast) == \"table\" then char.ownLast[KeyOf(entry)] = nil end\n",
        "\ttable.remove(Entries(), IndexOf(entry))\n",
        "ownspell-linger: the verdict leaves the last pick behind",
        expect=LAST, script=S)

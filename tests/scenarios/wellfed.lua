@@ -159,6 +159,10 @@ do
 			end
 		end
 		if ns.FOODS.mainline then fail(scenario, "retail has a table of food, which it has no way to read") end
+		-- #73: Forever gave Undermine Clam Chowder Well Fed in build 71139.
+		local chowder = false
+		for _, row in ipairs(ns.FOODS.camelot or {}) do if row[1] == 16766 then chowder = true end end
+		if not chowder then fail(scenario, "WoW Forever's Undermine Clam Chowder (16766) is not food that gives Well Fed") end
 	end)
 end
 

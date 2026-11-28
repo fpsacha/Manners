@@ -309,7 +309,7 @@ do
 	local scenario = "ownspell: a spell this character does not know is refused"
 	with(scenario, { names = { [900201] = "Unknown Ward" }, known = {} }, function(ns)
 		if not has(add(ns, "Unknown Ward"), "is not in your spellbook") then fail(scenario, "no refusal for an unknown spell") end
-		if not has(add(ns, "Nonesuch"), "found no spell called Nonesuch") then fail(scenario, "no refusal for a name nobody has") end
+		if not has(add(ns, "Nonesuch"), "found no spell or item called Nonesuch") then fail(scenario, "no refusal for a name nobody has") end
 		if #list(ns) ~= 0 then fail(scenario, "the list is not empty") end
 	end)
 end
@@ -673,5 +673,67 @@ do
 		if mine(ns, "ownspell6346") then fail(scenario, "offered during its cooldown") end
 		Mock.advance(30)
 		if not mine(ns, "ownspell6346") then fail(scenario, "not offered once the cooldown ended") end
+	end)
+end
+
+-- ------------------------------------------------------------------ items (#72)
+
+-- An Elemental Attractor: an item whose use casts Magical Awareness.
+local ATTRACTOR, AWARE, ROCK = 50001, 60001, 50002
+local function items(ns, bags)
+	local saved = rawget(_G, "C_Item")
+	local names = { [ATTRACTOR] = "Elemental Attractor", [ROCK] = "Plain Rock" }
+	rawset(_G, "C_Item", setmetatable({
+		GetItemCount = function(id) return bags[id] or 0 end,
+		GetItemNameByID = function(id) return names[id] end,
+		GetItemIconByID = function() return 134400 end,
+		GetItemInfoInstant = function(t)
+			for id, name in pairs(names) do if t == name or t == id then return id end end
+			return nil
+		end,
+		GetItemSpell = function(id) if id == ATTRACTOR then return "Magical Awareness", AWARE end end,
+		IsUsableItem = function(id) return (bags[id] or 0) > 0 end,
+		RequestLoadItemDataByID = function() end,
+	}, { __index = saved or {} }))
+	if ns.ForgetScrolls then ns.ForgetScrolls() end
+	return function() rawset(_G, "C_Item", saved) end
+end
+
+do
+	local scenario = "ownspell: items: an item from the bags is added and reminded with /use"
+	with(scenario, { names = { [AWARE] = "Magical Awareness" } }, function(ns)
+		local undo = items(ns, { [ATTRACTOR] = 1 })
+		local line = add(ns, "Elemental Attractor")
+		if not (#list(ns) == 1 and list(ns)[1].item == ATTRACTOR and list(ns)[1].id == AWARE) then
+			fail(scenario, "the attractor was not taken onto the list: " .. tostring(line))
+			undo() return
+		end
+		Mock.advance(5)
+		local entry = mine(ns)
+		if not (entry and entry.buff and entry.buff.item == ATTRACTOR) then
+			fail(scenario, "the attractor is not offered while its aura is off you")
+		else
+			ns.Prompt:Refresh()
+			if not has(macro(ns), "item:" .. ATTRACTOR) then
+				fail(scenario, "the press does not use the item: " .. tostring(macro(ns)))
+			end
+		end
+		world.auras[AWARE] = "player"
+		Mock.advance(5)
+		if mine(ns) then fail(scenario, "still offered with Magical Awareness on you") end
+		if not has(add(ns, "Elemental Attractor"), "already") then fail(scenario, "added twice") end
+		undo()
+	end)
+end
+
+do
+	local scenario = "ownspell: items: an item that casts nothing is refused"
+	with(scenario, {}, function(ns)
+		local undo = items(ns, { [ROCK] = 1 })
+		local line = add(ns, "Plain Rock")
+		if #list(ns) ~= 0 or not has(line, "casts nothing") then
+			fail(scenario, "a rock went on the list: " .. tostring(line))
+		end
+		undo()
 	end)
 end

@@ -1038,7 +1038,7 @@ Priority = function(slot)
 	local row, needs = slot.row, slot.needs or {}
 	local category = row and row.category
 	if category == "interrupt" or needs.casting or needs.interruptible then return 1 end
-	if needs.stuck or row and row.key == "blink" then return 2 end
+	if needs.stuck or needs.impaired or row and row.key == "blink" then return 2 end
 	if category == "self_heal" or category == "party_heal" or category == "target_heal" then return 3 end
 	if category == "enemy_self_heal" or category == "self_defense" or needs.lowhealth then return 4 end
 	if category == "enemy_dispel" or needs.removable or needs.stealable then return 5 end
@@ -1801,7 +1801,8 @@ local function RegisterFight()
 			if needs.schoolhit then
 				for _, name in ipairs(TARGET_CAST) do Register(name, "target") end
 			end
-			if needs.stealable or needs.removable then Register("UNIT_AURA", "target") end
+			if needs.stealable or needs.removable or needs.impaired then Register("UNIT_AURA", "target") end
+			if needs.friendly then Register("PLAYER_TARGET_CHANGED") end
 		end
 	end
 end

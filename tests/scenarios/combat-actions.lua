@@ -80,6 +80,7 @@ if ns then
 							local valid = category == nil or category == "interrupt" or category == "enemy_dispel"
 								or category == "self_heal" or category == "target_heal" or category == "party_heal"
 								or category == "self_defense" or category == "enemy_self_heal" or category == "self_resource"
+								or category == "target_freedom"
 							if not valid then fail(scenario, flavour .. " " .. class .. " has unsupported " .. tostring(category)) end
 							if not (row.slot >= 1 and row.slot <= 64) then
 								fail(scenario, flavour .. " " .. class .. " " .. row.key .. " uses slot " .. tostring(row.slot))

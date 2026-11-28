@@ -194,6 +194,18 @@ AddStrips(MISTS, { SHAMAN = Strip("purge", { 370 }, MAGIC), PRIEST = Strip("disp
 AddStrips(MAINLINE, { SHAMAN = Strip("purge", { 370 }, MAGIC), PRIEST = Strip("dispel", { 528 }, MAGIC),
 	HUNTER = Strip("tranq", { 19801 }, ENRAGE_MAGIC, { cooldown = 10 }) })
 
+-- A paladin's Blessing of Freedom on a friendly target that is slowed or rooted
+-- (#71): the debuffs that do it are ImpairData.lua's, read off the target.
+local FREEDOM = { "fight", "ready", "usable", "friendly", "impaired", "inrange" }
+local function Freedom(cooldown)
+	return Row { key = "freedom", slot = 11, category = "target_freedom", ranks = { 1044 }, stop = true,
+		guard = "twice", cooldown = cooldown, needs = FREEDOM }
+end
+for set, cooldown in pairs({ [OLD] = 20, [TBC] = 25, [MISTS] = 25, [MAINLINE] = 25 }) do
+	set.PALADIN = set.PALADIN or {}
+	table.insert(set.PALADIN, 1, Freedom(cooldown))
+end
+
 local SETS = { camelot = OLD, vanilla = OLD, tbc = TBC, mists = MISTS, mainline = MAINLINE }
 
 -- The profile's defaults for every key any set may name (Core.lua repeats
@@ -201,11 +213,11 @@ local SETS = { camelot = OLD, vanilla = OLD, tbc = TBC, mists = MISTS, mainline 
 ns.MOMENT_DEFAULTS = { counterspell = false, spellsteal = false, blink = false, iceblock = false, coldsnap = false,
 	evocation = false, managem = false, slowfall = false, fireward = false, frostward = false,
 	-- A warrior presses Shield Slam anyway: its button waits to be asked for.
-	purge = false, dispel = false, tranq = false, shieldslam = false }
+	purge = false, dispel = false, tranq = false, shieldslam = false, freedom = false }
 -- The keys of every row, in the order the options page lists them, for the
 -- scenarios and the reset list.
 ns.MOMENT_KEYS = { "counterspell", "spellsteal", "purge", "dispel", "tranq", "shieldslam", "blink", "iceblock",
-	"coldsnap", "evocation", "managem", "slowfall", "fireward", "frostward" }
+	"coldsnap", "evocation", "managem", "slowfall", "fireward", "frostward", "freedom" }
 for key in pairs(ns.MOMENT_DEFAULTS) do
 	local found = false
 	for _, known in ipairs(ns.MOMENT_KEYS) do if known == key then found = true break end end

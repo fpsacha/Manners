@@ -140,6 +140,7 @@ local COMBAT_KEYS = {
 	Looks = true, LOCALE = true, ReagentCount = true, ReagentName = true, defaults = true,
 	MOMENTS = true, MOMENT_KEYS = true, MOMENT_DEFAULTS = true, MOMENT_SETS = true,
 	CAST_SCHOOLS = true, CAST_SCHOOLS_BY_CLIENT = true, Setup = true,
+	IMPAIRING = true, IMPAIRING_BY_CLIENT = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	OptionsPage = true, WindowLayout = true,
 	-- The combat prompt's move: the settings put away while it is moved, and
@@ -155,6 +156,7 @@ local COMBAT_WRITES = {
 	CombatActions = true, Moments = true, Sense = true, MomentCard = true,
 	MOMENTS = true, MOMENT_KEYS = true, MOMENT_DEFAULTS = true, MOMENT_SETS = true,
 	CAST_SCHOOLS = true, CAST_SCHOOLS_BY_CLIENT = true, MomentLines = true,
+	IMPAIRING = true, IMPAIRING_BY_CLIENT = true,
 	BreakFreeLines = true, MendPetLines = true, CureFightLines = true,
 	CureFightKnown = true, ProbeCapabilities = true,
 	ClassHasCures = true, CureLearned = true, CureInfo = true,

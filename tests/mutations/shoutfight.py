@@ -33,3 +33,15 @@ mutate("Queue.lua",
        "\t\tand prompt.armedForFight == true and not InCombatLockdown() and ns.caps.class == \"WARRIOR\"\n",
        "shoutfight: only warriors may snapshot their own buff",
        expect="shoutfight: a mage's own Intellect is offered from the pre-fight snapshot", script=S)
+
+SELF = "shoutfight: your own shout with both shout switches on is held, without an error"
+mutate("Queue.lua",
+       "\t\tif db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() ~= true then return nil end\n\tend",
+       "\t\tif db.buff.shoutCombatInstances == true then opts.shoutCombatAllowed = ns.ShoutCombatAllowed() end\n\tend",
+       "shoutfight: your own shout writes to a table that is not there (#74)",
+       expect=SELF, script=S)
+mutate("Queue.lua",
+       "\t\tif db.buff.shoutCombatInstances == true and ns.ShoutCombatAllowed() ~= true then return nil end\n\tend",
+       "\tend",
+       "shoutfight: your own shout ignores the dungeon-fight timing",
+       expect=SELF, script=S)

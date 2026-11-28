@@ -18,7 +18,7 @@ mutate("Modules/MyBuffs/OwnSpells.lua",
        expect="hunt-1129: a withheld range to you does not prove", script=S)
 
 mutate("Modules/MyBuffs/OwnSpells.lua",
-       "\t\t\te.name, e.seen = name, seen or nil\n\t\t\tout[#out + 1] = e\n",
+       "\t\t\te.name, e.seen, e.item = name, seen or nil, item\n\t\t\tout[#out + 1] = e\n",
        "\t\t\tout[#out + 1] = { id = e.id, name = name, seen = seen or nil }\n",
        "hunt-1129: the repair makes new entry tables",
        expect="hunt-1129: a list the repair rebuilt", script=S)

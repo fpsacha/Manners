@@ -178,3 +178,22 @@ do
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
+
+do
+	-- #74: with "only tanks and melee" or "only in dungeon and raid fights" on,
+	-- your own shout threw on every scan (a write to an undefined table).
+	local scenario = "shoutfight: your own shout with both shout switches on is held, without an error"
+	warrior(scenario, true, function(ns)
+		if not mine(ns) then fail(scenario, "SKIPPED -- the shout was not offered out of a fight") return end
+		ns.db.profile.buff.shoutMelee = true
+		ns.db.profile.buff.shoutCombatInstances = true
+		local before = #(ns.errors or {})
+		local entry = mine(ns)
+		if #(ns.errors or {}) > before then
+			fail(scenario, "the scan threw: " .. tostring(ns.errors[#ns.errors].err))
+		end
+		if entry and entry.buff and entry.buff.key == "battleshout" then
+			fail(scenario, "your own shout was offered out of a dungeon fight")
+		end
+	end)
+end

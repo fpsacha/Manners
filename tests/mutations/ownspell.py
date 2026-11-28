@@ -98,8 +98,8 @@ mutate("Modules/MyBuffs/OwnSpells.lua",
        expect="ownspell: ten at most", script=S)
 
 mutate("Modules/MyBuffs/OwnSpells.lua",
-       "if entry.id == id or (entry.name and entry.name:lower() == lower) then return Answer(TEXT.TWICE",
-       "if false then return Answer(TEXT.TWICE",
+       "if (entry.id == id and not entry.item) or (entry.name and entry.name:lower() == lower) then\n",
+       "if false then\n",
        "ownspell: the same spell added twice",
        expect="ownspell: the same spell twice is refused", script=S)
 
@@ -129,7 +129,7 @@ mutate("Modules/MyBuffs/OwnSpells.lua",
        expect="ownspell: Remove takes it off", script=S)
 
 mutate("Modules/MyBuffs/OwnSpells.lua",
-       "and not seenIds[e.id] and #out < OS.MAX then",
+       "and not twice and #out < OS.MAX then",
        "then",
        "ownspell: repair lets an id twice and eleven through",
        expect="ownspell: a damaged list is repaired", script=S)
@@ -213,3 +213,20 @@ mutate("Modules/MyBuffs/OwnSpells.lua",
        "or nil",
        "ownspell: a spell with no range held for the friend targeted",
        expect="ownspell: a spell cast at nobody with nobody targeted is judged", script=S)
+
+ITEMS = "ownspell: items: an item from the bags is added and reminded with /use"
+mutate("Modules/MyBuffs/OwnSpells.lua",
+       "\t\tif item then return OS.AddItem(item, use, itemName) end\n",
+       "",
+       "ownspell: an item is never looked for",
+       expect=ITEMS, script="runscenarios.py")
+mutate("Modules/MyBuffs/OwnSpells.lua",
+       "\t\t\t\tlist[#list + 1] = { key = key, scroll = true, custom = true, spells",
+       "\t\t\t\tlist[#list + 1] = { key = key, scroll = false, custom = true, spells",
+       "ownspell: an item's family is not counted in the bags",
+       expect=ITEMS, script="runscenarios.py")
+mutate("Modules/MyBuffs/OwnSpells.lua",
+       "\t\tif item and not use then return Answer(TEXT.ITEM_NO_USE:format(itemName)) end\n",
+       "",
+       "ownspell: an item that casts nothing is not refused",
+       expect="ownspell: items: an item that casts nothing is refused", script="runscenarios.py")

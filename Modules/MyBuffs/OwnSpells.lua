@@ -6,7 +6,11 @@
 -- probe, OwnVerdict, the queue, Myself, cities and inns, the fight hold and
 -- the press (Prompt/Macro.lua, STRATEGIES.self) treat it as any other own buff.
 -- A spell Manners covers itself is refused, and left to Manners if it comes to
--- cover it later. The client cannot say before a cast whether a spell leaves
+-- cover it later. An item works the same way (#72): one in your bags or an
+-- equipped trinket whose use casts a spell (an Elemental Attractor), kept as
+-- { item, id = the use's spell, name } and built as a family like a mage's
+-- familiar (Buffs.lua: `scroll`, counted in the bags, used with /use item:<id>,
+-- read by the aura of its use). The client cannot say before a cast whether a spell leaves
 -- an aura: the first cast on yourself out of a fight is read two seconds
 -- later, and a spell that left none is taken off with a line saying why.
 local api = assert(MannersAPI, "Manners is required")
@@ -21,6 +25,7 @@ ns.OwnSpells = OS
 OS.MAX = 10
 
 local PREFIX = "ownspell"
+local ITEM_PREFIX = "ownitem"
 local VERDICT_SECONDS = 2
 local said
 local built = false
@@ -34,7 +39,9 @@ local lastVerdict
 local TEXT = {
 	ADDED = L["Added %s. Manners reminds you of it when it is not on you."],
 	EMPTY = L["Type a spell's name or its spell id."],
-	NOT_FOUND = L["Manners found no spell called %s in your spellbook. Type it as your spellbook shows it, or its spell id."],
+	NOT_FOUND = L["Manners found no spell or item called %s. Type a spell as your spellbook shows it or an item as your bags show it, or its spell or item id."],
+	ITEM_NO_USE = L["%s casts nothing when used, so there is no buff of it to remind you of."],
+	NOT_IN_BAGS = L["%s (not in your bags now)"],
 	NOT_KNOWN = L["%s is not in your spellbook: Manners adds only a spell this character knows."],
 	PASSIVE = L["%s is passive: it is always on, with nothing to cast."],
 	HARMFUL = L["%s is cast on an enemy, so it cannot go on you."],
@@ -74,8 +81,18 @@ local function Answer(line, ok)
 	return ok == true, line
 end
 
-local function Shown(id, name)
-	local icon = ns.safecall(C_Spell and C_Spell.GetSpellTexture, id)
+local function KeyOf(entry)
+	if entry.item then return ITEM_PREFIX .. entry.item end
+	return PREFIX .. entry.id
+end
+
+local function Shown(id, name, item)
+	local icon
+	if item then
+		icon = ns.safecall(C_Item and C_Item.GetItemIconByID, item)
+	else
+		icon = ns.safecall(C_Spell and C_Spell.GetSpellTexture, id)
+	end
 	if type(icon) == "number" or type(icon) == "string" then
 		return "|T" .. tostring(icon) .. ":16:16|t " .. name
 	end
@@ -111,6 +128,27 @@ local function Resolve(text)
 	end
 	if not WholeId(id) or not ns.SpellNameFor(id) then return nil end
 	return id
+end
+
+-- An item from what was typed: a link, "item:<id>", an id, or a name the
+-- client knows (one in the bags). Answers the item id, its use's spell id
+-- (nil when it casts nothing) and its name.
+local function ResolveItem(text)
+	local raw = Trim(text)
+	if raw == "" then return nil end
+	local items = C_Item
+	local id = tonumber(raw:match("|Hitem:(%d+)") or raw:match("^item:(%d+)") or "")
+	if not id then
+		local bare = Trim((raw:gsub("^%[", ""):gsub("%]$", "")))
+		id = tonumber(bare)
+		if not id then id = ns.plain(ns.safecall(items and items.GetItemInfoInstant, bare)) end
+	end
+	if not WholeId(id) then return nil end
+	local name = ns.plain(ns.safecall(items and items.GetItemNameByID, id))
+	if type(name) ~= "string" or name == "" then return nil end
+	local _, use = ns.safecall(items and items.GetItemSpell, id)
+	use = ns.plain(use)
+	return id, WholeId(use) and use or nil, name
 end
 
 -- Every name of the class's own spells (by family) and of its buffs for
@@ -173,8 +211,17 @@ local function Sync()
 	if count == 0 then return end
 	local own, buffs = Names(class)
 	for _, entry in ipairs(entries) do
-		local name = ns.SpellNameFor(entry.id) or entry.name
-		if type(name) == "string" and name ~= "" then
+		local name = entry.item and entry.name or ns.SpellNameFor(entry.id) or entry.name
+		if entry.item and type(name) == "string" and name ~= "" then
+			if Covered(entry.id, name, own, buffs) == nil then
+				local key = KeyOf(entry)
+				list[#list + 1] = { key = key, scroll = true, custom = true, spells = { { key = key,
+					item = entry.item, level = 1, ranks = { entry.id }, nameFromItem = name,
+					custom = true, anyCaster = true } } }
+				built = true
+				if entry.seen ~= true then watch[entry.id] = entry end
+			end
+		elseif type(name) == "string" and name ~= "" then
 			entry.name = name
 			if not Covered(entry.id, name, own, buffs) then
 				local ranks = {}
@@ -231,7 +278,7 @@ end
 local function Judge(entry)
 	if not ns.ModuleActive("mybuffs") then return end
 	if InCombatLockdown() or not IndexOf(entry) then return end
-	local spell = ns.FindOwnSpell(PREFIX .. entry.id)
+	local spell = ns.FindOwnSpell(KeyOf(entry))
 	if not spell then return end
 	local up = OnYou(spell.ranks, entry.name or ns.BuffName(spell))
 	if lastVerdict then lastVerdict.said = up == nil and "the client would not say" or up and "seen on you" or "no aura: taken off" end
@@ -243,7 +290,7 @@ local function Judge(entry)
 	end
 	table.remove(Entries(), IndexOf(entry))
 	local char = Char()
-	if char and type(char.ownLast) == "table" then char.ownLast[PREFIX .. entry.id] = nil end
+	if char and type(char.ownLast) == "table" then char.ownLast[KeyOf(entry)] = nil end
 	local line = TEXT.NO_AURA:format(entry.name or tostring(entry.id))
 	said = line
 	addon:Print(line)
@@ -260,17 +307,17 @@ end
 function OS.Said() return said end
 
 function OS.Label(row)
-	local text = Shown(row.id, row.name)
+	local text = Shown(row.id, row.name, row.item)
 	if row.covered then return TEXT.COVERED_NOW:format(text) end
-	if not row.known then return TEXT.NOT_NOW:format(text) end
+	if not row.known then return (row.item and TEXT.NOT_IN_BAGS or TEXT.NOT_NOW):format(text) end
 	return text
 end
 
 function OS.List()
 	local rows = {}
 	for i, entry in ipairs(Entries() or {}) do
-		local spell = ns.FindOwnSpell(PREFIX .. entry.id)
-		rows[i] = { id = entry.id, name = entry.name or tostring(entry.id),
+		local spell = ns.FindOwnSpell(KeyOf(entry))
+		rows[i] = { id = entry.id, item = entry.item, name = entry.name or tostring(entry.id),
 			covered = spell == nil, known = spell ~= nil and ns.OwnSpellKnown(spell) == true }
 	end
 	return rows
@@ -281,6 +328,13 @@ function OS.Add(text)
 	if typed == "" then return Answer(TEXT.EMPTY) end
 	if InCombatLockdown() then return Answer(TEXT.IN_FIGHT) end
 	local id = Resolve(typed)
+	local item, use, itemName
+	-- An item link, or what is no spell this character knows: an item, if one answers.
+	if typed:find("|Hitem:") or typed:find("^item:") or not (id and ns.SpellKnown(id)) then
+		item, use, itemName = ResolveItem(typed)
+		if item and not use then return Answer(TEXT.ITEM_NO_USE:format(itemName)) end
+		if item then return OS.AddItem(item, use, itemName) end
+	end
 	if not id then return Answer(TEXT.NOT_FOUND:format(typed)) end
 	local name = ns.SpellNameFor(id) or typed
 	if not ns.SpellKnown(id) then return Answer(TEXT.NOT_KNOWN:format(name)) end
@@ -295,7 +349,9 @@ function OS.Add(text)
 	local list = char.ownSpells
 	local lower = name:lower()
 	for _, entry in ipairs(list) do
-		if entry.id == id or (entry.name and entry.name:lower() == lower) then return Answer(TEXT.TWICE:format(name)) end
+		if (entry.id == id and not entry.item) or (entry.name and entry.name:lower() == lower) then
+			return Answer(TEXT.TWICE:format(name))
+		end
 	end
 	if #list >= OS.MAX then return Answer(TEXT.FULL) end
 	local entry = { id = id, name = name }
@@ -303,6 +359,33 @@ function OS.Add(text)
 	list[#list + 1] = entry
 	Changed()
 	return Answer(TEXT.ADDED:format(Shown(id, name)), true)
+end
+
+-- An item whose use casts `use` (OS.Add found it).
+function OS.AddItem(item, use, name)
+	local own, buffs = Names(ns.plain(select(2, UnitClass("player"))))
+	local where = Covered(use, name, own, buffs)
+	if where then return Answer(where) end
+	for _, family in ipairs(ns.OWN_BUFFS[ns.plain(select(2, UnitClass("player")))] or {}) do
+		for _, spell in ipairs(family.spells or {}) do
+			if spell.item == item and not spell.custom then
+				return Answer(TEXT.COVERED_OWN:format(name, ns.OwnFamilyLabel(family)))
+			end
+		end
+	end
+	local char = Char()
+	if not char then return Answer(TEXT.NOT_FOUND:format(name)) end
+	if type(char.ownSpells) ~= "table" then char.ownSpells = {} end
+	local list = char.ownSpells
+	for _, entry in ipairs(list) do
+		if entry.item == item then return Answer(TEXT.TWICE:format(name)) end
+	end
+	if #list >= OS.MAX then return Answer(TEXT.FULL) end
+	local entry = { item = item, id = use, name = name }
+	if OnYou({ use }, ns.SpellNameFor(use) or name) == true then entry.seen = true end
+	list[#list + 1] = entry
+	Changed()
+	return Answer(TEXT.ADDED:format(Shown(use, name, item)), true)
 end
 
 -- `which`: the row's place (the page) or what was typed, an id or a name (chat).
@@ -316,16 +399,20 @@ function OS.Remove(which)
 		local typed = Trim(which)
 		if typed == "" then return Answer(TEXT.EMPTY) end
 		local id = tonumber(typed) or Resolve(typed)
+		local item = tonumber(typed:match("|Hitem:(%d+)") or typed:match("^item:(%d+)") or "")
 		local lower = typed:lower()
 		for i, entry in ipairs(list) do
-			if entry.id == id or (entry.name and entry.name:lower() == lower) then index = i end
+			if entry.id == id or (item and entry.item == item) or (entry.item and entry.item == id)
+				or (entry.name and entry.name:lower() == lower) then
+				index = i
+			end
 		end
 		if not index then return Answer(TEXT.NOT_LISTED:format(typed)) end
 	end
 	if not index then return Answer(TEXT.NOT_LISTED:format(tostring(which))) end
 	local entry = table.remove(list, index)
 	local char = Char()
-	if char and type(char.ownLast) == "table" then char.ownLast[PREFIX .. entry.id] = nil end
+	if char and type(char.ownLast) == "table" then char.ownLast[KeyOf(entry)] = nil end
 	Changed()
 	return Answer(TEXT.REMOVED:format(entry.name or tostring(entry.id)), true)
 end
@@ -339,15 +426,18 @@ function OS.Repair(char)
 		return
 	end
 	local list = char.ownSpells
-	local keys, out, seenIds = {}, {}, {}
+	local keys, out, seenIds, seenItems = {}, {}, {}, {}
 	for k in pairs(list) do
 		if type(k) == "number" then keys[#keys + 1] = k end
 	end
 	table.sort(keys)
 	for _, k in ipairs(keys) do
 		local e = list[k]
-		if type(e) == "table" and WholeId(e.id) and not seenIds[e.id] and #out < OS.MAX then
-			seenIds[e.id] = true
+		local item = type(e) == "table" and e.item or nil
+		if item ~= nil and not WholeId(item) then e = nil end
+		local twice = type(e) == "table" and (item and seenItems[item] or (not item and seenIds[e.id]))
+		if type(e) == "table" and WholeId(e.id) and not twice and #out < OS.MAX then
+			if item then seenItems[item] = true else seenIds[e.id] = true end
 			local name = type(e.name) == "string" and Trim(e.name) or nil
 			if name == "" then name = nil end
 			if name and #name > 100 then name = name:sub(1, 100) end
@@ -356,7 +446,7 @@ function OS.Repair(char)
 			for k in pairs(e) do
 				if k ~= "id" then e[k] = nil end
 			end
-			e.name, e.seen = name, seen or nil
+			e.name, e.seen, e.item = name, seen or nil, item
 			out[#out + 1] = e
 		end
 	end
@@ -368,6 +458,9 @@ function OS.Repair(char)
 			if type(key) == "string" and key:sub(1, #PREFIX) == PREFIX then
 				local id = tonumber(key:sub(#PREFIX + 1))
 				if not (id and seenIds[id]) then last[key] = nil end
+			elseif type(key) == "string" and key:sub(1, #ITEM_PREFIX) == ITEM_PREFIX then
+				local item = tonumber(key:sub(#ITEM_PREFIX + 1))
+				if not (item and seenItems[item]) then last[key] = nil end
 			end
 		end
 	end

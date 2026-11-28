@@ -402,12 +402,12 @@ local function AddOwnSpellControls(args)
 		type = "description",
 		fontSize = "medium",
 		order = 15.85,
-		name = L["A buff of yours Manners does not know: type its name as your spellbook shows it, or its spell id, and press Enter. It must be one this character knows, not passive and not cast on an enemy. Manners then reminds you of it as it does your other buffs, outside a fight, and in cities and inns only with Also in cities and inns. Up to ten, kept for this character."],
+		name = L["A buff of yours Manners does not know: type a spell as your spellbook shows it, or an item from your bags or an equipped trinket whose use gives a buff (an attractor, an elixir Manners does not list), or its id, and press Enter. Manners then reminds you of it as it does your other buffs, outside a fight, and in cities and inns only with Also in cities and inns. Up to ten, kept for this character."],
 	}
 	args.ownSpellAdd = {
 		type = "input",
-		name = L["Add a spell"],
-		desc = L["Its name as your spellbook shows it, or its spell id. Press Enter to add it."],
+		name = L["Add a spell or an item"],
+		desc = L["A spell as your spellbook shows it, an item as your bags show it, or its id. Shift-click an item into the box. Press Enter to add it."],
 		order = 15.851,
 		width = "full",
 		disabled = function() return InCombatLockdown() end,

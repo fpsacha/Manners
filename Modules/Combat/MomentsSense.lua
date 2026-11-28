@@ -1298,6 +1298,26 @@ function Sense.removable(slot)
 	return BuffWalk(slot, row.kinds, row.purge == true, REMOVE_WORDS)
 end
 
+-- A debuff on the friendly target that slows or roots it (#71): its spell id in
+-- ImpairData.lua's list. A record the game withholds leaves it blind.
+function Sense.impaired()
+	local auras = _G.C_UnitAuras
+	local byIndex = type(auras) == "table" and auras.GetAuraDataByIndex or nil
+	if type(byIndex) ~= "function" then return "blind", "your target's debuffs" end
+	local list = ns.IMPAIRING or {}
+	for i = 1, 40 do
+		local rec = byIndex("target", i, "HARMFUL")
+		if type(rec) ~= "table" then
+			if Secret(rec) then return "blind", "your target's debuffs" end
+			break
+		end
+		if Secret(rec) or Secret(rec.spellId) then return "blind", "your target's debuffs" end
+		local id = plain(rec.spellId)
+		if id and list[id] then return "yes" end
+	end
+	return "no", "your target is not slowed or rooted"
+end
+
 -- Cold Snap brings back the partner spell: lit only while that one is plainly on
 -- cooldown, by the game's own figures or Manners' own clock for it. A partner
 -- that is ready, or whose cooldown the fight hides and no clock of ours knows,
@@ -1329,7 +1349,7 @@ Sense.WORDS = {
 	partylowhealth = "someone in your group is low on health", missingown = "the protection is not on you",
 	nolockout = "no Hypothermia", itemready = "a gem in your bags, ready", falling = "you have been falling for a second",
 	partnercooling = "the spell it brings back is cooling down", stealable = "a buff you can steal",
-	removable = "a buff you can remove",
+	removable = "a buff you can remove", impaired = "your friendly target is slowed or rooted",
 	schoolhit = "your target casts that kind, or that kind of damage just hit you", calm = "out of a fight", drinkheld = "a drink in your bags",
 	still = "standing still", notdrinking = "not drinking already",
 }
