@@ -2,7 +2,7 @@
 ## Title: Manners: Services
 ## Notes: Optional class services for clear, secure requests across all five clients.
 ## Author: Sacha
-## Version: 1.13.1
+## Version: 1.14.0
 ## Dependencies: Manners
 ## DefaultState: enabled
 ## X-License: MIT
