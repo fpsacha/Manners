@@ -5,42 +5,64 @@
 *27 November 2026*
 
 ### Highlights
-- **Combat prompt.** Manners: Combat offers the actions you turn on (an
-  interrupt, a defensive, a dispel, a heal) on a card that appears only when
-  it is needed, one click to cast. Each action has its own place in a short
-  row just above the Manners prompt. Everything is off until you pick it on
-  the **Combat** page, with its look, size, alerts and a mover.
-- **My companion.** With *Moments with my companion* on (off by default), now
-  and then a moment with the pet that follows you: hello when it comes out, a
-  pat on the road, a game when you stand still, a cuddle at the inn, a treat
-  for a quest, a celebration when you level up, a hug back from the dead.
-  Each has its own switch, and the gestures and answers vary.
-- **Achievements page** redrawn as a board: your rank, what you earned lately,
-  tabs, and a card for each achievement.
+- **Combat prompt** (Manners: Combat). The actions you turn on (an
+  interrupt, a defensive, a hostile dispel, a heal, a mana or power
+  cooldown) come up on a card only when they are needed, and one click
+  casts. Each action has its own place in a short row just above the
+  Manners prompt, most urgent first, so a card always appears where it
+  appeared before. Every action is off until you pick it.
+- **The Combat page.** Everything for a fight on one page under *Optional
+  modules*: how many actions are on, *Turn all on* / *Turn all off*, the
+  actions grouped by kind (each with its spell's icon), the round of the
+  fight, Will of the Forsaken, the cure in a fight, Mend Pet and the
+  reactive wards, and *Look and alerts*: the combat prompt's look (any look,
+  tried on it as you point at it), size, pulse or strong pulse, a sound, and
+  *Show and move the combat prompt* with *Reset* and *Done*.
+- **More defensives found for every class**: Shield Wall, Mana Shield, Feign
+  Death, Vanish, Barkskin, Power Word: Shield, Pain Suppression and Blessing
+  of Protection, each listed once.
+- **My companion** (Manners: Pets, any class with a pet journal). With
+  *Moments with my companion* on (off by default), now and then a moment
+  with the pet that follows you: hello when it comes out, well done after a
+  long fight, a pat on the road, a game when you stand still, a celebration
+  when you level up, a cuddle at an inn or a city, a hug back from the dead
+  and a treat for a quest. Each has its own switch; the gestures and its
+  answers vary, and with In character on something sweet is said to it.
+  `/manners debug` and the check-up show the moment waiting.
+- **Achievements** on a page of their own, drawn as a board: your rank and
+  points, what you earned lately, tabs by kind, by progress and by order,
+  and a card for each achievement with its medals. Old saves keep their
+  counts.
 
 ### Changes
 - **Longer skips for your own buffs.** *After a right-click on my own buff,
-  offer 15, 30, 45 or 60 minutes* (off) puts four small buttons under the
-  prompt after a right-click on your own buff (#69).
-- **Consumables button** is bigger, shows the item's name under it, and has
-  *Show and move the consumables button* on My own buffs.
+  offer 15, 30, 45 or 60 minutes* (Who to skip, off) puts four small buttons
+  under the prompt after a right-click on your own buff (#69).
+- **Consumables button** is bigger (48), shows the item's name under it, and
+  has *Show and move the consumables button* on My own buffs: a named bar,
+  *Reset* and *Done*, dragged with the prompt locked.
 - **Ask waits half a minute.** Nobody is offered as an ask until they have
-  stayed within reach thirty seconds.
+  stayed within reach thirty seconds, so a group that just met is not asked
+  at once.
 - **Your own buff is not held into a fight.** The prompt no longer stays on
-  you all fight as *held -- in combat*; a warrior's shout still stays.
+  you all fight as *held -- in combat*; with nobody else to offer it goes
+  before the fight. A warrior's shout still stays.
 - **Outline look** repainted: a flat bar with a hard black edge and a soft
-  shadow, a square socket for the icon.
-- **Options window**: the page's sections are real tabs, the optional modules
-  are grouped first under *Choose modules* with the game's own icons, and a
-  switch that names a spell shows its icon.
+  shadow, a square socket for the icon, and no seam where its pieces meet.
+- **Options window.** The page's sections are real tabs; the optional
+  modules come first under *Choose modules*, each page with the game's own
+  icon; a switch that names a spell shows that spell's icon.
 
 ### Fixes
-- **Ask people for a buff I'm missing** with *Anywhere I can cast* asks people
-  in sight again (#68).
-- **Cozy Sleeping Bag** on Classic Era goes down at your feet in one press
-  (#70).
-- **Combat actions on yourself** (Shield Block, Ice Block, Evasion...) on WoW
-  Forever get their macro.
+- **Ask people for a buff I'm missing** with Proximity on *Anywhere I can
+  cast* asks people in sight again (#68).
+- **Cozy Sleeping Bag** on Classic Era goes down at your feet in one press;
+  a second press never placed it (#70).
+- **Combat actions on yourself** (Shield Block, Ice Block, Evasion and the
+  like) on WoW Forever get their macro.
+- **Combat prompt clicks.** The game does not let an addon change which
+  button is on top in a fight, so the cards are never stacked: the needed
+  one always takes the click.
 
 ## 1.12.6
 
