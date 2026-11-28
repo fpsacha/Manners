@@ -13,8 +13,8 @@ mutate("README.md",
        expect="README.md has no '### <page>' part for", script=V)
 
 mutate(".github/curseforge-description.md",
-       "*Offer nothing in dungeons, raids and battlegrounds*",
-       "*Hide the prompt in combat*",
+       "`/manners help` lists every command.",
+       "*Hide the prompt in combat*. `/manners help` lists every command.",
        "menupass-docs: a listing names the old label",
        expect="which the menu pass renamed", script=V)
 

@@ -97,8 +97,8 @@ mutate(".github/wago-description.md",
        expect="wago-description.md does not mention a blessing for each class", script=V)
 
 mutate("README.md",
-       "- **Profiles that switch by themselves.** One for the open world, one for",
-       "- **Profiles.** One for the open world, one for",
+       "- **Profiles that switch by themselves** for the world",
+       "- **Profiles** for the world",
        "storefront: the README's opening leaves out automatic profiles",
        expect="README.md's opening does not mention profiles that switch by themselves", script=V)
 

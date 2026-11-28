@@ -4450,8 +4450,8 @@ mutate("RELEASING.md",
 
 # The README's example tagging a version that has already shipped.
 mutate("README.md",
-       "git tag vX.Y.Z && git push origin vX.Y.Z",
-       "git tag v1.0.0-beta.3 && git push origin v1.0.0-beta.3",
+       "python tools/release.py X.Y.Z       release",
+       "git tag v1.0.0-beta.3 && git push origin v1.0.0-beta.3\npython tools/release.py X.Y.Z       release",
        "README example tags a released version",
        expect="already released",
        script="validate.py")
@@ -4533,9 +4533,9 @@ mutate("tests/scenarios.lua",
 
 # The README promising the wrong Mort is always noticed.
 mutate("README.md",
-       "says so; this client usually doesn't, and then the favour is counted as repaid\n"
-       "on the strength of the `/target` line alone.",
-       "says so.",
+       "game does not say who received the spell, the favour is counted as repaid\n"
+       "  on the strength of the `/target` line alone.",
+       "game does not say who received the spell, the wrong one is always noticed.",
        "README overpromises the prefix-match check",
        expect="promises the wrong Mort is noticed",
        script="runscenarios.py")

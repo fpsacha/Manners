@@ -316,7 +316,7 @@ mutate("Commands.lua",
 
 # The README promising the old macro.
 mutate("README.md",
-       "   `/click MannersBar`, which tells Manners about the press, and under it\n",
-       "   `/click MannersPrompt LeftButton 1`, which tells Manners about the press, and under it\n",
+       "`/click MannersBar`; under it Manners writes",
+       "`/click MannersPrompt LeftButton 1`; under it Manners writes",
        "barclick: the README gives the old macro",
        expect="README.md still gives the macro", script=V)

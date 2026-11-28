@@ -8,7 +8,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 
 - **One press, never a hunt:** your target, whoever buffed you, people who ask in chat, you, your group and passers-by missing your buff, each in its own colour (with a colour-blind set).
 - **More than buffs:** your resurrection for the group's dead, a cure for a poison, curse or disease if you tick it (on yourself too), and courtesies on request: a mage's water, food and portals, a warlock's healthstones and summons, and a polite ask for a buff you lack.
-- **Your own buffs:** armor, aura, aspect and shield come up as "You", and the poison or oil for each weapon, food, flasks and scrolls if you switch them on. Never in a fight, nothing used while you run, and up to ten spells of your own under *Add a spell of my own*.
+- **Your own buffs:** armor, aura, aspect and shield come up as "You", and the poison or oil for each weapon, food, flasks and scrolls if you switch them on. Never in a fight, nothing used while you run, and up to ten spells or items of your own under *Add a spell or an item*.
 - **For your tank:** Earth Shield, Beacon of Light, Oath of Light and the other one-person buffs go to your group's tank.
 - **Paladins:** Kings first, and **a blessing for each class** (Wisdom for mages, say).
 - **Hunters:** Call, Revive and Mend Pet when your pet needs them, *Bond with my pet*, and, if you tick it, Mend Pet on a button of its own in a fight.
@@ -16,6 +16,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 - **Good manners, kept:** a favour ledger of who buffed you, what you gave back and who you buffed first.
 - **Something to say,** if you like: **In character**, over three thousand lines picked for your race, class and the moment (about a hundred of them the Forsaken's own), or a quiet `/thank`.
 - **Yours to arrange:** thirty looks and one for your class, **profiles that switch by themselves** as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
+- **New in 1.13:** a combat prompt (Manners: Combat) that lights interrupts, defensives, dispels, heals and *Blessing of Freedom* only when needed, achievements with goal counts, and moments with your companion.
 - **Kept out of the way:** a *Never offer* list, *Skip players in a fight*, *Offer nothing in cities and inns* and `/manners snooze`.
 
 **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight), in English, German, Spanish, French, Italian, Korean, Brazilian Portuguese and Simplified and Traditional Chinese.

@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+- **Battle Shout switches broke the prompt.** With *Only for melee and tanks*
+  or *Only in dungeon and raid fights* on, every scan threw an error and the
+  prompt stayed empty (#74).
+- **Undermine Clam Chowder** gives Well Fed on WoW Forever and is offered as
+  food (#73).
+
+### New
+- **Items of my own.** *Add a spell or an item* (My own buffs) takes an item
+  from your bags or an equipped trinket whose use gives a buff, such as an
+  Elemental Attractor (#72).
+- **Blessing of Freedom** on a slowed or rooted friendly target, a paladin's
+  combat action (Manners: Combat, off until you switch it on) (#71).
+- **Sleeping bag before food and elixirs** (Well-Rested on My own buffs, off):
+  food, flasks, elixirs and scrolls wait while the bag is due or you lie in it.
+
+### Changes
+- The README and the store pages are much shorter.
+
 ## 1.13.0
 
 *27 November 2026*
@@ -35,9 +56,6 @@
   toward, such as Goal 2 of 3, and the count. Old saves keep their counts.
 
 ### Changes
-- **Sleeping bag before food and elixirs.** Off by default, under *Well-Rested*
-  on *My own buffs*: food, flasks, elixirs and scrolls wait while the sleeping
-  bag is due or you lie in it, so none of them runs out while you rest.
 - **Where the combat cards sit** (Combat, Look and alerts): *A row* that grows
   right, left, up or down from your spot, or *One spot* where every card shows
   in the same place, the most urgent on top.

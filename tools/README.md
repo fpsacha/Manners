@@ -1691,6 +1691,22 @@ The same file checks that a cast by anybody else costs no Lua at all: the six
 `UNIT_SPELLCAST_*` events are registered on a frame of the addon's own for the
 player alone (`RegisterUnitEvent`), not through AceEvent.
 
+## make_impairing.py
+
+Writes `Modules/Combat/ImpairData.lua`, the spells that slow or root, per
+client: every spell with an effect that applies aura 26 (root) or 33 (a
+decrease in movement speed), read from the newest cached SpellEffect table of
+each client (`audit_ids.py --fetch-only`). The combat prompt's `impaired`
+check reads a friendly target's debuffs against it for Blessing of Freedom.
+Each client's set is a function, so only the running client's is built.
+
+```
+python tools/make_impairing.py            # write ImpairData.lua
+python tools/make_impairing.py --check    # exit 1 when the shipped file is not what the tables give
+```
+
+`tests/scenarios/combat-freedom.lua` holds the list and the check.
+
 ## make_foods.py
 
 Writes `Foods.lua`, the food that gives *Well Fed*, per client: every item
