@@ -140,16 +140,22 @@ local function AddCompanionControls(args)
 		sorting = { "rarely", "sometimes", "often" },
 		get = function() return ns.db.profile.beast.companionPace end,
 		set = function(_, value) ns.db.profile.beast.companionPace = value end }
-	Switch("beastCompanionHello", "companionHello", L["At login: hello"], nil, 15.98982)
+	Switch("beastCompanionHello", "companionHello", L["At login or when I call it: hello"], nil, 15.98982)
 	Switch("beastCompanionPraise", "companionPraise", L["After a long fight: well done"],
 		L["After a fight of 45 seconds or more, with your companion out from start to end."], 15.98983)
 	Switch("beastCompanionRoad", "companionRoad", L["On a quiet road: a pat"], nil, 15.98984)
+	Switch("beastCompanionPlay", "companionPlay", L["Standing still a while: we play"],
+		L["After a minute or so standing still, not away, out of a fight."], 15.989841)
+	Switch("beastCompanionLevel", "companionLevel", L["When I level up: we celebrate"], nil, 15.989842)
+	Switch("beastCompanionHome", "companionHome", L["At an inn or a city: a cuddle"], nil, 15.989843)
+	Switch("beastCompanionBack", "companionBack", L["Back from the dead: it waited for me"], nil, 15.989844)
+	Switch("beastCompanionQuest", "companionQuest", L["A quest handed in: a treat"], nil, 15.989845)
 	Switch("beastCompanionAnswer", "companionAnswer", L["My companion answers"],
-		L["After the gesture, how your companion answers: it nuzzles closer or stays close."], 15.98985)
+		L["After the gesture, how your companion answers: it nuzzles closer, chirps, spins with joy."], 15.98985)
 	Switch("beastCompanionWords", "companionWords", L["Say a line to my companion"],
-		L["With In character on and lines going in /say, a line from your people to your companion with each moment."], 15.98986)
+		L["With In character on and lines going in /say, something sweet said to your companion with each moment."], 15.98986)
 	args.beastCompanion = { type = "toggle", name = L["Moments with my companion"],
-		desc = L["Now and then, at login, after a long fight or on a quiet road, offers a moment with the companion pet that follows you: an emote for it, and a line from your people when In character is on and lines go in /say. A press targets it by its name and gives your target back. Never in a fight; letting it pass costs nothing."],
+		desc = L["Now and then offers a moment with the companion pet that follows you: hello when it comes out, a pat on the road, a game when you stand still, a cuddle at the inn, a treat for a quest, a celebration when you level up. A press does an emote for it, and says something sweet when In character is on and lines go in /say; it targets it by its name and gives your target back. Never in a fight; letting it pass costs nothing."],
 		order = 15.9898, width = "full", hidden = NoJournal,
 		get = function() return ns.db.profile.beast.companion == true end,
 		set = function(_, value)
@@ -163,12 +169,15 @@ end
 local COMPANION_SECTION = { key = "pet.companion", title = L["My companion"], items = {
 	"who.beastCompanion", { "who.beastCompanionPace", indent = true },
 	{ "who.beastCompanionHello", indent = true }, { "who.beastCompanionPraise", indent = true },
-	{ "who.beastCompanionRoad", indent = true }, { "who.beastCompanionAnswer", indent = true },
+	{ "who.beastCompanionRoad", indent = true }, { "who.beastCompanionPlay", indent = true },
+	{ "who.beastCompanionLevel", indent = true }, { "who.beastCompanionHome", indent = true },
+	{ "who.beastCompanionBack", indent = true }, { "who.beastCompanionQuest", indent = true },
+	{ "who.beastCompanionAnswer", indent = true },
 	{ "who.beastCompanionWords", indent = true },
 } }
 -- The pieces under the switch, folded into it in the window (Layout.lua, parents).
 local function CompanionParents(layout)
-	for _, key in ipairs({ "Pace", "Hello", "Praise", "Road", "Answer", "Words" }) do
+	for _, key in ipairs({ "Pace", "Hello", "Praise", "Road", "Play", "Level", "Home", "Back", "Quest", "Answer", "Words" }) do
 		layout.parents["who.beastCompanion" .. key] = "who.beastCompanion"
 	end
 end

@@ -1307,14 +1307,17 @@ page* puts them all back on.
 Supplied by **Manners: Pets**, for every class but the hunter (whose *My pet*
 page has it), on the clients with a pet journal: WoW Forever, Mists and retail.
 *Moments with my companion* (off) offers, now and then, a moment with the
-companion pet that follows you: at login, after a fight of 45 seconds or more
-with it out from start to end, and on a quiet road. A press targets it by its
-name, does an emote for it, an */emote* of the gesture and its answer, a line
-from your people when In character is on and lines go in /say, and gives your
-target back. Never in a fight; a right-click lets it pass. Under the switch:
-*How often moments come* (Sometimes: one in twenty minutes at most), a switch
-for each moment (hello, well done, a pat), *My companion answers* and *Say a
-line to my companion*, all on.
+companion pet that follows you: hello at login or when you call it out, well
+done after a fight of 45 seconds or more with it out from start to end, a pat
+on a quiet road, a game after a minute standing still, a celebration when you
+level up, a cuddle when you reach an inn or a city, a hug when you come back
+from the dead, and a treat when you hand in a quest. A press targets it by its
+name, does an emote for it, an */emote* of a gesture and its answer (each picked
+at random: it chirps, spins, wiggles with joy...), something sweet said to it
+when In character is on and lines go in /say, and gives your target back. Never
+in a fight; a right-click lets it pass. Under the switch: *How often moments
+come* (Sometimes: one in twenty minutes at most), a switch for each moment,
+*My companion answers* and *Say a line to my companion*, all on.
 
 ### Quiet times
 

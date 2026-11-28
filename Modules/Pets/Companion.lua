@@ -5,8 +5,11 @@
 -- "Moments with my companion", off by default. Only the moments: a companion
 -- has no health, hunger or death, so there is no care to offer.
 --
--- When: at login (hello), after a fight of HARD_FIGHT seconds with it out from
--- the pull to the end (well done), and on a quiet road (a pat). Never in a
+-- When: at login or when it is called out (hello), after a fight of HARD_FIGHT
+-- seconds with it out from the pull to the end (well done), on a quiet road (a
+-- pat), standing still a while (we play), a level gained (we celebrate), an inn
+-- or a city reached (a cuddle), back from the dead (it waited) and a quest
+-- handed in (a treat). Each has its own switch under the master. Never in a
 -- fight, a battleground or an encounter; at most one in Pace's gap (the
 -- hunter's "How often moments come"), shown for SHOW seconds, never a timer.
 --
@@ -38,22 +41,68 @@ local C = {
 	NAME = "?pet:companion",
 	PRIORITY = 8.6,
 	SHOW = 45,
-	EXPIRE = { hello = 180, praise = 60, road = 30 },
-	RANK = { praise = 3, hello = 2, road = 1 },
+	EXPIRE = { hello = 180, praise = 60, road = 30, play = 30, levelup = 120, home = 120, back = 120, quest = 60 },
+	RANK = { levelup = 6, back = 5, praise = 4, quest = 3, hello = 2, home = 2, play = 1, road = 1 },
 	HARD_FIGHT = 45,
 	AFTER_FIGHT = 3,
 	HELLO_AFTER = 10,
+	-- Standing still this long, not away, and it wants to play.
+	PLAY_AFTER = 75,
+	-- After a level, a resurrection or an inn: a breath before the moment.
+	SETTLE = 3,
 }
 Companion.C = C
 
 local REASON = {
 	road = L["pet %s"], praise = L["tell %s: well done"], hello = L["say hello to %s"],
+	play = L["play with %s"], levelup = L["celebrate with %s"], home = L["cuddle %s"],
+	back = L["hug %s: it waited"], quest = L["give %s a treat"],
 }
+-- What you do, as an /emote after your name: one of each kind, picked once a moment.
 local GESTURE = {
-	road = L["scratches %s behind the ears."], praise = L["gives %s a proud nod."],
-	hello = L["crouches down beside %s."],
+	road = { L["scratches %s behind the ears."], L["gives %s a gentle pat on the head."],
+		L["points out a butterfly to %s."] },
+	praise = { L["gives %s a proud nod."], L["kneels and tells %s how brave that was."],
+		L["checks %s for scrapes after the fight."] },
+	hello = { L["crouches down beside %s."], L["greets %s with a soft whistle."], L["waves happily at %s."] },
+	play = { L["tosses a pebble for %s to chase."], L["plays a quick game of tag with %s."],
+		L["wiggles a finger for %s to pounce on."] },
+	levelup = { L["lifts %s up high to celebrate."], L["does a little victory dance with %s."],
+		L["tells %s the good news first."] },
+	home = { L["makes a cozy spot for %s to curl up in."], L["settles down by the fire with %s."],
+		L["shares a quiet moment with %s."] },
+	back = { L["hugs %s, who waited the whole time."], L["finds %s waiting faithfully."],
+		L["tells %s that everything is fine now."] },
+	quest = { L["slips %s a little treat."], L["shares a crumb of the reward with %s."],
+		L["tells %s all about the quest."] },
 }
-local ANSWER = { L["%s nuzzles closer."], L["%s stays close."] }
+local ANSWER = { L["%s nuzzles closer."], L["%s stays close."], L["%s chirps happily."],
+	L["%s does a happy little spin."], L["%s looks up adoringly."], L["%s wiggles with joy."],
+	L["%s bounces around in circles."] }
+-- Something said to the companion, with In character on and lines in /say: its
+-- own pool first, the player's people's lines for a pet after it.
+local WORDS = {
+	road = { L["Who's a good little friend? You are, {name}."], L["Keep up, {name}! Not much farther."],
+		L["Look at you go, {name}. Best travel company in Azeroth."] },
+	praise = { L["You were so brave back there, {name}!"], L["Not a scratch on you, {name}. Good."],
+		L["That was a big one, {name}. I'm proud of you."] },
+	hello = { L["There you are, {name}! Did you miss me?"], L["Hello, {name}. Ready for another day?"],
+		L["Good to see you, {name}. Let's go."] },
+	play = { L["Go on, {name}, fetch!"], L["Tag, {name}! You're it."], L["Got you, {name}! Again?"] },
+	levelup = { L["We did it, {name}! A little stronger every day."], L["Look, {name}! I'm getting better at this."],
+		L["Celebration snack for you, {name}."] },
+	home = { L["Rest now, {name}. We're safe here."], L["Warm fire, soft bed. Perfect, {name}?"],
+		L["Curl up, {name}. We've earned this."] },
+	back = { L["Sorry I scared you, {name}. I'm back."], L["You waited for me, {name}? Of course you did."],
+		L["I'm alright, {name}. Don't worry."] },
+	quest = { L["Half the reward is yours, {name}."], L["Here, {name}, you earned it too."],
+		L["Another job done, {name}. Treat?"] },
+}
+local RACE_WORDS = { road = "pet", hello = "pet", play = "pet", home = "pet", praise = "petpraise",
+	levelup = "petpraise", quest = "petpraise", back = "petcomfort" }
+-- The emote done at it: the hunter's own, matched to the moment.
+local EMOTE = { road = "road", hello = "hello", praise = "praise", play = "play", levelup = "grown",
+	home = "anniversary", back = "missed", quest = "praise" }
 local BACK = "/targetlasttarget"
 local CLEARED = { "type1", "macrotext1", "spell1", "unit1", "type", "macrotext", "spell", "unit",
 	"type2", "type3", "type4", "type5" }
@@ -83,7 +132,9 @@ local function Pace()
 end
 
 -- One moment's own switch, under the master (nil reads as on).
-local MOMENT_SWITCH = { hello = "companionHello", praise = "companionPraise", road = "companionRoad" }
+local MOMENT_SWITCH = { hello = "companionHello", praise = "companionPraise", road = "companionRoad",
+	play = "companionPlay", levelup = "companionLevel", home = "companionHome", back = "companionBack",
+	quest = "companionQuest" }
 local function MomentOn(kind)
 	local beast = Switches()
 	return beast ~= nil and beast[MOMENT_SWITCH[kind]] ~= false
@@ -145,7 +196,8 @@ Companion.Out = Out
 ---------------------------------------------------------------------------
 
 local moment
-local clock = { afterFight = 0, quietSince = nil, pullAt = nil, outAtPull = nil }
+local clock = { afterFight = 0, quietSince = nil, pullAt = nil, outAtPull = nil, stillSince = nil,
+	guid = nil, seen = false, resting = nil, died = false }
 
 local function GapLeft()
 	local char = Char()
@@ -204,6 +256,31 @@ local function Road(now)
 	Trigger("road", now)
 end
 
+-- Standing still a while, out in the world or in town, not away: play.
+local function Idle(now)
+	if moment or GapLeft() > 0 or Held(now) then clock.stillSince = nil return end
+	local speed = Ask("GetUnitSpeed", "player")
+	if type(speed) ~= "number" or speed > 0 or Ask("UnitIsAFK", "player") == true then
+		clock.stillSince = nil
+		return
+	end
+	if not clock.stillSince then clock.stillSince = now return end
+	if now - clock.stillSince >= C.PLAY_AFTER then
+		clock.stillSince = nil
+		Trigger("play", now)
+	end
+end
+
+-- A companion called out after login: hello. The first one seen is login's.
+local function Called(now)
+	local guid = OutGuid()
+	if guid == clock.guid then return end
+	local was = clock.guid
+	clock.guid = guid
+	if guid and clock.seen and was == nil then Trigger("hello", now) end
+	clock.seen = true
+end
+
 local entry
 local function Entry()
 	if entry and entry.moment == moment then return entry end
@@ -235,7 +312,9 @@ local function Offer(queue, verdicts, now)
 	local prompt = ns.Prompt
 	if prompt and prompt.armedForFight == true then return queue, verdicts end
 	if Lapsed(now) then moment = nil end
+	Called(now)
 	Road(now)
+	Idle(now)
 	if not moment or Held(now) then return queue, verdicts end
 	-- Put away, or another one out, since the moment came: it is gone.
 	if Out() ~= moment.name then moment = nil return queue, verdicts end
@@ -250,11 +329,39 @@ Companion.Offer = Offer
 ---------------------------------------------------------------------------
 
 local function EmoteCommand(kind)
-	local spec = K.EMOTE[kind] or K.EMOTE.road
+	local spec = K.EMOTE[EMOTE[kind] or "road"] or K.EMOTE.road
 	local command = plain(_G[spec[1]])
 	if type(command) ~= "string" or not command:find("^/%S+$") then command = spec[2] end
 	return command
 end
+
+local function Pick(pool) return pool[math.random(#pool)] end
+
+-- A line to it: the companion's own pool, then the player's people's, never the
+-- one said last, nothing the player left out, and only one that fits.
+local lastSaid
+local function Words(kind, name, room)
+	local db = Profile()
+	local out = {}
+	for _, text in ipairs(db and type(db.speech) == "table" and type(db.speech.leftOut) == "table"
+		and db.speech.leftOut or {}) do
+		if type(text) == "string" then out[text] = true end
+	end
+	local fits = {}
+	for _, text in ipairs(WORDS[kind] or WORDS.road) do
+		if not out[text] and text ~= lastSaid then
+			local line = text:gsub("{name}", function() return name end)
+			if #line <= room then fits[#fits + 1] = { line, text } end
+		end
+	end
+	if #fits > 0 then
+		local pick = Pick(fits)
+		lastSaid = pick[2]
+		return pick[1], pick[2]
+	end
+	return Beast.Words(RACE_WORDS[kind] or "pet", name, room)
+end
+Companion.Words = Words
 
 -- The macro: the companion targeted by its exact name, the emote at it, the
 -- gesture and its answer, the line when it may go and fits, your target back.
@@ -263,9 +370,11 @@ local function Macro(made)
 	if not (m and type(name) == "string") then return nil end
 	local lines = { "/targetexact " .. name, EmoteCommand(m.kind) }
 	local emote = "/" .. ns.CHANNEL_COMMANDS.EMOTE .. " "
-	local gesture = (GESTURE[m.kind] or GESTURE.road):format(name)
+	m.gesture = m.gesture or Pick(GESTURE[m.kind] or GESTURE.road)
+	m.answer = m.answer or Pick(ANSWER)
+	local gesture = m.gesture:format(name)
 	local beast = Switches()
-	local answer = (beast and beast.companionAnswer ~= false) and (" " .. ANSWER[(#name % #ANSWER) + 1]:format(name)) or ""
+	local answer = (beast and beast.companionAnswer ~= false) and (" " .. m.answer:format(name)) or ""
 	local used = #table.concat(lines, "\n") + 1 + #BACK + 1
 	local n = #lines
 	if used + #emote + #gesture + #answer <= ns.MACRO_LIMIT then
@@ -278,7 +387,7 @@ local function Macro(made)
 		local say = "/" .. ns.CHANNEL_COMMANDS.SAY .. " "
 		local room = ns.MACRO_LIMIT - (used + #lines[n + 1] + 1) - #say
 		if m.line == nil then
-			m.line, m.source = Beast.Words(K.WORDS[m.kind] or "pet", name, room)
+			m.line, m.source = Words(m.kind, name, room)
 			if m.line == nil then m.line = false end
 		end
 		if m.line and #m.line <= room then
@@ -414,9 +523,27 @@ local function OnEvent(_, event, first)
 		clock.pullAt, clock.outAtPull = nil, nil
 		After(C.AFTER_FIGHT + 0.05, RepaintNow)
 	elseif event == "PLAYER_ENTERING_WORLD" then
-		clock.quietSince = now
+		clock.quietSince, clock.stillSince = now, nil
+		clock.resting = Ask("IsResting") == true
 		if first == true then
 			After(C.HELLO_AFTER, function() ns.Guard("companion hello", Trigger, "hello", GetTime()) end)
+		end
+	elseif event == "PLAYER_LEVEL_UP" then
+		After(C.SETTLE, function() ns.Guard("companion level", Trigger, "levelup", GetTime()) end)
+	elseif event == "QUEST_TURNED_IN" then
+		Trigger("quest", now)
+	elseif event == "PLAYER_UPDATE_RESTING" then
+		local resting = Ask("IsResting") == true
+		if resting and clock.resting == false then
+			After(C.SETTLE, function() ns.Guard("companion home", Trigger, "home", GetTime()) end)
+		end
+		clock.resting = resting
+	elseif event == "PLAYER_DEAD" then
+		clock.died = true
+	elseif event == "PLAYER_UNGHOST" or event == "PLAYER_ALIVE" then
+		if clock.died and Ask("UnitIsDeadOrGhost", "player") ~= true then
+			clock.died = false
+			After(C.SETTLE, function() ns.Guard("companion back", Trigger, "back", GetTime()) end)
 		end
 	end
 end
@@ -436,6 +563,10 @@ local function Listen(on)
 	frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 	frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+	for _, event in ipairs({ "PLAYER_LEVEL_UP", "QUEST_TURNED_IN", "PLAYER_UPDATE_RESTING", "PLAYER_DEAD",
+		"PLAYER_UNGHOST", "PLAYER_ALIVE" }) do
+		frame:RegisterEvent(event)
+	end
 end
 After(1, function() ns.Guard("companion start", Listen, true) end)
 

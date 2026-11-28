@@ -619,6 +619,9 @@ for _, e in ipairs({
 	"ENCOUNTER_END", "BOSS_KILL", "PET_DISMISS_START", "LOCALPLAYER_PET_RENAMED", "UNIT_EXITED_VEHICLE",
 	-- A hunter's pet's hints and its level (HunterPet.lua, HunterPetHints.lua): in the event lists of all five clients (Ketho), UNIT_PET_TRAINING_POINTS but retail's.
 	"UNIT_LEVEL", "MERCHANT_SHOW", "MERCHANT_CLOSED", "UNIT_PET_TRAINING_POINTS", "ZONE_CHANGED_NEW_AREA",
+	-- A companion's moments (Companion.lua): a level, a quest handed in, an inn
+	-- reached; in the event lists of all five clients (Ketho, every branch).
+	"PLAYER_LEVEL_UP", "QUEST_TURNED_IN", "PLAYER_UPDATE_RESTING",
 }) do KNOWN_EVENTS[e] = true end
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}

@@ -582,6 +582,8 @@ local defaults = {
 			-- and under it a pace, a switch a moment, its answer and your line, all on.
 			companion = false, companionPace = "sometimes", companionHello = true, companionPraise = true,
 			companionRoad = true, companionAnswer = true, companionWords = true,
+		companionPlay = true, companionLevel = true, companionHome = true, companionBack = true,
+		companionQuest = true,
 		},
 
 		-- The rest of "Myself": the buffs only your class puts on itself

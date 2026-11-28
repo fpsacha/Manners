@@ -60,3 +60,76 @@ mutate(
     expect="with the answer off the macro is",
     script="runscenarios.py",
 )
+
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\t\tAfter(C.SETTLE, function() ns.Guard(\"companion level\", Trigger, \"levelup\", GetTime()) end)",
+    "\t\tlocal _ = C.SETTLE",
+    "companion: a level brings no moment",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\t\tTrigger(\"quest\", now)",
+    "\t\tlocal _ = now",
+    "companion: a quest handed in brings no moment",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\t\tif resting and clock.resting == false then",
+    "\t\tif false then",
+    "companion: an inn brings no moment",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\t\tif clock.died and Ask(\"UnitIsDeadOrGhost\", \"player\") ~= true then",
+    "\t\tif false then",
+    "companion: back from the dead brings no moment",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\tif now - clock.stillSince >= C.PLAY_AFTER then",
+    "\tif false then",
+    "companion: standing still never plays",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\tif guid and clock.seen and was == nil then Trigger(\"hello\", now) end",
+    "\tlocal _ = was",
+    "companion: calling it out says no hello",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\tplay = \"companionPlay\", levelup = \"companionLevel\", home = \"companionHome\", back = \"companionBack\",\n\tquest = \"companionQuest\" }",
+    "\tplay = \"companionPlay\", levelup = \"companionLevel\", home = \"companionHome\", back = \"companionBack\" }",
+    "companion: the quest switch is ignored",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\thome = \"anniversary\", back = \"missed\", quest = \"praise\" }",
+    "\thome = \"road\", back = \"missed\", quest = \"praise\" }",
+    "companion: the inn moment pets instead of cuddling",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
+mutate(
+    "Modules/Pets/Companion.lua",
+    "\tfor _, text in ipairs(WORDS[kind] or WORDS.road) do",
+    "\tfor _, text in ipairs({}) do",
+    "companion: its own words are never said",
+    expect="companion: a level, a quest, an inn, a return, a pause and a summon each bring a moment",
+    script="runscenarios.py",
+)
