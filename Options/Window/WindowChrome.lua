@@ -705,6 +705,13 @@ local function PaintPageButton(b, page, y, compact)
 	local icon = page.icon
 	if type(icon) == "function" then icon = icon() end
 	b.icon:SetTexture(icon or UI.ICON)
+	-- A game icon has a border of its own baked in: cropped, as the game's
+	-- own buttons crop it. The addon's own art fills its square.
+	if type(icon) == "string" and icon:find("^Interface\\Icons\\") then
+		b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	else
+		b.icon:SetTexCoord(0, 1, 0, 1)
+	end
 	b.name:SetText(page.title or b.id)
 	local selected = b.id == UI.page
 	b.selected:SetShown(selected)

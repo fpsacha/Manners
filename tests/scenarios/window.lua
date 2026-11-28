@@ -246,7 +246,7 @@ do
 		end
 		local journal = _G.C_PetJournal
 		local pet = (type(journal) == "table" and type(journal.GetSummonedPetGUID) == "function") and "pet " or ""
-		if table.concat(ids, " ") ~= "general who skip when click quiet fight appearance modules combat achievements " .. pet .. "self services profiles diagnostics" then
+		if table.concat(ids, " ") ~= "general who skip when click quiet fight appearance modules combat self services " .. pet .. "achievements profiles diagnostics" then
 			fail(scenario, "the page ids are " .. table.concat(ids, " "))
 		end
 

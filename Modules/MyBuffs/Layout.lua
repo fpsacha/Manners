@@ -7,7 +7,7 @@ local L = ns.L
 local layout = {
 			title = L["My own buffs"],
 			blurb = L["Reminders for your own buffs, weapon oils, food, flasks and scrolls."],
-			icon = "Interface\\AddOns\\Manners\\Textures\\Menu\\Self",
+			icon = "Interface\\Icons\\Spell_Holy_InnerFire",
 			sections = {
 				{ key = "self.myself", header = "who.myselfHeader", items = {
 					"who.self",

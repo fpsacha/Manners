@@ -17,10 +17,10 @@ local moduleWelcomeToken
 
 local KNOWN = {
 	{ id = "combat", title = "Manners: Combat" },
-	{ id = "achievements", title = "Manners: Achievements" },
-	{ id = "pets", title = "Manners: Pets" },
 	{ id = "mybuffs", title = "Manners: My Buffs" },
 	{ id = "services", title = "Manners: Services" },
+	{ id = "pets", title = "Manners: Pets" },
+	{ id = "achievements", title = "Manners: Achievements" },
 }
 
 _G.MannersAPI = api
@@ -270,6 +270,9 @@ function api:ModuleContext(id)
 	return context
 end
 
+-- Where each module's page sits in the sidebar's modules group.
+local MODULE_PAGE_ORDER = { modules = 0, combat = 1, self = 2, services = 3, pet = 4, achievements = 9 }
+
 -- One module page: `build` returns an AceConfig page table; `layout` is the
 -- Options/Window/Layout.lua page table. A module owns both, so the core never
 -- imports its controls while it is absent.
@@ -308,6 +311,13 @@ function api:RegisterOptionsPage(id, build, layout, sidebarGroup)
 					groups[#groups + 1] = group
 				end
 				group[#group + 1] = id
+				-- The modules' pages keep one order whatever loads first: the
+				-- chooser, then what is used most, the achievements last.
+				if group == moduleGroup then
+					table.sort(group, function(a, b)
+						return (MODULE_PAGE_ORDER[a] or 50) < (MODULE_PAGE_ORDER[b] or 50)
+					end)
+				end
 			end
 		end
 		if event == "CoreReady" then

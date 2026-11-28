@@ -180,7 +180,7 @@ end
 		end, {
 			title = L["My companion"],
 			blurb = L["Now and then, a moment with the companion pet that follows you."],
-			icon = "Interface\\AddOns\\Manners\\Textures\\Menu\\Pet",
+			icon = "Interface\\Icons\\INV_Box_PetCarrier_01",
 			sections = { COMPANION_SECTION },
 		}, "modules")
 		ns.WindowLayout.keywords["who.beastCompanion"] = L["companion pet critter emote moment"]
@@ -195,7 +195,7 @@ end
 		local layout = {
 			title = L["My pet"],
 			blurb = L["Looking after your pet, and the moments you share with it."],
-			icon = "Interface\\AddOns\\Manners\\Textures\\Menu\\Pet",
+			icon = "Interface\\Icons\\Ability_Hunter_BeastTaming",
 			sections = {
 				{ key = "pet.care", title = L["Looking after my pet"], items = {
 					"who.beastAll",

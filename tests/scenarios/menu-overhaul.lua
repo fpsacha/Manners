@@ -24,7 +24,7 @@ do
 			for _, id in ipairs(group) do ids[#ids + 1] = id end
 		end
 		local got = table.concat(ids, " ")
-		local want = "general who skip when click quiet fight appearance modules combat achievements pet self services profiles diagnostics"
+		local want = "general who skip when click quiet fight appearance modules combat self services pet achievements profiles diagnostics"
 		if got ~= want then fail(scenario, "the sidebar reads " .. got) end
 		local labels = ns.WindowLayout.groupLabels or {}
 		local expected = {
@@ -37,7 +37,7 @@ do
 			end
 		end
 		local modules = ns.WindowLayout.groups[5] or {}
-		if table.concat(modules, " ") ~= "modules combat achievements pet self services" then
+		if table.concat(modules, " ") ~= "modules combat self services pet achievements" then
 			fail(scenario, "module pages are outside the Optional modules group: " .. table.concat(modules, " "))
 		end
 	end

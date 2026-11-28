@@ -479,7 +479,7 @@ do
 	end, {
 		title = L["Combat"],
 		blurb = L["One prompt that lights up in a fight when an action you picked is needed."],
-		icon = "Interface\\AddOns\\Manners\\Textures\\Manners64",
+		icon = "Interface\\Icons\\Ability_Warrior_OffensiveStance",
 		sections = sections,
 		subpages = { actions, { "combat.look", "combat.thresholds" } },
 	}, "modules")

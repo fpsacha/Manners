@@ -97,7 +97,7 @@ local ICONS = {
 	fight = MENU .. "Fight",
 	quiet = MENU .. "Quiet",
 	appearance = MENU .. "Look",
-	modules = "Interface\\AddOns\\Manners\\Textures\\Manners64",
+	modules = "Interface\\Icons\\INV_Misc_Gear_01",
 	profiles = MENU .. "Profiles",
 	diagnostics = MENU .. "Diagnostics",
 }
@@ -364,7 +364,7 @@ ns.WindowLayout = {
 		},
 
 		modules = {
-			title = L["Optional modules"],
+			title = L["Choose modules"],
 			blurb = L["Turn optional modules on or off here. Their changes take effect after Reload UI."],
 			icon = ICONS.modules,
 			sections = {

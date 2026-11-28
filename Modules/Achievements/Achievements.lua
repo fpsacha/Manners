@@ -659,7 +659,7 @@ api:RegisterOptionsPage("achievements", function()
 end, {
 	title = L["Achievements"],
 	blurb = L["Quiet rewards for good manners: returning favours, helping strangers, answering and thanking."],
-	icon = "Interface\\AddOns\\Manners\\Textures\\Manners64",
+	icon = "Interface\\Icons\\INV_Misc_Coin_01",
 	sections = {
 		{ key = "achievements.board", title = L["Your manners"], items = {
 			{ "achievements.achievementBoard", widget = "achievementBoard" },

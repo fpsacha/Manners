@@ -1094,11 +1094,15 @@ no room for. Defaults are in brackets.
   the fixes last, then the three releases before it in brief. In English, as
   the changelog is.
 
-### Optional modules
+### Choose modules
+
+The first page of the sidebar's *Optional modules* group; the modules' own
+pages follow it in one order: *Combat*, *My own buffs*, *Services*, *My pet*
+(or *My companion*) and *Achievements*, each with the game's own icon.
 
 - **Available modules** lists each optional addon beside a short description
-  of what it adds: *Manners: Combat*, *Manners: Achievements*, *Manners: Pets*,
-  *Manners: My Buffs* and *Manners: Services*.
+  of what it adds: *Manners: Combat*, *Manners: My Buffs*, *Manners: Services*,
+  *Manners: Pets* and *Manners: Achievements*.
 - Tick or untick a module here. *Reload now* appears under **Apply changes**
   only while a reload is needed; changing a switch back to the state of the
   current session clears it.

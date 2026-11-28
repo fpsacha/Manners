@@ -258,7 +258,7 @@ end
 local layout = {
 	title = L["Services"],
 	blurb = L["Optional class services for clear requests, with no action taken until you press the prompt."],
-	icon = "Interface\\AddOns\\Manners\\Textures\\Manners64",
+	icon = "Interface\\Icons\\Spell_Arcane_PortalStormWind",
 	sections = {
 		{ key = "services.module", title = L["Module"], items = {
 			"who.servicesModule", "who.servicesModuleHelp", "who.servicesReload",
