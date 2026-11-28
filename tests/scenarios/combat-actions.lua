@@ -572,7 +572,7 @@ do
 end
 
 do
-	scenario = "combat-actions: the two-click confirmation cannot switch to another action"
+	scenario = "combat-actions: one click casts where only the game knows; a dark card swallows it"
 	Mock.reset()
 	Mock.class = "WARRIOR"
 	Mock.knownSpells = { [6552] = true, [2565] = true }
@@ -580,31 +580,33 @@ do
 	if ns then
 		drive(scenario, ns)
 		ns.Guard("probe combat actions", ns.ProbeCapabilities)
-		local interrupt = ns.caps.moments and ns.caps.moments.byKey["combat-interrupt-pummel"]
 		local defense = ns.caps.moments and ns.caps.moments.byKey["combat-self_defense-shield-block"]
-		if not (interrupt and defense) then fail(scenario, "the confirm and replacement actions were not learned") return end
-		ns.db.profile.moments[interrupt.row.key] = true
+		if not defense then fail(scenario, "the action was not learned") return end
 		ns.db.profile.moments[defense.row.key] = true
 		ns.Moments:Refresh()
-		local urgent, confirmed = ns.Moments:Slot(interrupt.row.slot), ns.Moments:Slot(defense.row.slot)
+		local slot = ns.Moments:Slot(defense.row.slot)
 		ns.Sense.fighting = true
-		confirmed.state, confirmed.mouseOn = "game", true
-		urgent.state = "dark"
+		slot.state, slot.mouseOn = "game", true
 		ns.Moments.Route()
-		local cover = confirmed.cover
-		cover:GetScript("OnMouseDown")(cover, "LeftButton")
-		urgent.state = "lit"
-		ns.Moments.Route()
-		if ns.Moments.selected ~= confirmed or urgent.button:GetFrameLevel() ~= 0 then
-			fail(scenario, "a new need replaced the action already opened by the first click")
+		if ns.Moments.CoverWanted(slot) or slot.cover:IsShown() then
+			fail(scenario, "a cover stands over a card the game shows, so a click does nothing")
 		end
-		Mock.runTimers(0.4)
-		if ns.Moments.selected ~= confirmed or cover:IsShown() then
-			fail(scenario, "the opened action was not still the safe second-click target")
+		slot.state = "dark"
+		if not ns.Moments.CoverWanted(slot) then
+			fail(scenario, "no cover over a dark card, so a click there would cast")
 		end
-		Mock.runTimers(1.2)
-		if ns.Moments.selected ~= urgent then
-			fail(scenario, "the confirmation did not release to the urgent action after its window")
+		local interrupt = ns.caps.moments.byKey["combat-interrupt-pummel"]
+		if interrupt then
+			ns.db.profile.moments[interrupt.row.key] = true
+			ns.Moments:Refresh()
+			local urgent = ns.Moments:Slot(interrupt.row.slot)
+			slot.state, urgent.state = "lit", "lit"
+			ns.Moments.Route()
+			if ns.Moments.selected ~= urgent then
+				fail(scenario, "with two actions lit, the less urgent one took the prompt")
+			end
+		else
+			fail(scenario, "Pummel was not learned")
 		end
 		ns.Sense.fighting = false
 	end

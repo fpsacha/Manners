@@ -31,11 +31,9 @@
 --            button is dark it swallows the click, so a click casts only while
 --            the button is lit. A frame that is not protected can be shown and
 --            hidden in a fight. Where only the game knows whether the button is
---            lit (a hidden health or mana), the cover stays up and the button
---            takes two quick clicks: the first opens it for a moment (a ring and the
---            dim card answer, on layers Lua owns, so they show where the game has
---            painted the button away), the second, at least a third of a second
---            later, casts: one stray click, or a double click, never casts.
+--            lit (a hidden health or mana) the cover is down and one click casts,
+--            as on a lit one: the owner found the two clicks this once took (the
+--            first only opened it) read as a button that does nothing.
 --
 -- Every slot has the same place. Lua only routes the currently relevant slot
 -- to the top. A secure action, point, size or mouse setting never changes in a
@@ -46,8 +44,8 @@
 -- driver hides it at the pull and the pull clears its macro, so a press in a
 -- fight does nothing; out of a fight Lua writes its macro whenever the bags change
 -- and shows and hides the button itself. Where the game alone knows the mana
--- (Forever hides it even out of a fight) it takes two quick clicks, and a dim
--- icon from Lua shows that a button sits there.
+-- (Forever hides it even out of a fight) one click casts, and a dim icon from
+-- Lua shows that a button sits there.
 --
 -- The normal prompt binding retains its normal buffing job. The combat prompt is
 -- deliberately clicked, and no learned action adds a binding to Key Bindings.
@@ -79,9 +77,6 @@ local DRIVER = "[combat] fight; peace"
 local FADE = 0.2
 local FLUSH = 0.1
 local RECHECK = 0.25
-local OPEN_SECONDS = 1.5
--- A second mouse-down this soon after the first is a double click, not a choice.
-local OPEN_GAP = 0.3
 local PRESS_WINDOW = 1
 local SILENT_SECONDS = 1.2
 local TRAIL_GAP = 2
@@ -346,19 +341,13 @@ end
 -- the cover and what is painted
 ---------------------------------------------------------------------------
 
--- Whether the cover is up: while dark, and while only the game knows for a row
--- that takes two clicks, except in the moment after the first of them.
-local function CoverWanted(slot, now)
+-- Whether the cover is up: while the button is dark, and only then. Lit, or lit
+-- by the game from a value it hides, one click casts.
+local function CoverWanted(slot)
 	if not slot.mouseOn then return false end
-	if slot.state == "dark" then return true end
-	if slot.state == "game" and slot.row.guard == "twice" then
-		-- Open from a third of a second after the first click until the window ends;
-		-- before that the cover stays up and swallows a double click.
-		if slot.openUntil and now < slot.openUntil then return now < slot.openFrom end
-		return true
-	end
-	return false
+	return slot.state == "dark"
 end
+Moments.CoverWanted = CoverWanted
 
 -- The icon of a button, on the layer the game paints and on the dim one Lua owns.
 local function SetIcon(slot, texture)
@@ -475,19 +464,9 @@ local function Route()
 	if previewing then return end
 	local before = Moments.selected
 	local best
-	local now = GetTime()
 	for n = 1, MAX do
 		local slot = slots[n]
-		if slot and slot.armed and slot.state == "game" and slot.openUntil
-			and now < slot.openUntil then
-			best = slot
-			break
-		end
-	end
-	local pinned = best ~= nil
-	for n = 1, MAX do
-		local slot = slots[n]
-		if not pinned and slot and slot.armed and slot.state ~= "dark"
+		if slot and slot.armed and slot.state ~= "dark"
 			and ((Sense.fighting and slot.row.calm ~= true) or (not Sense.fighting and slot.row.calm == true)) then
 			if not best or Priority(slot) < Priority(best)
 				or (Priority(slot) == Priority(best) and slot.n < best.n) then
@@ -531,45 +510,11 @@ local function Route()
 end
 Moments.Route = Route
 
--- A swallowed click, or the first of two.
+-- A click a dark card swallowed.
 local function CoverDown(slot, mouse)
 	-- Only the left button counts: a right or middle press is the player's camera
-	-- or a click on the world, never the first of two.
+	-- or a click on the world.
 	if mouse ~= "LeftButton" then return end
-	local now = GetTime()
-	if slot.state == "game" and slot.row.guard == "twice" then
-		-- Inside the gap after a first click the cover is still up: this is a double
-		-- click, which opens nothing and casts nothing.
-		if slot.openUntil and now < slot.openUntil then
-			slot.tally.cover = slot.tally.cover + 1
-			Trail(slot, "a second click too soon after the first, swallowed")
-			return
-		end
-		slot.openUntil, slot.openFrom = now + OPEN_SECONDS, now + OPEN_GAP
-		slot.ring:Show()
-		Card.Hint(slot, "full")
-		slot.tally.opened = slot.tally.opened + 1
-		Trail(slot, "first of two clicks")
-		local timer = _G.C_Timer
-		if type(timer) == "table" and type(timer.After) == "function" then
-			-- The cover comes down once the gap is over, and goes back up with the window.
-			timer.After(OPEN_GAP, function()
-				if slot.openUntil and GetTime() >= slot.openFrom then
-					slot.cover:SetShown(CoverWanted(slot, GetTime()))
-				end
-			end)
-			timer.After(OPEN_SECONDS, function()
-				if slot.openUntil and GetTime() >= slot.openUntil then
-					slot.openUntil = nil
-					slot.ring:Hide()
-					PaintHint(slot)
-					slot.cover:SetShown(CoverWanted(slot, GetTime()))
-					ns.Guard("combat prompt open window", Route)
-				end
-			end)
-		end
-		return
-	end
 	slot.tally.cover = slot.tally.cover + 1
 	Trail(slot, "the cover took a click (dark: " .. tostring(slot.why or "no need") .. ")")
 end
@@ -2208,7 +2153,7 @@ function ns.MomentLines()
 				m[row.key] == true and "on" or "off",
 				armed and ("armed (" .. tostring(armed):gsub("\n", " | ") .. ")" .. shape) or (slot and slot.tooLong and "macro too long, not armed" or "not armed"),
 				tostring(slot and slot.keyLabel or (type(GetBindingKey) == "function" and (GetBindingKey("CLICK MannersMoment" .. row.slot .. ":LeftButton")) or "none")),
-				row.slot, row.guard == "twice" and "two clicks where the game alone knows" or "one click",
+				row.slot, "one click",
 				slot and (slot.state == "dark" and ("dark: " .. tostring(slot.why or "no need")) or slot.state) or "dark",
 				tally.lit, tally.game, tally.pressedLit + tally.pressedGame + tally.pressedDark, tally.out, tally.silent)
 		end

@@ -32,9 +32,9 @@
 --   forms      not while shapeshifted (a druid, a shaman's Ghost Wolf)
 --   blind      "weak" or "dark": what a needed value the game hides and no call
 --              takes does to the button (default dark)
---   guard      "twice": while only the game knows whether it is lit (a hidden
---              health, mana, interrupt flag, stealable flag or the school of a
---              cast), it takes two quick clicks, at least a third of a second apart
+--   guard      "twice": only the game knows whether it is lit (a hidden health,
+--              mana, interrupt flag, stealable flag or the school of a cast);
+--              the self-check names it, and one click casts as on any row
 --   cooldown   seconds, for Manners' own clock; shares, resets, partner,
 --              school, breaks, lockout, reagent, seconds: see Sense
 --   kinds      the aura kinds (dispelName) the spell strips from a hostile target,

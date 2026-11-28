@@ -95,10 +95,10 @@ mutate("Modules/Services/Courtesy.lua",
        script=S)
 
 mutate("Modules/Combat/Moments.lua",
-       "local pinned = best ~= nil",
-       "local pinned = false",
-       "combat actions: a first click can authorize a newly urgent spell",
-       expect=N + "the two-click confirmation cannot switch to another action", script=S)
+       "\t\t\tif not best or Priority(slot) < Priority(best)",
+       "\t\t\tif not best or Priority(slot) > Priority(best)",
+       "combat actions: the least urgent action takes the prompt",
+       expect=N, script=S)
 
 mutate("Modules/Combat/ActionsData.lua",
        '{ key = "combat-interrupt-call-felhunter", category = "interrupt", ranks = {212619}',
@@ -205,3 +205,15 @@ mutate("Modules/Combat/ActionsData.lua",
        '{ key = "combat-self_defense-shield-wall-gone",',
        "combat actions: Forever's warrior loses Shield Wall",
        expect="WARRIOR has no combat-self_defense-shield-wall", script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\treturn slot.state == \"dark\"\nend\nMoments.CoverWanted = CoverWanted",
+       "\treturn slot.state ~= \"lit\"\nend\nMoments.CoverWanted = CoverWanted",
+       "combat actions: a card the game shows keeps its cover, so a click does nothing",
+       expect=N + "one click casts where only the game knows; a dark card swallows it", script=S)
+
+mutate("Modules/Combat/Moments.lua",
+       "\treturn slot.state == \"dark\"\nend\nMoments.CoverWanted = CoverWanted",
+       "\treturn false\nend\nMoments.CoverWanted = CoverWanted",
+       "combat actions: a dark card has no cover, so a click casts anyway",
+       expect=N + "one click casts where only the game knows; a dark card swallows it", script=S)
