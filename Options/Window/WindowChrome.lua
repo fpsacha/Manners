@@ -919,6 +919,7 @@ function UI.BuildFooter(f)
 	end))
 	footer.reset:SetSize(math.ceil(UI.Measure(label)) + 26, 22)
 	footer.reset:SetPoint("LEFT", foot, "LEFT", 10, 0)
+	footer.foot = foot
 	-- Every setting that is not at its default, in the results panel.
 	-- A square button wearing the changed mark itself (the gold dot beside each
 	-- changed setting), its name in the tooltip: a worded button took the room
@@ -1031,6 +1032,8 @@ end
 function UI.FooterRoom()
 	local reset, close = footer.reset:GetWidth() or 0, footer.close:GetWidth() or 0
 	local changed = (footer.changed:GetWidth() or 0) + FOOT_GAP
+	-- A page with no reset: its button and the gap after it are room for the line.
+	if not footer.reset:IsShown() then reset, changed = 0, changed - FOOT_GAP end
 	local bug = (footer.bug:GetWidth() or 0) + FOOT_GAP
 	return UI.WIDTH - 34 - reset - close - changed - bug - 2 * FOOT_GAP - BuildRoom()
 end
@@ -1041,8 +1044,16 @@ end
 function UI.PaintFooter()
 	local B = ns.WindowBind
 	local item = footer.resetItem
-	footer.reset:SetShown(item ~= nil and not UI.OwnHidden(item))
+	local shown = item ~= nil and not UI.OwnHidden(item)
+	footer.reset:SetShown(shown)
 	if item then footer.reset:SetEnabled(not UI.Disabled(item)) end
+	-- With no reset on the page, the square buttons move to its place at the left.
+	footer.changed:ClearAllPoints()
+	if shown then
+		footer.changed:SetPoint("LEFT", footer.reset, "RIGHT", FOOT_GAP, 0)
+	else
+		footer.changed:SetPoint("LEFT", footer.foot, "LEFT", 10, 0)
+	end
 	local build = footer.buildItem and B.Text(footer.buildItem, "name")
 	footer.build:SetText(build and UI.Plain(build) or "")
 	-- The build at the right, beside Close.

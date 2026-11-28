@@ -77,7 +77,7 @@ MIN_RATIO = 4.5
 TOL = 0.5
 STATES = ("combat", "unlocked", "snoozed", "order", "press", "folds-open", "scrolled", "modal", "search",
           "returning", "topups", "carrying", "big", "wide", "ultrawide", "simple", "offer", "switching", "sub",
-          "platesoff", "firstrun", "look", "earlier", "tab")
+          "platesoff", "learned", "firstrun", "look", "earlier", "tab")
 
 # Faces with the script of the languages Candara has no glyphs for, first in
 # the list for those languages; the Latin faces after them, for what is left.
@@ -1442,7 +1442,7 @@ def main():
                          "wide (1320 x 720: two columns), ultrawide (a 21:9 screen, 1740 x 720: three), "
                          "simple (the short list a new profile starts on), offer (the line offering it), "
                          "switching (Switch profile automatically on, with two profiles), "
-                         "platesoff (the game's friendly nameplates off, as a fresh install has them), "
+                         "learned (every spell of the class known), platesoff (the game's friendly nameplates off, as a fresh install has them), "
                          "firstrun (a new profile, Quick setup's two questions still asking), "
                          "sub KEY (the page's sub-division KEY chosen from the bar over it, e.g. who.myself), "
                          "look KEY (that look chosen, e.g. frost), earlier (Earlier art on), "

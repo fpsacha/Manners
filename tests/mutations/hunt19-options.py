@@ -70,8 +70,8 @@ mutate("Options/Window/WidgetsChoice.lua",
 
 # The footer's reset judged by its tab as well, which a rogue does not have.
 mutate("Options/Window/WindowChrome.lua",
-       "\tfooter.reset:SetShown(item ~= nil and not UI.OwnHidden(item))\n",
-       "\tfooter.reset:SetShown(item ~= nil and not UI.Hidden(item))\n",
+       "\tlocal shown = item ~= nil and not UI.OwnHidden(item)\n",
+       "\tlocal shown = item ~= nil and not UI.Hidden(item)\n",
        "hunt19-options: a rogue's What I say loses its reset",
        expect="with a list to put back, has no Put these back to default", script=S)
 

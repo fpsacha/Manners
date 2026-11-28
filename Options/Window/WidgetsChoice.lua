@@ -247,13 +247,13 @@ KIND.select = {
 		row.measure:Hide()
 	end,
 	Refresh = function(row)
-		row.label:SetText(W.Trim(W.Name(row)))
+		row.label:SetText(W.WithIcon(W.Trim(W.Name(row))))
 		TextColour(row.label, row.off and T.dim or T.ink)
 		row.values = Bind().Values(row.item)
 		-- What its longest choice needs, for a layout that lines up two
 		-- dropdowns (WindowPage.lua, MatchFields).
 		row.fieldNeed = math.ceil(Widest(row)) + 40
-		row.value:SetText(ChoiceLabel(row))
+		row.value:SetText(W.WithIcon(ChoiceLabel(row)))
 		TextColour(row.value, row.off and T.dim or T.ink)
 		-- The tint is what colours the arrow, so greying it out takes the tint.
 		row.chevron:SetDesaturated(row.off and true or false)
@@ -294,9 +294,16 @@ local function GridBox(row, i)
 	hit:RegisterForClicks("LeftButtonUp")
 	hit.box = W.CheckBox(hit)
 	hit.box:SetPoint("TOPLEFT", hit, "TOPLEFT", 0, 0)
+	-- The icon of a spell the choice names (W.SpellIcon), between box and words.
+	hit.icon = hit:CreateTexture(nil, "ARTWORK")
+	hit.icon:SetSize(18, 18)
+	hit.icon:SetPoint("TOPLEFT", hit, "TOPLEFT", 25, 0)
+	hit.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	hit.icon:Hide()
 	hit.text = W.Text(hit, T.fonts.label, T.ink)
 	hit.text:SetPoint("TOPLEFT", hit, "TOPLEFT", 25, -2)
 	hit.text:SetWordWrap(false)
+	hit.textX = 25
 	hit:SetScript("OnClick", function(self) ns.Guard("options toggle", GridClicked, self) end)
 	W.Tip(hit, row)
 	row.boxes[i] = hit
@@ -305,7 +312,7 @@ end
 
 local function GridColumns(row, width)
 	local n, widest = row.count or 0, 0
-	for i = 1, n do widest = math.max(widest, W.Measure(row.boxes[i].text)) end
+	for i = 1, n do widest = math.max(widest, W.Measure(row.boxes[i].text) + (row.boxes[i].textX - 25)) end
 	local layout = row.item.layout or {}
 	local cols = math.max(1, math.min(n, layout.columns or 4))
 	while cols > 1 and math.floor(width / cols) < widest + 31 do cols = cols - 1 end
@@ -326,6 +333,19 @@ KIND.multiselect = {
 			hit.key = v[1]
 			hit.text:SetText(v[2])
 			TextColour(hit.text, row.off and T.dim or T.ink)
+			local icon = W.SpellIcon(v[2])
+			if icon then
+				hit.icon:SetTexture(icon)
+				hit.icon:SetDesaturated(row.off and true or false)
+				hit.icon:SetAlpha(row.off and 0.55 or 1)
+			end
+			hit.icon:SetShown(icon ~= nil)
+			local x = icon and 47 or 25
+			if x ~= hit.textX then
+				hit.textX = x
+				hit.text:ClearAllPoints()
+				hit.text:SetPoint("TOPLEFT", hit, "TOPLEFT", x, -2)
+			end
 			W.CheckLook(hit.box, Bind().Value(row.item, v[1]) == true, row.off)
 			hit:SetEnabled(not row.off)
 			hit:Show()
@@ -343,8 +363,8 @@ KIND.multiselect = {
 			local c, r = (i - 1) % cols, math.floor((i - 1) / cols)
 			hit:ClearAllPoints()
 			hit:SetPoint("TOPLEFT", row.frame, "TOPLEFT", c * colWidth, -(lh + r * 24))
-			hit.text:SetWidth(math.max(1, colWidth - 31))
-			hit:SetSize(math.min(colWidth - 6, 25 + math.ceil(W.Measure(hit.text))), 18)
+			hit.text:SetWidth(math.max(1, colWidth - 6 - hit.textX))
+			hit:SetSize(math.min(colWidth - 6, hit.textX + math.ceil(W.Measure(hit.text))), 18)
 		end
 		local rows = math.ceil((row.count or 0) / cols)
 		row.fieldTop, row.fieldHeight = lh, 18

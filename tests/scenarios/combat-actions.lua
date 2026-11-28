@@ -272,6 +272,17 @@ do
 					fail(scenario, path .. " is not on the Combat page alone")
 				end
 			end
+			-- Each kind of action's switches two to a row, as a compact list.
+			for _, section in ipairs(pages.combat and pages.combat.sections or {}) do
+				if section.home then
+					for _, item in ipairs(section.items) do
+						if type(item) ~= "table" or item.columns ~= 2 then
+							fail(scenario, section.key .. " lists an action one to a row")
+							break
+						end
+					end
+				end
+			end
 			ns.db.profile.moments[key] = false
 			ns.Moments:Refresh()
 			if ns.Moments.Previewing() or ns.Moments.Anchor():IsMouseEnabled() then

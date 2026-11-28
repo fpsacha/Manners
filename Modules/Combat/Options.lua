@@ -445,7 +445,7 @@ api:RegisterOptionsExtension("appearance", function(_, args)
 		if section.home then
 			wipe(section.items)
 			local group = grouped[section.key]
-			for i, path in ipairs(group and group.items or {}) do section.items[i] = path end
+			for i, path in ipairs(group and group.items or {}) do section.items[i] = { path, columns = 2 } end
 		end
 	end
 	if Page.ForgetPageMap then Page.ForgetPageMap() end

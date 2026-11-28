@@ -421,6 +421,14 @@ function BEFORE.firstrun(ns)
 	ns.db.profile.firstRun = "pending"
 end
 
+-- Every spell of the class learned, so the lists of spells (combat actions, own
+-- buffs) show whole.
+function BEFORE.learned(ns)
+	rawset(_G, "IsSpellKnown", function() return true end)
+	rawset(_G, "IsPlayerSpell", function() return true end)
+	if ns.ProbeCapabilities then ns.ProbeCapabilities() end
+end
+
 function BEFORE.offer(ns)
 	ns.db.profile.menuView = "offer"
 end

@@ -12,6 +12,14 @@
   tanks and melee* or *only in dungeon and raid fights* on, food, flasks and
   the rest still come up (My own buffs).
 
+### Options window
+- **Spells wear their icons.** A switch, list or dropdown that names one of
+  your spells shows that spell's icon beside it.
+- **Combat actions two to a row.** Each kind of action on the Combat page is a
+  compact list.
+- **The footer buttons line up.** On a page with no *Reset this page*, the two
+  small buttons move to the left edge.
+
 ## 1.13.1
 
 *28 November 2026*

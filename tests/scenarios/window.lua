@@ -611,6 +611,16 @@ do
 					fail(scenario, "SKIPPED -- a mage cannot open " .. id)
 				elseif shown(UI.footer.reset) ~= want[id] then
 					fail(scenario, ("the reset button is %s on %s"):format(shown(UI.footer.reset) and "shown" or "hidden", id))
+				else
+					-- With no reset, the square buttons move to its place at the left.
+					local points = UI.footer.changed.points or {}
+					local at = points[#points]
+					local rel = at and at[2]
+					if want[id] and rel ~= UI.footer.reset then
+						fail(scenario, "What I changed is not beside Reset this page on " .. id)
+					elseif not want[id] and rel == UI.footer.reset then
+						fail(scenario, "What I changed leaves a gap where the hidden reset was on " .. id)
+					end
 				end
 			end
 		end

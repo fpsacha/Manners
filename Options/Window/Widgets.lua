@@ -959,14 +959,83 @@ function W.CheckLook(box, on, off)
 end
 
 -- A switch that names a spell wears the spell's icon between the box and the
--- words: the def's `image`, a texture path or file id, or a function giving one.
+-- words: the def's `image`, a texture path or file id, or a function giving one;
+-- else the icon of a spell of yours the words name (W.SpellIcon).
 local ICON_SIZE, ICON_GAP = 18, 4
+
+-- The names of your class's spells Manners knows (its buffs for others, your
+-- own buffs, the combat actions), each to its icon: made again after the
+-- capabilities are probed again, not at each repaint.
+local spellNames, spellNamesBy = nil, nil
+local function SpellNames()
+	local caps = ns.caps
+	if spellNames then return spellNames, spellNamesBy end
+	local names, order = {}, {}
+	local texture = C_Spell and C_Spell.GetSpellTexture
+	local function Add(id, name)
+		if type(name) ~= "string" or #name < 4 or names[name] then return end
+		local icon = type(texture) == "function" and ns.plain(ns.safecall(texture, id)) or nil
+		if type(icon) == "number" or (type(icon) == "string" and icon ~= "") then
+			names[name] = icon
+			order[#order + 1] = name
+		end
+	end
+	local class = ns.PlayerClass and ns.PlayerClass()
+	if class then
+		for _, buff in ipairs((ns.GetClassBuffs and ns.GetClassBuffs(class)) or {}) do
+			local id = buff.ranks and buff.ranks[1]
+			if id then Add(id, ns.SpellNameFor(id)) end
+		end
+		for _, family in ipairs((ns.OWN_BUFFS and ns.OWN_BUFFS[class]) or {}) do
+			for _, spell in ipairs(family.spells or {}) do
+				local id = spell.ranks and spell.ranks[1]
+				if id and not spell.item then Add(id, ns.SpellNameFor(id)) end
+			end
+		end
+	end
+	local moments = caps and caps.moments
+	for _, entry in ipairs(moments and moments.list or {}) do
+		if entry.id then Add(entry.id, entry.name or ns.SpellNameFor(entry.id)) end
+	end
+	-- The longest first, so "Greater Blessing of Kings" wins over "Blessing of Kings".
+	table.sort(order, function(a, b) return #a > #b end)
+	spellNames, spellNamesBy = names, order
+	return names, order
+end
+do
+	local probe = ns.ProbeCapabilities
+	if type(probe) == "function" then
+		function ns.ProbeCapabilities(...)
+			spellNames, spellNamesBy = nil, nil
+			return probe(...)
+		end
+	end
+end
+
+-- The icon of the first (longest) spell of yours `text` names, or nil.
+function W.SpellIcon(text)
+	if type(text) ~= "string" or text == "" then return nil end
+	local names, order = SpellNames()
+	for _, name in ipairs(order) do
+		if text:find(name, 1, true) then return names[name] end
+	end
+	return nil
+end
+
+-- `text` with the icon of the spell it names in front, inline, for words drawn
+-- in a single string (a dropdown's label and its choice).
+function W.WithIcon(text)
+	local icon = W.SpellIcon(text)
+	if not icon then return text end
+	return ("|T%s:16:16:0:0:64:64:5:59:5:59|t %s"):format(tostring(icon), text)
+end
 
 function W.Image(row)
 	local def = row.item.def
 	local value = def and def.image
 	if type(value) == "function" then value = value(row.item.info) end
 	if type(value) == "number" or (type(value) == "string" and value ~= "") then return value end
+	if def and def.image == nil then return W.SpellIcon(W.Name(row)) end
 	return nil
 end
 
