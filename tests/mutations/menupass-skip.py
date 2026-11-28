@@ -19,7 +19,7 @@ mutate("Options/Window/WidgetsEntry.lua",
        expect="menupass-skip: a length typed", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"timing.skipSeconds\", \"timing.ownSkipMinutes\",\n\t\tafter = function() rescan() end,",
-       "\t\t\"timing.ownSkipMinutes\",\n\t\tafter = function() rescan() end,",
+       "\t\t\"timing.skipSeconds\", \"timing.ownSkipMinutes\", \"timing.ownSkipChoices\",\n\t\tafter = function() rescan() end,",
+       "\t\t\"timing.ownSkipMinutes\", \"timing.ownSkipChoices\",\n\t\tafter = function() rescan() end,",
        "menupass-skip: RESET.skip loses timing.skipSeconds",
        expect="menupass-skip: Who to skip's reset", script=S)

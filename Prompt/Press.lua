@@ -527,6 +527,7 @@ local function OnPostClick(self, mouseButton, down)
 		local ownKey = own and not ctrl and ShownBuffKey(S, victim) or nil
 		if ownKey then
 			ns.SkipOwn(victim, ownKey, ns.OwnSkipSeconds())
+			if db and db.timing and db.timing.ownSkipChoices == true then Prompt:OfferSkipChoices(victim, ownKey) end
 		else
 			-- The retry cooldown, not the two seconds a failed cast writes:
 			-- that would put them straight back on the prompt.
@@ -1076,3 +1077,60 @@ end
 lib.OnPreClick, lib.OnPostClick = OnPreClick, OnPromptPostClick
 lib.OnRowPreClick, lib.OnRowPostClick = OnRowPreClick, OnRowPostClick
 lib.OnBarClick = OnBarClick
+
+---------------------------------------------------------------------------
+-- longer skips for one of your own (timing.ownSkipChoices)
+---------------------------------------------------------------------------
+
+-- After a right-click on one of your own buffs, four small buttons under the
+-- prompt for a few seconds: a press leaves that buff alone 15, 30, 45 or 60
+-- minutes instead of the usual skip. Plain buttons of Lua's own, anchored to
+-- the prompt (an unprotected frame may anchor to a secure one), so a fight
+-- changes nothing about them.
+local CHOICES, CHOICE_SECONDS = { 15, 30, 45, 60 }, 8
+local choices
+
+local function MakeChoices()
+	local f = CreateFrame("Frame", "MannersSkipChoices", UIParent)
+	f:SetFrameStrata("DIALOG")
+	f:SetSize(#CHOICES * 52 + 4, 26)
+	f.buttons = {}
+	for i, minutes in ipairs(CHOICES) do
+		local b = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+		b:SetSize(50, 22)
+		b:SetPoint("LEFT", f, "LEFT", 2 + (i - 1) * 52, 0)
+		b:SetText(L["%d min"]:format(minutes))
+		b.minutes = minutes
+		b:SetScript("OnClick", function(self)
+			local c = choices
+			if not (c and c.name and c.key) then return end
+			ns.Guard("longer skip", ns.SkipOwn, c.name, c.key, self.minutes * 60)
+			c.frame:Hide()
+			ns.Guard("longer skip repaint", Prompt.Refresh, Prompt)
+		end)
+		f.buttons[i] = b
+	end
+	f:Hide()
+	return f
+end
+
+function Prompt:OfferSkipChoices(name, key)
+	choices = choices or { frame = MakeChoices() }
+	local f = choices.frame
+	choices.name, choices.key = name, key
+	local at = R.button
+	f:ClearAllPoints()
+	if at then f:SetPoint("TOP", at, "BOTTOM", 0, -4) else f:SetPoint("CENTER", UIParent, "CENTER", 0, -120) end
+	f:Show()
+	local shownAt = GetTime()
+	choices.shownAt = shownAt
+	local timer = _G.C_Timer
+	if type(timer) == "table" and type(timer.After) == "function" then
+		timer.After(CHOICE_SECONDS, function()
+			if choices and choices.shownAt == shownAt then choices.frame:Hide() end
+		end)
+	end
+end
+
+-- For the tests.
+function Prompt:SkipChoices() return choices and choices.frame end

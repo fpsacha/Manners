@@ -477,7 +477,8 @@ once you carry one.
   Nothing is offered while you are eating, moving, mounted or in a fight, and a meal
   cut short brings the reminder back at once.
 - **Well-Rested** (Classic Era and WoW Forever), for the Cozy Sleeping Bag:
-  one press lays it down. Not at the level cap, nor during the hour its use
+  one press lays it down (on Classic Era at your feet; on Forever the game
+  asks where, a click on the ground). Not at the level cap, nor during the hour its use
   cools down, nor while you move. *Remind me before Well-Rested runs out*,
   under it, brings the bag back when five minutes are left, so you can renew
   it in time.
@@ -1199,7 +1200,9 @@ pages follow it in one order: *Combat*, *My own buffs*, *Services*, *My pet*
   to four hours): the same for the consumables button and *Skip for now* in
   the minimap menu, and a skipped food skips every food in your bags, since
   any of them gives Well Fed. The box reads 12 s or 5 min, and you can type
-  5m or 1h.
+  5m or 1h. *After a right-click on my own buff, offer 15, 30, 45 or 60
+  minutes* (off) puts four small buttons under the prompt for a few seconds
+  after such a right-click, to leave that buff alone longer.
 - ***Players to skip***:
   - *Skip players flagged for PvP* (on): buffing somebody flagged flags you
     too, so while you are not flagged, nobody flagged is offered, not even a

@@ -808,6 +808,9 @@ local defaults = {
 			skipSeconds = 12,
 			-- How long a right-click on one of your own buffs leaves it alone, in minutes; 0 follows skipSeconds.
 			ownSkipMinutes = 0,
+			-- Asked for on CurseForge: after a right-click on one of your own buffs,
+			-- small buttons to leave it alone 15, 30, 45 or 60 minutes. Off.
+			ownSkipChoices = false,
 			scanInterval = 0.4,
 			graceSeconds = 45,
 			keepDebts = true,

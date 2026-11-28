@@ -497,6 +497,7 @@ ns.WindowLayout = {
 				{ key = "skip.rightClick", title = L["After a right-click"], items = {
 					"advanced.skipSeconds",
 					"advanced.ownSkipMinutes",
+					"advanced.ownSkipChoices",
 				} },
 				{ key = "skip.lead", title = L["Players to skip"], items = {
 					"who.skipPvP",

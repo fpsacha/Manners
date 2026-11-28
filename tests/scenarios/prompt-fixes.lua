@@ -129,7 +129,9 @@ local function pressBag(ns, scenario, guid, seconds)
 		return false
 	end
 	local pressed = H.pressButton(ns)
-	if pressed ~= "/use item:" .. BAG or not (ns.pendingClick and ns.pendingClick.onSelf) then
+	-- Where [@player] resolves (Classic Era) the bag goes down at your feet.
+	local want = (ns.caps.conditionalTargeting and "/use [@player] item:" or "/use item:") .. BAG
+	if pressed ~= want or not (ns.pendingClick and ns.pendingClick.onSelf) then
 		fail(scenario, "SKIPPED -- the press did not go out: " .. flat(pressed))
 		return false
 	end

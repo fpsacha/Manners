@@ -306,3 +306,34 @@ do
 		end
 	end)
 end
+
+do
+	-- Asked on CurseForge (fishing for an hour): after a right-click on your own
+	-- buff, four small buttons under the prompt for a few seconds, 15 to 60
+	-- minutes. Off by default; on, a press keeps that buff away that long.
+	local scenario = "ownskip-long: the 15 to 60 minute buttons after a right-click, off by default"
+	mageWith(scenario, nil, function(ns)
+		if ns.defaults.profile.timing.ownSkipChoices ~= false then fail(scenario, "the buttons are on by default") end
+		local first = onFirst(ns)
+		if not first then fail(scenario, "SKIPPED -- the prompt is not on your own buff") return end
+		H.pressButton(ns, "RightButton")
+		local f = ns.Prompt:SkipChoices()
+		if f and f:IsShown() then fail(scenario, "the buttons came up with the switch off") end
+		Mock.advance(20)
+		ns.db.profile.timing.ownSkipChoices = true
+		first = onFirst(ns)
+		if not first then fail(scenario, "SKIPPED -- the prompt is not back on your own buff") return end
+		H.pressButton(ns, "RightButton")
+		f = ns.Prompt:SkipChoices()
+		if not (f and f:IsShown() and f.buttons and #f.buttons == 4) then fail(scenario, "no four buttons after the right-click") return end
+		f.buttons[4]:GetScript("OnClick")(f.buttons[4])
+		if f:IsShown() then fail(scenario, "the buttons stayed after one was pressed") end
+		Mock.advance(59 * 60)
+		if not ns.IsBlocked(me(), first) then fail(scenario, first .. " came back before the hour chosen") end
+		Mock.advance(2 * 60)
+		if ns.IsBlocked(me(), first) then fail(scenario, first .. " was still skipped after an hour and a minute") end
+		H.pressButton(ns, "RightButton")
+		Mock.runTimers(9)
+		if ns.Prompt:SkipChoices():IsShown() then fail(scenario, "the buttons did not go away by themselves") end
+	end)
+end
