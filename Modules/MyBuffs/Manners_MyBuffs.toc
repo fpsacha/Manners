@@ -2,7 +2,7 @@
 ## Title: Manners: My Buffs
 ## Notes: Optional reminders for your own buffs, consumables and companion pet.
 ## Author: Sacha
-## Version: 1.13.1
+## Version: 1.14.0
 ## Dependencies: Manners
 ## DefaultState: enabled
 ## X-License: MIT
