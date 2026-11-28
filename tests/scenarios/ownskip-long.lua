@@ -337,3 +337,27 @@ do
 		if ns.Prompt:SkipChoices():IsShown() then fail(scenario, "the buttons did not go away by themselves") end
 	end)
 end
+
+do
+	-- The owner: a prompt frozen on yourself all fight, "held -- in combat", is
+	-- of no use. At the pull your own buff is left out of what the fight holds
+	-- (Fight.lua, ForFight): with nobody else to offer, the prompt goes before
+	-- the lockdown, with nothing armed. A shout stays (shoutfight.lua).
+	local scenario = "ownskip-long: your own buff is not held on the prompt into a fight"
+	mageWith(scenario, nil, function(ns)
+		if not onFirst(ns) then fail(scenario, "SKIPPED -- the prompt is not on your own buff") return end
+		ns.Prompt.armedForFight = true
+		ns.Prompt:Refresh()
+		local showing = ns.Prompt:Showing()
+		if showing and showing.reason == "self" then
+			fail(scenario, "at the pull the prompt still holds your own " .. key(showing))
+		end
+		local macro = ns.Prompt:GetButton():GetAttribute("macrotext1")
+		if ns.Prompt:GetButton():IsShown() and macro and macro ~= "" then
+			fail(scenario, "at the pull the prompt stays up armed: " .. tostring(macro))
+		end
+		ns.Prompt.armedForFight = false
+		ns.Prompt:Refresh()
+		if not onFirst(ns) then fail(scenario, "after the fight your own buff did not come back") end
+	end)
+end

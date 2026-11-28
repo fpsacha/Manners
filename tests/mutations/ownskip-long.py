@@ -79,3 +79,15 @@ mutate("Prompt/Macro.lua",
        "local at = \"\"",
        "wellrested: the bag waits for a place on the ground",
        expect="wellrested: Classic Era offers it too, laid at your feet in one press", script="runscenarios.py")
+
+mutate("Prompt/Fight.lua",
+       "\t\t\tor (entry.reason == \"self\" and not (entry.buff and entry.buff.selfCast))",
+       "\t\t\tor false",
+       "ownskip-long: your own buff is held on the prompt all fight",
+       expect="ownskip-long: your own buff is not held on the prompt into a fight", script="runscenarios.py")
+
+mutate("Prompt/Fight.lua",
+       "\t\t\tor (entry.reason == \"self\" and not (entry.buff and entry.buff.selfCast))",
+       "\t\t\tor (entry.reason == \"self\")",
+       "shoutfight: a shout is dropped at the pull with the other own buffs",
+       expect="the prompt the pull armed lost the shout", script="runscenarios.py")

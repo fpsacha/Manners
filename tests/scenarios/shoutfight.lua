@@ -82,6 +82,12 @@ do
 		pull(ns)
 		local entry = mine(ns)
 		if not entry or entry.buff.key ~= "battleshout" then fail(scenario, "on the pull the shout was dropped") end
+		-- And the prompt the pull arms keeps it (Fight.lua, ForFight).
+		ns.Prompt:Refresh()
+		local showing = ns.Prompt:Showing()
+		if not (showing and showing.buff and showing.buff.key == "battleshout") then
+			fail(scenario, "the prompt the pull armed lost the shout: " .. tostring(showing and showing.buff and showing.buff.key))
+		end
 	end)
 end
 
